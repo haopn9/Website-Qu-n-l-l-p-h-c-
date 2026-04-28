@@ -1,0 +1,18 @@
+POST   /api/xacthuc/login -> đăng nhập user
+GET    /api/admin/thongke -> thống kê user ởtrang amdin
+GET    /api/nguoidung -> lấy danh sách ở trang admin
+POST   /api/nguoidung -> thêm user ở trang admin
+PUT    /api/nguoidung/{id}/trangthai -> khóa / mở khóa tài khoản user ở trang admin
+DELETE /api/nguoidung/{id} -> xóa account user ở tarng admin
+GET    /api/lophoc
+POST   /api/lophoc
+DELETE /api/lophoc/{id}         
+GET    /api/lophoc/giangvien     
+GET    /api/lophoc/hocky         
+GET    /api/nhom?maLop=
+POST   /api/nhom
+DELETE /api/nhom/{id}
+POST   /api/nhom/{id}/detai
+GET    /api/tinnhan?maNhom=
+POST   /api/tinnhan
+DELETE /api/tinnhan/{id}

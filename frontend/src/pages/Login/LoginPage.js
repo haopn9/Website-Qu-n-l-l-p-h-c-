@@ -27,11 +27,49 @@ const LoginPage = () => {
   // Nút đăng nhập chỉ khả dụng khi cả username và password đều không bị trống
   const isButtonDisabled = username.trim() === '' || password.trim() === '';
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    if (!isButtonDisabled) {
-      alert('Đăng nhập thành công! (Chờ kết nối Backend)');
-      // navigate('/student'); // Sau này gắn link vào dashboard
+    if (isButtonDisabled) return;
+
+    try {
+      const response = await fetch('http://localhost:5186/api/xacthuc/dangnhap', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          tenDangNhap: username,
+          matKhau: password
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        alert('Đăng nhập thành công!');
+        // Lưu token và thông tin người dùng
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('userInfo', JSON.stringify({
+          maNguoiDung: data.maNguoiDung,
+          hoTen: data.hoTen,
+          maVaiTro: data.maVaiTro,
+          tenVaiTro: data.tenVaiTro
+        }));
+
+        // Chuyển hướng dựa theo mã vai trò
+        if (data.maVaiTro === 1) {
+          navigate('/admin');
+        } else if (data.maVaiTro === 2) {
+          navigate('/teacher');
+        } else {
+          navigate('/student');
+        }
+      } else {
+        alert(data.thongBao || 'Sai tài khoản hoặc mật khẩu');
+      }
+    } catch (error) {
+      console.error('Lỗi kết nối server:', error);
+      alert('Lỗi kết nối đến server. Vui lòng bật Backend.');
     }
   };
 

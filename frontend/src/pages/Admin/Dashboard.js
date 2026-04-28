@@ -26,23 +26,39 @@ const Dashboard = () => {
 
   // Giả lập dữ liệu từ database (sẽ thay bằng API call)
   useEffect(() => {
-    // TODO: Gọi API từ backend
-    // fetch('/api/admin/dashboard-stats')
-    //   .then(res => res.json())
-    //   .then(data => setStats(data))
-    
-    // Dữ liệu mẫu từ database
-    setStats({
-      totalUsers: 120,      // Tổng từ bảng NguoiDung
-      totalTeachers: 3,     // Đếm từ bảng NguoiDung WHERE MaVaiTro = 2
-      totalStudents: 100,   // Đếm từ bảng NguoiDung WHERE MaVaiTro = 3
-      totalClasses: 3,      // Đếm từ bảng LopHoc
-      totalGroups: 9,       // Đếm từ bảng Nhom
-      activeGroups: 9,      // Đếm nhóm có sinh viên
-      pendingTasks: 15,     // Đếm từ bảng NhiemVu WHERE TrangThai = 'Đang thực hiện'
-      overdueTasks: 3,      // Đếm task quá hạn
-      totalMessages: 1240,  // Đếm từ bảng TinNhan
-    });
+    const fetchStats = async () => {
+      try {
+        const token = localStorage.getItem('token'); // Lấy token từ localStorage (nếu có authorize)
+        const response = await fetch('http://localhost:5186/api/admin/thongke', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          setStats({
+            totalUsers: data.totalUsers,
+            totalTeachers: data.totalTeachers,
+            totalStudents: data.totalStudents,
+            totalClasses: data.totalClasses,
+            totalGroups: data.totalGroups,
+            activeGroups: data.totalGroups, // Tạm dùng tổng số nhóm
+            pendingTasks: data.pendingTasks,
+            overdueTasks: data.overdueTasks,
+            totalMessages: data.totalMessages,
+          });
+        } else {
+          console.error('Lỗi khi gọi API thống kê');
+        }
+      } catch (error) {
+        console.error('Không kết nối được server:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStats();
 
     setRecentClasses([
       { id: 1, name: 'Lập trình Web', code: 'LT_WEB_01', teacher: 'Nguyễn Văn A', students: 45, groups: 9, status: 'active' },
@@ -50,7 +66,6 @@ const Dashboard = () => {
       { id: 3, name: 'Lập trình Java', code: 'JAVA_01', teacher: 'Lê Hồng C', students: 42, groups: 9, status: 'active' },
     ]);
     
-    setLoading(false);
   }, []);
 
   if (loading) {

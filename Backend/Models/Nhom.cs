@@ -35,5 +35,7 @@ public partial class Nhom
 
     public virtual ICollection<YeuCauChuyenNhom> YeuCauChuyenNhomMaNhomMuonNavigations { get; set; } = new List<YeuCauChuyenNhom>();
 
+    public virtual ICollection<YeuCauVaoNhom> YeuCauVaoNhoms { get; set; } = new List<YeuCauVaoNhom>();
+
     public virtual ICollection<NguoiDung> MaSinhViens { get; set; } = new List<NguoiDung>();
 }

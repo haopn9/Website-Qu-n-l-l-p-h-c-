@@ -23,6 +23,8 @@ public partial class NguoiDung
 
     public string? Email { get; set; }
 
+    public string? DiaChi { get; set; }
+
     public string? AnhDaiDien { get; set; }
 
     public int? MaKhoa { get; set; }
@@ -52,6 +54,8 @@ public partial class NguoiDung
     public virtual ICollection<TinNhan> TinNhans { get; set; } = new List<TinNhan>();
 
     public virtual ICollection<YeuCauChuyenNhom> YeuCauChuyenNhoms { get; set; } = new List<YeuCauChuyenNhom>();
+
+    public virtual ICollection<YeuCauVaoNhom> YeuCauVaoNhoms { get; set; } = new List<YeuCauVaoNhom>();
 
     public virtual ICollection<LopHoc> MaLops { get; set; } = new List<LopHoc>();
 

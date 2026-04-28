@@ -10,64 +10,92 @@ namespace Backend.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class AuthController : ControllerBase
+public class XacThucController : ControllerBase
 {
     private readonly QuanLyLopHocDbContext _db;
     private readonly IConfiguration _config;
 
-    public AuthController(QuanLyLopHocDbContext db, IConfiguration config)
+    public XacThucController(QuanLyLopHocDbContext db, IConfiguration config)
     {
         _db = db;
         _config = config;
     }
 
-    // POST api/auth/login
-    [HttpPost("login")]
-    public async Task<IActionResult> Login([FromBody] LoginDto dto)
+    // =============================================
+    // ĐĂNG NHẬP
+    // POST: api/xacthuc/dangnhap
+    // =============================================
+    [HttpPost("dangnhap")]
+    public async Task<IActionResult> DangNhap([FromBody] DangNhapDto dto)
     {
-        var user = await _db.NguoiDungs
+        // Bước 1: Lấy tất cả người dùng ra
+        List<NguoiDung> tatCaNguoiDung = await _db.NguoiDungs
             .Include(u => u.MaVaiTroNavigation)
-            .FirstOrDefaultAsync(u => u.TenDangNhap == dto.TenDangNhap
-                                   && u.DangHoatDong == true);
+            .ToListAsync();
 
-        if (user == null || user.MatKhauHash != dto.MatKhau)
-            return Unauthorized(new { message = "Sai tài khoản hoặc mật khẩu" });
+        // Bước 2: Tìm người dùng theo tên đăng nhập
+        NguoiDung? nguoiDung = null;
+        foreach (NguoiDung u in tatCaNguoiDung)
+        {
+            if (u.TenDangNhap == dto.TenDangNhap && u.DangHoatDong == true)
+            {
+                nguoiDung = u;
+            }
+        }
 
-        var token = TaoToken(user);
+        // Bước 3: Kiểm tra có tìm thấy không
+        if (nguoiDung == null)
+        {
+            return Unauthorized(new { thongBao = "Sai tài khoản hoặc mật khẩu" });
+        }
 
+        // Bước 4: Kiểm tra mật khẩu
+        if (nguoiDung.MatKhauHash != dto.MatKhau)
+        {
+            return Unauthorized(new { thongBao = "Sai tài khoản hoặc mật khẩu" });
+        }
+
+        // Bước 5: Tạo token
+        string secretKey = _config["AppSettings:Token"]!;
+        SymmetricSecurityKey key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
+        SigningCredentials credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+        List<Claim> danhSachClaim = new List<Claim>();
+        danhSachClaim.Add(new Claim("maNguoiDung", nguoiDung.MaNguoiDung.ToString()));
+        danhSachClaim.Add(new Claim("maVaiTro", nguoiDung.MaVaiTro.ToString()));
+        danhSachClaim.Add(new Claim("hoTen", nguoiDung.HoTen));
+
+        JwtSecurityToken tokenObject = new JwtSecurityToken(
+            claims: danhSachClaim,
+            expires: DateTime.Now.AddHours(24),
+            signingCredentials: credentials
+        );
+
+        string tokenString = new JwtSecurityTokenHandler().WriteToken(tokenObject);
+
+        // Bước 6: Lấy tên vai trò
+        string tenVaiTro = "";
+        if (nguoiDung.MaVaiTroNavigation != null)
+        {
+            tenVaiTro = nguoiDung.MaVaiTroNavigation.TenVaiTro;
+        }
+
+        // Bước 7: Trả về kết quả
         return Ok(new
         {
-            token,
-            maNguoiDung = user.MaNguoiDung,
-            hoTen = user.HoTen,
-            vaiTro = user.MaVaiTroNavigation?.TenVaiTro,
-            maVaiTro = user.MaVaiTro
+            token = tokenString,
+            maNguoiDung = nguoiDung.MaNguoiDung,
+            hoTen = nguoiDung.HoTen,
+            maVaiTro = nguoiDung.MaVaiTro,
+            tenVaiTro = tenVaiTro
         });
-    }
-
-    private string TaoToken(NguoiDung user)
-    {
-        var key = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes(_config["AppSettings:Token"]!));
-
-        var claims = new[]
-        {
-            new Claim("maNguoiDung", user.MaNguoiDung.ToString()),
-            new Claim("vaiTro",      user.MaVaiTro.ToString()),
-            new Claim(ClaimTypes.Name, user.TenDangNhap)
-        };
-
-        var token = new JwtSecurityToken(
-            claims: claims,
-            expires: DateTime.Now.AddHours(24),
-            signingCredentials: new SigningCredentials(key, SecurityAlgorithms.HmacSha256));
-
-        return new JwtSecurityTokenHandler().WriteToken(token);
     }
 }
 
-// DTO đặt luôn ở đây cho tiện
-public class LoginDto
+// =============================================
+// DTO
+// =============================================
+public class DangNhapDto
 {
     public string TenDangNhap { get; set; } = "";
     public string MatKhau { get; set; } = "";

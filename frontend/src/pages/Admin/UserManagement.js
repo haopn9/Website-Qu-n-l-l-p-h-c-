@@ -33,22 +33,22 @@ const UserManagement = () => {
     { MaVaiTro: 3, TenVaiTro: 'Sinh viên' },
   ];
 
-  // Giả lập lấy dữ liệu từ database
+  const fetchUsers = async () => {
+    try {
+      const response = await fetch('http://localhost:5186/api/nguoidung');
+      if (response.ok) {
+        const data = await response.json();
+        setUsers(data);
+      }
+    } catch (error) {
+      console.error('Lỗi lấy danh sách người dùng:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    // TODO: Gọi API từ backend
-    // fetch('/api/admin/users')
-    //   .then(res => res.json())
-    //   .then(data => setUsers(data))
-    
-    // Dữ liệu mẫu từ bảng NguoiDung
-    setUsers([
-      { id: 1, maSo: 'ADMIN001', tenDangNhap: 'admin', hoTen: 'Quản trị viên hệ thống', email: 'admin@stu.edu.vn', maVaiTro: 1, tenVaiTro: 'Quản trị', dangHoatDong: true },
-      { id: 2, maSo: 'GV001', tenDangNhap: 'gv.nguyenvana', hoTen: 'Nguyễn Văn A', email: 'gv001@stu.edu.vn', maVaiTro: 2, tenVaiTro: 'Giảng viên', dangHoatDong: true },
-      { id: 3, maSo: 'GV002', tenDangNhap: 'gv.tranthib', hoTen: 'Trần Thị B', email: 'gv002@stu.edu.vn', maVaiTro: 2, tenVaiTro: 'Giảng viên', dangHoatDong: true },
-      { id: 4, maSo: 'DH52200320', tenDangNhap: 'dh52200320', hoTen: 'Đặng Võ Phương Anh', email: 'DH52200320@student.stu.edu.vn', maVaiTro: 3, tenVaiTro: 'Sinh viên', dangHoatDong: true },
-      { id: 5, maSo: 'DH52300086', tenDangNhap: 'dh52300086', hoTen: 'Trần Quốc Anh', email: 'DH52300086@student.stu.edu.vn', maVaiTro: 3, tenVaiTro: 'Sinh viên', dangHoatDong: true },
-    ]);
-    setLoading(false);
+    fetchUsers();
   }, []);
 
   // Lọc người dùng
@@ -60,45 +60,83 @@ const UserManagement = () => {
     return matchesSearch && matchesRole;
   });
 
-  const toggleUserStatus = (userId) => {
-    // TODO: Gọi API cập nhật trạng thái
-    setUsers(users.map(user => 
-      user.id === userId 
-        ? { ...user, dangHoatDong: !user.dangHoatDong }
-        : user
-    ));
-  };
-
-  const deleteUser = (userId) => {
-    if (window.confirm('Bạn có chắc muốn xóa người dùng này?')) {
-      // TODO: Gọi API xóa (soft delete)
-      setUsers(users.filter(user => user.id !== userId));
+  const toggleUserStatus = async (userId) => {
+    try {
+      const response = await fetch(`http://localhost:5186/api/nguoidung/${userId}/trangthai`, {
+        method: 'PUT'
+      });
+      if (response.ok) {
+        setUsers(users.map(user => 
+          user.maNguoiDung === userId 
+            ? { ...user, dangHoatDong: !user.dangHoatDong }
+            : user
+        ));
+      } else {
+        alert('Có lỗi xảy ra khi cập nhật trạng thái');
+      }
+    } catch (error) {
+      console.error('Lỗi cập nhật trạng thái:', error);
     }
   };
 
-  const handleAddUser = () => {
+  const deleteUser = async (userId) => {
+    if (window.confirm('Bạn có chắc muốn khóa (xóa) người dùng này?')) {
+      try {
+        const response = await fetch(`http://localhost:5186/api/nguoidung/${userId}`, {
+          method: 'DELETE'
+        });
+        if (response.ok) {
+          // Xóa mềm -> Đổi trạng thái thành false
+          setUsers(users.map(user => 
+            user.maNguoiDung === userId 
+              ? { ...user, dangHoatDong: false }
+              : user
+          ));
+        } else {
+          alert('Có lỗi xảy ra khi khóa người dùng');
+        }
+      } catch (error) {
+        console.error('Lỗi khóa người dùng:', error);
+      }
+    }
+  };
+
+  const handleAddUser = async () => {
     if (!newUser.maSo || !newUser.tenDangNhap || !newUser.hoTen || !newUser.email || !newUser.matKhau) {
       alert('Vui lòng nhập đầy đủ thông tin!');
       return;
     }
     
-    // TODO: Gọi API thêm người dùng
-    const newId = Math.max(...users.map(u => u.id), 0) + 1;
-    const vaiTro = vaiTroList.find(v => v.MaVaiTro === parseInt(newUser.maVaiTro));
-    setUsers([...users, {
-      id: newId,
-      maSo: newUser.maSo,
-      tenDangNhap: newUser.tenDangNhap,
-      hoTen: newUser.hoTen,
-      email: newUser.email,
-      maVaiTro: parseInt(newUser.maVaiTro),
-      tenVaiTro: vaiTro?.TenVaiTro,
-      dangHoatDong: true
-    }]);
-    
-    setNewUser({ maSo: '', tenDangNhap: '', hoTen: '', email: '', matKhau: '', maKhoa: '1', maVaiTro: '3' });
-    setShowAddModal(false);
-    alert('Thêm người dùng thành công!');
+    try {
+      const response = await fetch('http://localhost:5186/api/nguoidung', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          maSo: newUser.maSo,
+          tenDangNhap: newUser.tenDangNhap,
+          matKhau: newUser.matKhau,
+          hoTen: newUser.hoTen,
+          email: newUser.email,
+          maKhoa: parseInt(newUser.maKhoa),
+          maVaiTro: parseInt(newUser.maVaiTro)
+        })
+      });
+
+      if (response.ok) {
+        alert('Thêm người dùng thành công!');
+        fetchUsers(); // Lấy lại danh sách mới
+        setNewUser({ maSo: '', tenDangNhap: '', hoTen: '', email: '', matKhau: '', maKhoa: '1', maVaiTro: '3' });
+        setShowAddModal(false);
+      } else {
+        const errorData = await response.json();
+        alert('Lỗi: ' + (errorData.thongBao || 'Không thể thêm người dùng'));
+      }
+    } catch (error) {
+      console.error('Lỗi gọi API thêm người dùng:', error);
+      alert('Lỗi kết nối máy chủ');
+    }
   };
 
   if (loading) {
@@ -164,7 +202,7 @@ const UserManagement = () => {
             </thead>
             <tbody>
               {filteredUsers.map(user => (
-                <tr key={user.id}>
+                <tr key={user.maNguoiDung}>
                   <td><span className="id-badge">{user.maSo}</span></td>
                   <td>{user.tenDangNhap}</td>
                   <td>{user.hoTen}</td>
@@ -186,11 +224,11 @@ const UserManagement = () => {
                     <button 
                       className="action-btn edit" 
                       title={user.dangHoatDong ? 'Khóa' : 'Mở khóa'}
-                      onClick={() => toggleUserStatus(user.id)}
+                      onClick={() => toggleUserStatus(user.maNguoiDung)}
                     >
                       {user.dangHoatDong ? <FaLock /> : <FaUnlock />}
                     </button>
-                    <button className="action-btn delete" title="Xóa" onClick={() => deleteUser(user.id)}>
+                    <button className="action-btn delete" title="Xóa" onClick={() => deleteUser(user.maNguoiDung)}>
                       <FaTrash />
                     </button>
                   </td>

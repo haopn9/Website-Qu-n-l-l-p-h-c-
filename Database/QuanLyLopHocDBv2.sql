@@ -1,4 +1,3 @@
-
 -- ============================================================
 -- HỆ THỐNG QUẢN LÝ LỚP HỌC - MODULE LÀM VIỆC NHÓM
 -- Phiên bản: 2.0
@@ -139,21 +138,9 @@ CREATE TABLE ThanhVienNhom (
     FOREIGN KEY (MaSinhVien)  REFERENCES NguoiDung(MaNguoiDung)
 );
  
--- Bảng lưu yêu cầu xin gia nhập nhóm của sinh viên (chưa có nhóm)
-CREATE TABLE YeuCauVaoNhom (
-    MaYeuCau      INT           IDENTITY(1,1) PRIMARY KEY,
-    MaSinhVien    INT           NOT NULL,                  -- SV xin vào (FK)
-    MaNhom        INT           NOT NULL,                  -- Nhóm muốn vào (FK)
-    LoiNhan       NVARCHAR(MAX) NULL,                      -- Lời nhắn cho nhóm trưởng
-    TrangThai     NVARCHAR(50)  DEFAULT N'Chờ duyệt',      -- Chờ duyệt / Đã duyệt / Từ chối
-    NgayGui       DATETIME      DEFAULT GETDATE(),
-    NgayXuLy      DATETIME      NULL,
-    FOREIGN KEY (MaSinhVien) REFERENCES NguoiDung(MaNguoiDung),
-    FOREIGN KEY (MaNhom)     REFERENCES Nhom(MaNhom)
-);
 
 -- ============================================================
--- CỤM 4: QUẢN LÝ YÊU CẦU CHUYỂN NHÓM
+-- CỤM 4: QUẢN LÝ YÊU CẦU CHUYỂN NHÓM & YÊU CẦU XIN GIA NHẬP NHÓM
 -- ============================================================
 
 -- Bảng lưu yêu cầu chuyển nhóm của sinh viên
@@ -171,6 +158,19 @@ CREATE TABLE YeuCauChuyenNhom (
     FOREIGN KEY (MaSinhVien)    REFERENCES NguoiDung(MaNguoiDung),
     FOREIGN KEY (MaNhomHienTai) REFERENCES Nhom(MaNhom),
     FOREIGN KEY (MaNhomMuon)    REFERENCES Nhom(MaNhom)
+);
+
+-- Bảng lưu yêu cầu xin gia nhập nhóm của sinh viên (chưa có nhóm)
+CREATE TABLE YeuCauVaoNhom (
+    MaYeuCau      INT           IDENTITY(1,1) PRIMARY KEY,
+    MaSinhVien    INT           NOT NULL,                  -- SV xin vào (FK)
+    MaNhom        INT           NOT NULL,                  -- Nhóm muốn vào (FK)
+    LoiNhan       NVARCHAR(MAX) NULL,                      -- Lời nhắn cho nhóm trưởng
+    TrangThai     NVARCHAR(50)  DEFAULT N'Chờ duyệt',      -- Chờ duyệt / Đã duyệt / Từ chối
+    NgayGui       DATETIME      DEFAULT GETDATE(),
+    NgayXuLy      DATETIME      NULL,
+    FOREIGN KEY (MaSinhVien) REFERENCES NguoiDung(MaNguoiDung),
+    FOREIGN KEY (MaNhom)     REFERENCES Nhom(MaNhom)
 );
 
 -- ============================================================
@@ -441,3 +441,13 @@ PRINT N'=== Khởi tạo Database QuanLyLopHocDB thành công! ===';
 PRINT N'Đã tạo: 10 bảng chính, 1 Admin, 3 Giảng viên, 100 Sinh viên';
 PRINT N'Lưu ý: Cột MatKhauHash cần được backend hash thực tế bằng BCrypt trước khi lưu!';
 
+-- ============================================================
+-- 3 TÀI KHOẢN TEST (TẠO THÊM THEO YÊU CẦU)
+-- ============================================================
+INSERT INTO NguoiDung (MaSo, TenDangNhap, MatKhauHash, HoTen, Email, MaKhoa, MaVaiTro, DangHoatDong)
+VALUES
+('ADMIN999', 'admin_test', '123456', N'Tài khoản Admin Test', 'admin_test@stu.edu.vn', NULL, 1, 1),
+('GV999', 'gv_test', '123456', N'Tài khoản Giảng viên Test', 'gv_test@stu.edu.vn', 1, 2, 1),
+('SV999', 'sv_test', '123456', N'Tài khoản Sinh viên Test', 'sv_test@student.stu.edu.vn', 1, 3, 1);
+
+SELECT * FROM NguoiDung 
