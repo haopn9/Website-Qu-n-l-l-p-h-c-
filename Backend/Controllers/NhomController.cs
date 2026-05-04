@@ -1,6 +1,8 @@
 ﻿using Backend.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace Backend.Controllers;
 
@@ -13,6 +15,49 @@ public class NhomController : ControllerBase
     public NhomController(QuanLyLopHocDbContext db)
     {
         _db = db;
+    }
+
+    // =============================================
+    // LẤY DANH SÁCH NHÓM CỦA TÔI
+    // GET: api/nhom/cua-toi
+    // =============================================
+    [HttpGet("cua-toi")]
+    [Authorize]
+    public async Task<IActionResult> DanhSachNhomCuaToi()
+    {
+        var claimMaNguoiDung = User.FindFirstValue("maNguoiDung");
+        if (string.IsNullOrEmpty(claimMaNguoiDung))
+        {
+            return Unauthorized(new { thongBao = "Chưa đăng nhập" });
+        }
+
+        int maNguoiDung = int.Parse(claimMaNguoiDung);
+
+        // Tìm các nhóm mà sinh viên này tham gia
+        List<Nhom> cacNhom = await _db.Nhoms
+            .Include(n => n.MaLopNavigation)
+            .Include(n => n.MaSinhViens)
+            .Include(n => n.MaNhomTruongNavigation)
+            .Where(n => n.MaSinhViens.Any(sv => sv.MaNguoiDung == maNguoiDung))
+            .ToListAsync();
+
+        List<object> ketQua = new List<object>();
+        foreach (var nhom in cacNhom)
+        {
+            ketQua.Add(new
+            {
+                maNhom = nhom.MaNhom,
+                tenNhom = nhom.TenNhom,
+                maLop = nhom.MaLop,
+                tenLop = nhom.MaLopNavigation?.TenLop,
+                laNhomTruong = (nhom.MaNhomTruong == maNguoiDung),
+                tenNhomTruong = nhom.MaNhomTruongNavigation?.HoTen ?? "Chưa có",
+                soThanhVienHienTai = nhom.MaSinhViens.Count,
+                soThanhVienToiDa = nhom.SoThanhVienToiDa
+            });
+        }
+
+        return Ok(ketQua);
     }
 
     // =============================================

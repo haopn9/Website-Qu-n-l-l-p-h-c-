@@ -1,6 +1,8 @@
 ﻿using Backend.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace Backend.Controllers;
 
@@ -13,6 +15,102 @@ public class LopHocController : ControllerBase
     public LopHocController(QuanLyLopHocDbContext db)
     {
         _db = db;
+    }
+
+    // =============================================
+    // LẤY DANH SÁCH LỚP HỌC CỦA TÔI
+    // GET: api/lophoc/cua-toi
+    // =============================================
+    [HttpGet("cua-toi")]
+    [Authorize]
+    public async Task<IActionResult> DanhSachLopCuaToi()
+    {
+        var claimMaNguoiDung = User.FindFirstValue("maNguoiDung");
+        var claimMaVaiTro = User.FindFirstValue("maVaiTro");
+
+        if (string.IsNullOrEmpty(claimMaNguoiDung))
+        {
+            return Unauthorized(new { thongBao = "Chưa đăng nhập" });
+        }
+
+        int maNguoiDung = int.Parse(claimMaNguoiDung);
+        int maVaiTro = int.Parse(claimMaVaiTro ?? "0");
+
+        List<object> ketQua = new List<object>();
+
+        if (maVaiTro == 2) // Giảng viên
+        {
+            List<LopHoc> lopCuaGV = await _db.LopHocs
+                .Include(l => l.MaGiangVienNavigation)
+                .Where(l => l.MaGiangVien == maNguoiDung)
+                .ToListAsync();
+
+            foreach (var lop in lopCuaGV)
+            {
+                ketQua.Add(new { maLop = lop.MaLop, maLopHoc = lop.MaLopHoc, tenLop = lop.TenLop, tenGiangVien = lop.MaGiangVienNavigation?.HoTen, maHocKy = lop.MaHocKy });
+            }
+        }
+        else if (maVaiTro == 3) // Sinh viên
+        {
+            // Tìm các lớp mà sinh viên tham gia thông qua Navigation MaSinhViens (M-N với NguoiDung)
+            NguoiDung? sv = await _db.NguoiDungs
+                .Include(u => u.MaLops) // Sinh viên nằm trong nhiều lớp
+                .ThenInclude(l => l.MaGiangVienNavigation)
+                .FirstOrDefaultAsync(u => u.MaNguoiDung == maNguoiDung);
+
+            if (sv != null)
+            {
+                foreach (var lop in sv.MaLops)
+                {
+                    ketQua.Add(new { maLop = lop.MaLop, maLopHoc = lop.MaLopHoc, tenLop = lop.TenLop, tenGiangVien = lop.MaGiangVienNavigation?.HoTen, maHocKy = lop.MaHocKy });
+                }
+            }
+        }
+
+        return Ok(ketQua);
+    }
+
+    // =============================================
+    // THAM GIA LỚP HỌC (Sinh viên nhập mã)
+    // POST: api/lophoc/tham-gia
+    // =============================================
+    [HttpPost("tham-gia")]
+    [Authorize]
+    public async Task<IActionResult> ThamGiaLop([FromBody] ThamGiaLopDto dto)
+    {
+        var claimMaNguoiDung = User.FindFirstValue("maNguoiDung");
+        if (string.IsNullOrEmpty(claimMaNguoiDung))
+        {
+            return Unauthorized(new { thongBao = "Chưa đăng nhập" });
+        }
+
+        int maNguoiDung = int.Parse(claimMaNguoiDung);
+
+        // Tìm lớp học dựa vào mã lớp học (chuỗi, ví dụ: "LTWEB01")
+        LopHoc? lopHoc = await _db.LopHocs
+            .Include(l => l.MaSinhViens)
+            .FirstOrDefaultAsync(l => l.MaLopHoc == dto.MaLopHoc);
+
+        if (lopHoc == null)
+        {
+            return NotFound(new { thongBao = "Mã lớp học không tồn tại" });
+        }
+
+        // Tìm sinh viên
+        NguoiDung? sinhVien = await _db.NguoiDungs.FindAsync(maNguoiDung);
+        if (sinhVien == null) return NotFound(new { thongBao = "Không tìm thấy sinh viên" });
+
+        // Kiểm tra sinh viên đã ở trong lớp chưa
+        if (lopHoc.MaSinhViens.Any(sv => sv.MaNguoiDung == maNguoiDung))
+        {
+            return BadRequest(new { thongBao = "Bạn đã tham gia lớp này rồi" });
+        }
+
+        // Thêm sinh viên vào lớp
+        lopHoc.MaSinhViens.Add(sinhVien);
+        await _db.SaveChangesAsync();
+
+        return Ok(new { thongBao = "Tham gia lớp học thành công", maLop = lopHoc.MaLop });
     }
 
     // =============================================
@@ -159,6 +257,11 @@ public class LopHocController : ControllerBase
 // =============================================
 // DTOs
 // =============================================
+public class ThamGiaLopDto
+{
+    public string MaLopHoc { get; set; } = "";
+}
+
 public class TaoLopDto
 {
     public string TenLop { get; set; } = "";
