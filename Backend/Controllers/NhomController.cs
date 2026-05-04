@@ -1,4 +1,4 @@
-﻿using Backend.Models;
+using Backend.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -16,292 +16,301 @@ public class NhomController : ControllerBase
     }
 
     // =============================================
-    // LẤY DANH SÁCH NHÓM THEO LỚP
+    // LAY DANH SACH NHOM THEO LOP
     // GET: api/nhom?maLop=1
     // =============================================
     [HttpGet]
-    public async Task<IActionResult> DanhSachNhom(int maLop)
+    public async Task<IActionResult> DanhSachNhom([FromQuery] int? maLop)
     {
-        // Bước 1: Lấy tất cả nhóm ra
-        List<Nhom> tatCaNhom = await _db.Nhoms
-            .Include(n => n.MaSinhViens)          // kèm danh sách sinh viên
-            .Include(n => n.MaNhomTruongNavigation) // kèm thông tin nhóm trưởng
-            .ToListAsync();
+        DateOnly homNay = DateOnly.FromDateTime(DateTime.Today);
 
-        // Bước 2: Lọc theo lớp
-        List<Nhom> nhomTheoLop = new List<Nhom>();
-        foreach (Nhom nhom in tatCaNhom)
+        var query = _db.Nhoms
+            .Include(n => n.MaLopNavigation)
+            .Include(n => n.MaNhomTruongNavigation)
+            .Include(n => n.MaSinhViens)
+            .Include(n => n.MaDeTaiNavigation)
+            .Include(n => n.NhiemVus)
+            .Include(n => n.TinNhans)
+            .AsQueryable();
+
+        if (maLop.HasValue)
         {
-            if (nhom.MaLop == maLop)
-            {
-                nhomTheoLop.Add(nhom);
-            }
+            query = query.Where(n => n.MaLop == maLop.Value);
         }
 
-        // Bước 3: Tạo danh sách kết quả dễ đọc
-        List<object> ketQua = new List<object>();
-        foreach (Nhom nhom in nhomTheoLop)
-        {
-            string tenNhomTruong = "Chưa có";
-            if (nhom.MaNhomTruongNavigation != null)
-            {
-                tenNhomTruong = nhom.MaNhomTruongNavigation.HoTen;
-            }
-
-            ketQua.Add(new
+        var ketQua = await query
+            .OrderBy(n => n.MaLopNavigation.TenLop)
+            .ThenBy(n => n.TenNhom)
+            .Select(nhom => new
             {
                 maNhom = nhom.MaNhom,
+                maLop = nhom.MaLop,
+                tenLop = nhom.MaLopNavigation.TenLop,
+                maLopHoc = nhom.MaLopNavigation.MaLopHoc,
                 tenNhom = nhom.TenNhom,
                 soThanhVienToiDa = nhom.SoThanhVienToiDa,
                 soThanhVienHienTai = nhom.MaSinhViens.Count,
-                nhomTruong = tenNhomTruong
-            });
-        }
+                maNhomTruong = nhom.MaNhomTruong,
+                nhomTruong = nhom.MaNhomTruongNavigation != null ? nhom.MaNhomTruongNavigation.HoTen : "Chua co",
+                maDeTai = nhom.MaDeTai,
+                tenDeTai = nhom.MaDeTaiNavigation != null ? nhom.MaDeTaiNavigation.TenDeTai : null,
+                moTaDeTai = nhom.MaDeTaiNavigation != null ? nhom.MaDeTaiNavigation.MoTa : null,
+                sanPhamKyVong = nhom.MaDeTaiNavigation != null ? nhom.MaDeTaiNavigation.SanPhamKyVong : null,
+                ngayBatDauDeTai = nhom.MaDeTaiNavigation != null ? nhom.MaDeTaiNavigation.NgayBatDau : null,
+                ngayKetThucDeTai = nhom.MaDeTaiNavigation != null ? nhom.MaDeTaiNavigation.NgayKetThuc : null,
+                soLuongTask = nhom.NhiemVus.Count,
+                soLuongHoanThanh = nhom.NhiemVus.Count(nv => nv.TrangThai == "Hoan thanh" || nv.TrangThai == "Hoàn thành"),
+                soLuongTinNhan = nhom.TinNhans.Count,
+                trangThai = nhom.MaLopNavigation.NgayKetThuc != null && nhom.MaLopNavigation.NgayKetThuc < homNay ? "inactive" : "active",
+                thanhVien = nhom.MaSinhViens
+                    .OrderBy(sv => sv.HoTen)
+                    .Select(sv => new
+                    {
+                        maNguoiDung = sv.MaNguoiDung,
+                        maSo = sv.MaSo,
+                        hoTen = sv.HoTen,
+                        email = sv.Email,
+                        lopSinhVien = sv.LopSinhVien,
+                        vaiTroTrongNhom = nhom.MaNhomTruong == sv.MaNguoiDung ? "leader" : "member"
+                    })
+                    .ToList()
+            })
+            .ToListAsync();
 
         return Ok(ketQua);
     }
 
     // =============================================
-    // XEM CHI TIẾT NHÓM + DANH SÁCH THÀNH VIÊN
+    // XEM CHI TIET NHOM + DANH SACH THANH VIEN
     // GET: api/nhom/1
     // =============================================
     [HttpGet("{maNhom}")]
     public async Task<IActionResult> ChiTietNhom(int maNhom)
     {
-        // Bước 1: Tìm nhóm theo mã, kèm thành viên
-        Nhom? nhom = await _db.Nhoms
-            .Include(n => n.MaSinhViens)
+        var nhom = await _db.Nhoms
+            .Include(n => n.MaLopNavigation)
             .Include(n => n.MaNhomTruongNavigation)
+            .Include(n => n.MaSinhViens)
+            .Include(n => n.MaDeTaiNavigation)
             .FirstOrDefaultAsync(n => n.MaNhom == maNhom);
 
-        // Bước 2: Kiểm tra có tồn tại không
         if (nhom == null)
         {
-            return NotFound(new { thongBao = "Không tìm thấy nhóm" });
-        }
-
-        // Bước 3: Tạo danh sách thành viên
-        List<object> danhSachThanhVien = new List<object>();
-        foreach (NguoiDung sv in nhom.MaSinhViens)
-        {
-            danhSachThanhVien.Add(new
-            {
-                maSinhVien = sv.MaNguoiDung,
-                hoTen = sv.HoTen,
-                email = sv.Email
-            });
-        }
-
-        // Bước 4: Trả về kết quả
-        string tenNhomTruong = "Chưa có";
-        if (nhom.MaNhomTruongNavigation != null)
-        {
-            tenNhomTruong = nhom.MaNhomTruongNavigation.HoTen;
+            return NotFound(new { thongBao = "Khong tim thay nhom" });
         }
 
         return Ok(new
         {
             maNhom = nhom.MaNhom,
             tenNhom = nhom.TenNhom,
-            nhomTruong = tenNhomTruong,
-            thanhVien = danhSachThanhVien
+            maLop = nhom.MaLop,
+            tenLop = nhom.MaLopNavigation.TenLop,
+            nhomTruong = nhom.MaNhomTruongNavigation != null ? nhom.MaNhomTruongNavigation.HoTen : "Chua co",
+            maDeTai = nhom.MaDeTai,
+            tenDeTai = nhom.MaDeTaiNavigation != null ? nhom.MaDeTaiNavigation.TenDeTai : null,
+            thanhVien = nhom.MaSinhViens.Select(sv => new
+            {
+                maSinhVien = sv.MaNguoiDung,
+                maSo = sv.MaSo,
+                hoTen = sv.HoTen,
+                email = sv.Email,
+                lopSinhVien = sv.LopSinhVien,
+                vaiTroTrongNhom = nhom.MaNhomTruong == sv.MaNguoiDung ? "leader" : "member"
+            })
         });
     }
 
     // =============================================
-    // TẠO NHÓM MỚI
+    // TAO NHOM MOI
     // POST: api/nhom
     // =============================================
     [HttpPost]
     public async Task<IActionResult> TaoNhom([FromBody] TaoNhomDto dto)
     {
-        // Bước 1: Tạo object nhóm mới
-        Nhom nhomMoi = new Nhom();
-        nhomMoi.TenNhom = dto.TenNhom;
-        nhomMoi.MaLop = dto.MaLop;
-        nhomMoi.SoThanhVienToiDa = dto.SoThanhVienToiDa;
+        dto.TenNhom = dto.TenNhom.Trim();
+        if (string.IsNullOrWhiteSpace(dto.TenNhom))
+        {
+            return BadRequest(new { thongBao = "Ten nhom khong duoc de trong" });
+        }
 
-        // Bước 2: Thêm vào database
+        var nhomMoi = new Nhom
+        {
+            TenNhom = dto.TenNhom,
+            MaLop = dto.MaLop,
+            SoThanhVienToiDa = dto.SoThanhVienToiDa
+        };
+
         _db.Nhoms.Add(nhomMoi);
-
-        // Bước 3: Lưu lại
         await _db.SaveChangesAsync();
 
-        // Bước 4: Trả về kết quả
-        return Ok(new { thongBao = "Tạo nhóm thành công", maNhom = nhomMoi.MaNhom });
+        return Ok(new { thongBao = "Tao nhom thanh cong", maNhom = nhomMoi.MaNhom });
     }
 
     // =============================================
-    // THÊM SINH VIÊN VÀO NHÓM
+    // THEM SINH VIEN VAO NHOM
     // POST: api/nhom/1/themthanhvien
     // =============================================
     [HttpPost("{maNhom}/themthanhvien")]
     public async Task<IActionResult> ThemThanhVien(int maNhom, [FromBody] ThemThanhVienDto dto)
     {
-        // Bước 1: Tìm nhóm, kèm danh sách sinh viên hiện tại
-        Nhom? nhom = await _db.Nhoms
+        var nhom = await _db.Nhoms
             .Include(n => n.MaSinhViens)
             .FirstOrDefaultAsync(n => n.MaNhom == maNhom);
 
-        // Bước 2: Kiểm tra nhóm có tồn tại không
         if (nhom == null)
         {
-            return NotFound(new { thongBao = "Không tìm thấy nhóm" });
+            return NotFound(new { thongBao = "Khong tim thay nhom" });
         }
 
-        // Bước 3: Kiểm tra nhóm có đầy không
-        if (nhom.MaSinhViens.Count >= nhom.SoThanhVienToiDa)
+        if (nhom.MaSinhViens.Count >= (nhom.SoThanhVienToiDa ?? 0))
         {
-            return BadRequest(new { thongBao = "Nhóm đã đủ thành viên" });
+            return BadRequest(new { thongBao = "Nhom da du thanh vien" });
         }
 
-        // Bước 4: Tìm sinh viên cần thêm
-        NguoiDung? sinhVien = await _db.NguoiDungs.FindAsync(dto.MaSinhVien);
+        var sinhVien = await _db.NguoiDungs.FindAsync(dto.MaSinhVien);
         if (sinhVien == null)
         {
-            return NotFound(new { thongBao = "Không tìm thấy sinh viên" });
+            return NotFound(new { thongBao = "Khong tim thay sinh vien" });
         }
 
-        // Bước 5: Thêm sinh viên vào nhóm
-        nhom.MaSinhViens.Add(sinhVien);
+        if (nhom.MaSinhViens.Any(sv => sv.MaNguoiDung == dto.MaSinhVien))
+        {
+            return BadRequest(new { thongBao = "Sinh vien da co trong nhom" });
+        }
 
-        // Bước 6: Lưu lại
+        nhom.MaSinhViens.Add(sinhVien);
         await _db.SaveChangesAsync();
 
-        return Ok(new { thongBao = "Thêm thành viên thành công" });
+        return Ok(new { thongBao = "Them thanh vien thanh cong" });
     }
 
     // =============================================
-    // XÓA THÀNH VIÊN KHỎI NHÓM
+    // XOA THANH VIEN KHOI NHOM
     // DELETE: api/nhom/1/xoathanhvien/2
     // =============================================
     [HttpDelete("{maNhom}/xoathanhvien/{maSinhVien}")]
     public async Task<IActionResult> XoaThanhVien(int maNhom, int maSinhVien)
     {
-        // Bước 1: Tìm nhóm kèm danh sách thành viên
-        Nhom? nhom = await _db.Nhoms
+        var nhom = await _db.Nhoms
             .Include(n => n.MaSinhViens)
             .FirstOrDefaultAsync(n => n.MaNhom == maNhom);
 
-        // Bước 2: Kiểm tra nhóm có tồn tại không
         if (nhom == null)
         {
-            return NotFound(new { thongBao = "Không tìm thấy nhóm" });
+            return NotFound(new { thongBao = "Khong tim thay nhom" });
         }
 
-        // Bước 3: Tìm sinh viên cần xóa trong danh sách
-        NguoiDung? canXoa = null;
-        foreach (NguoiDung sv in nhom.MaSinhViens)
-        {
-            if (sv.MaNguoiDung == maSinhVien)
-            {
-                canXoa = sv;
-            }
-        }
-
-        // Bước 4: Kiểm tra có tìm thấy không
+        var canXoa = nhom.MaSinhViens.FirstOrDefault(sv => sv.MaNguoiDung == maSinhVien);
         if (canXoa == null)
         {
-            return NotFound(new { thongBao = "Sinh viên không có trong nhóm" });
+            return NotFound(new { thongBao = "Sinh vien khong co trong nhom" });
         }
 
-        // Bước 5: Xóa khỏi nhóm
         nhom.MaSinhViens.Remove(canXoa);
+        if (nhom.MaNhomTruong == maSinhVien)
+        {
+            nhom.MaNhomTruong = null;
+        }
 
-        // Bước 6: Lưu lại
         await _db.SaveChangesAsync();
-
-        return Ok(new { thongBao = "Xóa thành viên thành công" });
+        return Ok(new { thongBao = "Xoa thanh vien thanh cong" });
     }
 
     // =============================================
-    // ĐẶT NHÓM TRƯỞNG
+    // DAT NHOM TRUONG
     // PUT: api/nhom/1/nhomtruong
     // =============================================
     [HttpPut("{maNhom}/nhomtruong")]
     public async Task<IActionResult> DatNhomTruong(int maNhom, [FromBody] DatNhomTruongDto dto)
     {
-        // Bước 1: Tìm nhóm
-        Nhom? nhom = await _db.Nhoms.FindAsync(maNhom);
+        var nhom = await _db.Nhoms
+            .Include(n => n.MaSinhViens)
+            .FirstOrDefaultAsync(n => n.MaNhom == maNhom);
 
-        // Bước 2: Kiểm tra có tồn tại không
         if (nhom == null)
         {
-            return NotFound(new { thongBao = "Không tìm thấy nhóm" });
+            return NotFound(new { thongBao = "Khong tim thay nhom" });
         }
 
-        // Bước 3: Cập nhật nhóm trưởng
-        nhom.MaNhomTruong = dto.MaSinhVien;
+        if (!nhom.MaSinhViens.Any(sv => sv.MaNguoiDung == dto.MaSinhVien))
+        {
+            var sinhVien = await _db.NguoiDungs.FindAsync(dto.MaSinhVien);
+            if (sinhVien == null)
+            {
+                return NotFound(new { thongBao = "Khong tim thay sinh vien" });
+            }
 
-        // Bước 4: Lưu lại
+            nhom.MaSinhViens.Add(sinhVien);
+        }
+
+        nhom.MaNhomTruong = dto.MaSinhVien;
         await _db.SaveChangesAsync();
 
-        return Ok(new { thongBao = "Đặt nhóm trưởng thành công" });
+        return Ok(new { thongBao = "Dat nhom truong thanh cong" });
     }
 
-
     // =============================================
-    // THÊM ĐỀ TÀI CHO NHÓM
+    // THEM DE TAI CHO NHOM
     // POST: api/nhom/1/detai
     // =============================================
     [HttpPost("{maNhom}/detai")]
     public async Task<IActionResult> ThemDeTai(int maNhom, [FromBody] ThemDeTaiDto dto)
     {
-        // Bước 1: Tìm nhóm
-        Nhom? nhom = await _db.Nhoms.FindAsync(maNhom);
-
+        var nhom = await _db.Nhoms.FindAsync(maNhom);
         if (nhom == null)
         {
-            return NotFound(new { thongBao = "Không tìm thấy nhóm" });
+            return NotFound(new { thongBao = "Khong tim thay nhom" });
         }
 
-        // Bước 2: Tạo đề tài mới
-        DeTai deTaiMoi = new DeTai();
-        deTaiMoi.TenDeTai = dto.TenDeTai;
-        deTaiMoi.MoTa = dto.MoTa;
-        deTaiMoi.SanPhamKyVong = dto.SanPhamKyVong;
-        deTaiMoi.MaLop = nhom.MaLop;
-        deTaiMoi.NgayBatDau = dto.NgayBatDau;
-        deTaiMoi.NgayKetThuc = dto.NgayKetThuc;
+        dto.TenDeTai = dto.TenDeTai.Trim();
+        if (string.IsNullOrWhiteSpace(dto.TenDeTai))
+        {
+            return BadRequest(new { thongBao = "Ten de tai khong duoc de trong" });
+        }
 
-        // Bước 3: Lưu đề tài
+        var deTaiMoi = new DeTai
+        {
+            TenDeTai = dto.TenDeTai,
+            MoTa = string.IsNullOrWhiteSpace(dto.MoTa) ? null : dto.MoTa.Trim(),
+            SanPhamKyVong = string.IsNullOrWhiteSpace(dto.SanPhamKyVong) ? null : dto.SanPhamKyVong.Trim(),
+            MaLop = nhom.MaLop,
+            NgayBatDau = dto.NgayBatDau,
+            NgayKetThuc = dto.NgayKetThuc
+        };
+
         _db.DeTais.Add(deTaiMoi);
         await _db.SaveChangesAsync();
 
-        // Bước 4: Gán đề tài cho nhóm
         nhom.MaDeTai = deTaiMoi.MaDeTai;
         await _db.SaveChangesAsync();
 
-        return Ok(new { thongBao = "Thêm đề tài thành công", maDeTai = deTaiMoi.MaDeTai });
+        return Ok(new
+        {
+            thongBao = "Them de tai thanh cong",
+            maDeTai = deTaiMoi.MaDeTai
+        });
     }
 
     // =============================================
-    // XÓA NHÓM
+    // XOA NHOM
     // DELETE: api/nhom/1
     // =============================================
     [HttpDelete("{maNhom}")]
     public async Task<IActionResult> XoaNhom(int maNhom)
     {
-        // Bước 1: Tìm nhóm
-        Nhom? nhom = await _db.Nhoms.FindAsync(maNhom);
-
+        var nhom = await _db.Nhoms.FindAsync(maNhom);
         if (nhom == null)
         {
-            return NotFound(new { thongBao = "Không tìm thấy nhóm" });
+            return NotFound(new { thongBao = "Khong tim thay nhom" });
         }
 
-        // Bước 2: Xóa nhóm
         _db.Nhoms.Remove(nhom);
         await _db.SaveChangesAsync();
 
-        return Ok(new { thongBao = "Xóa nhóm thành công" });
+        return Ok(new { thongBao = "Xoa nhom thanh cong" });
     }
 }
 
-
-// =============================================
-// DTOs
-// =============================================
 public class TaoNhomDto
 {
     public string TenNhom { get; set; } = "";
@@ -318,6 +327,7 @@ public class DatNhomTruongDto
 {
     public int MaSinhVien { get; set; }
 }
+
 public class ThemDeTaiDto
 {
     public string TenDeTai { get; set; } = "";

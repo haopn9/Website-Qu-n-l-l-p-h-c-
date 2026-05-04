@@ -15,7 +15,7 @@ const leaderGroups = [
   {
     maNhom: 1, tenNhom: 'Nhóm 1',
     maLop: 1, maLopHoc: 'LT_WEB_01', tenLop: 'Lập trình Web',
-    deTai: 'Website quản lý lớp học — Module làm việc nhóm',
+    deTai: null,
     members: [
       { maNguoiDung: 1, maSo: 'DH52300086', hoTen: 'Nguyễn Văn A', isMe: true, tasks: '3/4', msgs: 12, pct: 75, barColor: '#378add', bg: '#e6f1fb', color: '#185fa5', ky: 'VA',
         doneTasks: ['Phân tích yêu cầu', 'Tài liệu đặc tả', 'Thiết kế wireframe'],
@@ -60,6 +60,10 @@ const leaderGroups = [
     joinRequests: [
       { id: 101, maSo: 'DH52309999', hoTen: 'Ngô Kiến Thanh', loiNhan: 'Cho mình vào nhóm với nha, mình code được React!', ngayGui: 'Hôm nay', av: { bg: '#e1f5ee', color: '#0f6e56', ky: 'KT' } }
     ],
+    systemNotifications: [
+      { id: 1, type: 'transfer', message: 'Sinh viên Lý Văn Tèo đã chuyển sang Nhóm 2.', time: '1 giờ trước' },
+      { id: 2, type: 'join', message: 'Sinh viên Trần Thị C đã gia nhập nhóm từ Nhóm 4.', time: '2 giờ trước' }
+    ]
   },
   {
     maNhom: 5, tenNhom: 'Nhóm 5',
@@ -93,8 +97,101 @@ const leaderGroups = [
       ]},
     ],
     joinRequests: [],
+    systemNotifications: [],
   },
 ];
+
+const topicBankByClass = {
+  1: {
+    assignmentMode: 'free',
+    modeLabel: 'Đăng ký tự do',
+    topics: [
+      {
+        maDeTai: 1,
+        tenDeTai: 'Website quản lý lớp học',
+        moTa: 'Xây dựng hệ thống quản lý lớp, nhóm, đề tài và tiến độ làm việc.',
+        sanPhamKyVong: 'Web app React + ASP.NET API, có báo cáo và source code.',
+        ngayBatDau: '2026-03-03',
+        ngayKetThuc: '2026-06-20',
+        tepDinhKem: 'YeuCau_Web_QuanLyLopHoc.pdf',
+        trangThai: 'available',
+        nhomDangKy: null,
+      },
+      {
+        maDeTai: 2,
+        tenDeTai: 'Ứng dụng đặt lịch khám bệnh',
+        moTa: 'Cho phép người dùng đặt lịch, bác sĩ xác nhận và quản lý lịch khám.',
+        sanPhamKyVong: 'Prototype đầy đủ luồng đặt lịch, xác nhận, hủy lịch.',
+        ngayBatDau: '2026-03-03',
+        ngayKetThuc: '2026-06-20',
+        tepDinhKem: 'MoTa_DatLichKham.pdf',
+        trangThai: 'registered',
+        nhomDangKy: 'Nhóm 2',
+      },
+      {
+        maDeTai: 3,
+        tenDeTai: 'Sàn trao đổi tài liệu học tập',
+        moTa: 'Sinh viên đăng tải, tìm kiếm, đánh giá và lưu tài liệu học tập.',
+        sanPhamKyVong: 'Có phân quyền, upload file, tìm kiếm và thống kê lượt tải.',
+        ngayBatDau: '2026-03-10',
+        ngayKetThuc: '2026-06-20',
+        tepDinhKem: 'TaiLieu_SanTraoDoi.zip',
+        trangThai: 'available',
+        nhomDangKy: null,
+      },
+      {
+        maDeTai: 4,
+        tenDeTai: 'Hệ thống quản lý kho',
+        moTa: 'Theo dõi nhập xuất tồn, cảnh báo số lượng thấp và báo cáo kho.',
+        sanPhamKyVong: 'Dashboard tồn kho, phiếu nhập/xuất, báo cáo Excel.',
+        ngayBatDau: '2026-03-05',
+        ngayKetThuc: '2026-06-15',
+        tepDinhKem: 'QuanLyKho_Requirement.docx',
+        trangThai: 'assigned',
+        nhomDangKy: 'Nhóm 4',
+      },
+    ],
+  },
+  3: {
+    assignmentMode: 'direct',
+    modeLabel: 'Chỉ định trực tiếp',
+    topics: [
+      {
+        maDeTai: 11,
+        tenDeTai: 'Phân tích và thiết kế mạng LAN cho doanh nghiệp vừa và nhỏ',
+        moTa: 'Khảo sát yêu cầu, thiết kế sơ đồ mạng và đề xuất thiết bị.',
+        sanPhamKyVong: 'Sơ đồ mạng, bảng thiết bị, báo cáo phân tích chi phí.',
+        ngayBatDau: '2026-03-07',
+        ngayKetThuc: '2026-06-27',
+        tepDinhKem: 'MMT_LAN_DoanhNghiep.pdf',
+        trangThai: 'assigned',
+        nhomDangKy: 'Nhóm 5',
+      },
+      {
+        maDeTai: 12,
+        tenDeTai: 'Giám sát mạng nội bộ',
+        moTa: 'Theo dõi trạng thái thiết bị, cảnh báo lỗi và ghi nhận lịch sử sự cố.',
+        sanPhamKyVong: 'Mô phỏng dashboard giám sát và báo cáo cảnh báo.',
+        ngayBatDau: '2026-03-07',
+        ngayKetThuc: '2026-06-27',
+        tepDinhKem: 'GiamSatMang.docx',
+        trangThai: 'assigned',
+        nhomDangKy: null,
+      },
+      {
+        maDeTai: 13,
+        tenDeTai: 'Phân tích giao thức TCP/IP',
+        moTa: 'Mô phỏng, phân tích gói tin và đánh giá hoạt động TCP/IP.',
+        sanPhamKyVong: 'Báo cáo phân tích, demo mô phỏng bằng công cụ mạng.',
+        ngayBatDau: '2026-03-07',
+        ngayKetThuc: '2026-06-27',
+        tepDinhKem: 'TCPIP_Analysis.pdf',
+        trangThai: 'assigned',
+        nhomDangKy: 'Nhóm 3',
+      },
+    ],
+  },
+};
 
 // ============================================================
 // SUB-COMPONENTS
@@ -608,6 +705,190 @@ function CreateTaskModal({ group, onClose }) {
   );
 }
 
+function TopicDetailModal({ topic, groupName, onClose }) {
+  if (!topic) return null;
+
+  return (
+    <div className="smg-modal-overlay" onClick={onClose}>
+      <div className="smg-modal-content topic-detail-modal" onClick={e => e.stopPropagation()}>
+        <div className="smg-modal-header">
+          <h3>Chi tiết đề tài</h3>
+          <button className="smg-close-btn" onClick={onClose}><FaTimes /></button>
+        </div>
+        <p className="smg-modal-sub">{groupName || topic.nhomDangKy || 'Thông tin yêu cầu đề tài'}</p>
+
+        <div className="smg-modal-body">
+          <div className="topic-detail-title">
+            <span>Đề tài</span>
+            <strong>{topic.tenDeTai}</strong>
+          </div>
+
+          <div className="topic-detail-grid">
+            <div className="topic-detail-item">
+              <span>Ngày bắt đầu</span>
+              <strong>{topic.ngayBatDau || 'Chưa cập nhật'}</strong>
+            </div>
+            <div className="topic-detail-item">
+              <span>Ngày kết thúc</span>
+              <strong>{topic.ngayKetThuc || 'Chưa cập nhật'}</strong>
+            </div>
+            <div className="topic-detail-item">
+              <span>Nhóm đăng ký / được giao</span>
+              <strong>{topic.nhomDangKy || 'Chưa có nhóm'}</strong>
+            </div>
+            <div className="topic-detail-item">
+              <span>Trạng thái</span>
+              <strong>{topic.trangThai === 'available' ? 'Còn slot' : topic.trangThai === 'assigned' ? 'Giảng viên chỉ định' : 'Đã có nhóm đăng ký'}</strong>
+            </div>
+          </div>
+
+          <div className="topic-detail-section">
+            <span>Mô tả yêu cầu</span>
+            <p>{topic.moTa}</p>
+          </div>
+
+          <div className="topic-detail-section">
+            <span>Sản phẩm kỳ vọng</span>
+            <p>{topic.sanPhamKyVong}</p>
+          </div>
+
+          <div className="topic-detail-file">
+            <span>Tài liệu đính kèm</span>
+            <strong>{topic.tepDinhKem || 'Chưa có tài liệu đính kèm'}</strong>
+          </div>
+        </div>
+
+        <div className="smg-modal-footer">
+          <button type="button" className="smg-btn-create" onClick={onClose}>Đã hiểu</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TopicRegistrationModal({ group, topicBank, onClose, onRegister, onViewDetail }) {
+  const [selectedTopicId, setSelectedTopicId] = useState('');
+  const topics = topicBank?.topics || [];
+  const selectedTopic = topics.find(t => String(t.maDeTai) === selectedTopicId);
+  const isFreeMode = topicBank?.assignmentMode === 'free';
+  const canRegister = isFreeMode && selectedTopic && selectedTopic.trangThai === 'available';
+
+  const statusConfig = {
+    available: { label: 'Còn slot', cls: 'available' },
+    registered: { label: 'Đã có nhóm đăng ký', cls: 'registered' },
+    assigned: { label: 'Giảng viên chỉ định', cls: 'assigned' },
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!selectedTopic) {
+      alert('Vui lòng chọn một đề tài.');
+      return;
+    }
+    if (!canRegister) {
+      alert('Đề tài này hiện không thể đăng ký.');
+      return;
+    }
+
+    onRegister(selectedTopic);
+  };
+
+  return (
+    <div className="smg-modal-overlay" onClick={onClose}>
+      <div className="smg-modal-content topic-modal" onClick={e => e.stopPropagation()}>
+        <div className="smg-modal-header">
+          <h3>Đăng ký đề tài</h3>
+          <button className="smg-close-btn" onClick={onClose}><FaTimes /></button>
+        </div>
+        <p className="smg-modal-sub">
+          {group.tenNhom} · {group.tenLop} · {topicBank?.modeLabel || 'Chưa mở đăng ký'}
+        </p>
+
+        <form onSubmit={handleSubmit}>
+          <div className="smg-modal-body">
+            <div className="topic-flow-note">
+              <strong>{isFreeMode ? 'Đăng ký tự do' : 'Chỉ định trực tiếp'}</strong>
+              <span>
+                {isFreeMode
+                  ? 'Nhóm trưởng chọn đề tài còn slot. Hệ thống ghi nhận theo thứ tự nhóm đăng ký sớm.'
+                  : 'Giảng viên gán đề tài cho từng nhóm. Nhóm trưởng không cần đăng ký đề tài.'}
+              </span>
+            </div>
+
+            {!isFreeMode && (
+              <div className="topic-disabled-note">
+                Lớp này đang ở chế độ chỉ định trực tiếp. Bạn chỉ cần xem yêu cầu đề tài được giảng viên giao.
+              </div>
+            )}
+
+            <div className="topic-bank-list">
+              {topics.map(topic => {
+                const status = statusConfig[topic.trangThai] || statusConfig.available;
+                const selected = selectedTopicId === String(topic.maDeTai);
+                const disabled = !isFreeMode || topic.trangThai !== 'available';
+
+                return (
+                  <label
+                    key={topic.maDeTai}
+                    className={`topic-option ${selected ? 'selected' : ''} ${disabled ? 'disabled' : ''}`}
+                  >
+                    <input
+                      type="radio"
+                      name="topic"
+                      value={topic.maDeTai}
+                      checked={selected}
+                      disabled={disabled}
+                      onChange={(e) => setSelectedTopicId(e.target.value)}
+                    />
+                    <div className="topic-option-body">
+                      <div className="topic-option-head">
+                        <strong>{topic.tenDeTai}</strong>
+                        <span className={`topic-status ${status.cls}`}>{status.label}</span>
+                      </div>
+                      <p>{topic.moTa}</p>
+                      <div className="topic-output">
+                        <span>Sản phẩm kỳ vọng</span>
+                        <strong>{topic.sanPhamKyVong}</strong>
+                      </div>
+                      {topic.nhomDangKy && (
+                        <div className="topic-registered-by">Nhóm hiện tại: {topic.nhomDangKy}</div>
+                      )}
+                      <button
+                        type="button"
+                        className="topic-detail-btn"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          onViewDetail(topic);
+                        }}
+                      >
+                        Xem chi tiết đề tài
+                      </button>
+                    </div>
+                  </label>
+                );
+              })}
+            </div>
+
+            {selectedTopic && (
+              <div className="topic-confirm-box">
+                <span>Đề tài đang chọn</span>
+                <strong>{selectedTopic.tenDeTai}</strong>
+              </div>
+            )}
+          </div>
+
+          <div className="smg-modal-footer">
+            <button type="button" className="smg-btn-cancel" onClick={onClose}>Hủy</button>
+            <button type="submit" className="smg-btn-create" disabled={!canRegister}>
+              Xác nhận đăng ký
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 // ============================================================
 // MAIN COMPONENT
 // ============================================================
@@ -623,9 +904,17 @@ const StudentManageGroup = () => {
   const [expandedMember, setExpandedMember] = useState(null);
   const [detailTask, setDetailTask] = useState(null);
   const [redoTask, setRedoTask] = useState(null);
+  const [showTopicModal, setShowTopicModal] = useState(false);
+  const [registeredTopics, setRegisteredTopics] = useState({});
+  const [registeredTopicDetails, setRegisteredTopicDetails] = useState({});
+  const [topicDetail, setTopicDetail] = useState(null);
 
   // Lấy nhóm hiện đang chọn
   const selectedGroup = leaderGroups.find(g => g.maNhom === selectedMaNhom) || leaderGroups[0];
+  const selectedTopicBank = topicBankByClass[selectedGroup?.maLop];
+  const selectedGroupTopic = registeredTopics[selectedGroup?.maNhom] || selectedGroup?.deTai;
+  const selectedGroupTopicDetail = registeredTopicDetails[selectedGroup?.maNhom]
+    || selectedTopicBank?.topics.find(topic => topic.tenDeTai === selectedGroup?.deTai || topic.nhomDangKy === selectedGroup?.tenNhom);
 
   // ========================
   // TRƯỜNG HỢP: Không phải nhóm trưởng
@@ -657,7 +946,12 @@ const StudentManageGroup = () => {
       {/* HEADER */}
       <div className="top">
         <h1>Điều phối nhóm</h1>
-        <button className="open-btn" onClick={() => setShowCreateModal(true)}>+ Tạo nhiệm vụ mới</button>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button className="open-btn topic-register-btn" onClick={() => setShowTopicModal(true)}>
+            Đăng ký đề tài
+          </button>
+          <button className="open-btn" onClick={() => setShowCreateModal(true)}>+ Tạo nhiệm vụ mới</button>
+        </div>
       </div>
 
       {/* GROUP SELECTOR — chỉ hiện khi ≥ 2 nhóm */}
@@ -678,10 +972,17 @@ const StudentManageGroup = () => {
         </div>
       )}
 
-      {/* Leader badge */}
-      <span className="leader-badge">
-        Nhóm trưởng — {selectedGroup.tenNhom} &nbsp;·&nbsp; {selectedGroup.tenLop}
-      </span>
+      <div className="smg-topic-summary">
+        <div>
+          <span>Đề tài của nhóm</span>
+          <strong>{selectedGroupTopic || 'Chưa đăng ký đề tài'}</strong>
+        </div>
+        {selectedGroupTopicDetail && (
+          <button className="smg-topic-link" onClick={() => setTopicDetail(selectedGroupTopicDetail)}>
+            Xem chi tiết đề tài
+          </button>
+        )}
+      </div>
 
       {/* 2 CARD: ĐÓNG GÓP & CẢNH BÁO */}
       <div className="two-col">
@@ -724,25 +1025,19 @@ const StudentManageGroup = () => {
           }
 
           <div className="card-hdr" style={{ marginTop: 20 }}>
-            <span className="card-title">Yêu cầu gia nhập nhóm</span>
-            {selectedGroup.joinRequests && selectedGroup.joinRequests.length > 0 && (
-              <span className="badge" style={{ background: '#faeeda', color: '#854f0b' }}>
-                {selectedGroup.joinRequests.length} yêu cầu mới
-              </span>
-            )}
+            <span className="card-title">Thông báo hệ thống</span>
           </div>
-          {selectedGroup.joinRequests && selectedGroup.joinRequests.length > 0
-            ? selectedGroup.joinRequests.map((req, i) => (
-              <JoinRequestCard 
-                key={i} 
-                req={req} 
-                onApprove={(r) => alert(`Đã đồng ý cho ${r.hoTen} vào nhóm!`)}
-                onReject={(r) => alert(`Đã từ chối yêu cầu của ${r.hoTen}.`)}
-              />
+          {selectedGroup.systemNotifications && selectedGroup.systemNotifications.length > 0
+            ? selectedGroup.systemNotifications.map((note, i) => (
+              <div key={i} className="warn-card" style={{ background: '#f8fafc', padding: '10px', borderRadius: '4px', border: '1px solid #e2e8f0', marginBottom: '10px' }}>
+                <div style={{ color: '#185fa5', fontWeight: 'bold', fontSize: '13px' }}>{note.type === 'transfer' ? 'Chuyển nhóm' : 'Gia nhập'}</div>
+                <div style={{ fontSize: '12px', color: '#475569', marginTop: '5px' }}>{note.message}</div>
+                <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '5px' }}>{note.time}</div>
+              </div>
             ))
             : (
               <div className="smg-empty-warn">
-                Không có yêu cầu xin gia nhập nào.
+                Không có thông báo mới.
               </div>
             )
           }
@@ -767,6 +1062,32 @@ const StudentManageGroup = () => {
         <CreateTaskModal
           group={selectedGroup}
           onClose={() => setShowCreateModal(false)}
+        />
+      )}
+
+      {showTopicModal && (
+        <TopicRegistrationModal
+          group={selectedGroup}
+          topicBank={selectedTopicBank}
+          onClose={() => setShowTopicModal(false)}
+          onViewDetail={(topic) => setTopicDetail(topic)}
+          onRegister={(topic) => {
+            setRegisteredTopics(prev => ({ ...prev, [selectedGroup.maNhom]: topic.tenDeTai }));
+            setRegisteredTopicDetails(prev => ({
+              ...prev,
+              [selectedGroup.maNhom]: { ...topic, trangThai: 'registered', nhomDangKy: selectedGroup.tenNhom }
+            }));
+            setShowTopicModal(false);
+            alert(`Đăng ký đề tài thành công!\n\nNhóm: ${selectedGroup.tenNhom}\nĐề tài: ${topic.tenDeTai}\nTrạng thái: Chờ giảng viên xác nhận.`);
+          }}
+        />
+      )}
+
+      {topicDetail && (
+        <TopicDetailModal
+          topic={topicDetail}
+          groupName={`${selectedGroup.tenNhom} · ${selectedGroup.tenLop}`}
+          onClose={() => setTopicDetail(null)}
         />
       )}
 

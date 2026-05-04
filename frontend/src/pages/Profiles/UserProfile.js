@@ -8,51 +8,51 @@ import { FaEdit, FaLock, FaTimes, FaEye, FaEyeSlash, FaCheck, FaTimes as FaX } f
 // ============================================================
 const MOCK_BY_ROLE = {
   admin: {
-    maNguoiDung : 1,
-    maSo        : 'ADMIN001',
-    tenDangNhap : 'admin',
-    hoTen       : 'Quản trị viên hệ thống',
-    ngaySinh    : '1990-01-01',
-    gioiTinh    : true,           // true = Nam, false = Nữ (BIT trong DB)
-    soDienThoai : '0901234567',
-    email       : 'admin@stu.edu.vn',
-    anhDaiDien  : 'https://i.pravatar.cc/150?img=8',
-    diaChi      : 'Quận 1, TP. HCM',
-    maKhoa      : null,
-    tenKhoa     : null,
-    maVaiTro    : 1,
+    maNguoiDung: 1,
+    maSo: 'ADMIN001',
+    tenDangNhap: 'admin',
+    hoTen: 'Quản trị viên hệ thống',
+    ngaySinh: '1990-01-01',
+    gioiTinh: true,           // true = Nam, false = Nữ (BIT trong DB)
+    soDienThoai: '0901234567',
+    email: 'admin@stu.edu.vn',
+    anhDaiDien: 'https://i.pravatar.cc/150?img=8',
+    diaChi: 'Quận 1, TP. HCM',
+    maKhoa: null,
+    tenKhoa: null,
+    maVaiTro: 1,
     dangHoatDong: true,
   },
   teacher: {
-    maNguoiDung : 2,
-    maSo        : 'GV001',
-    tenDangNhap : 'gv.nguyenvana',
-    hoTen       : 'Nguyễn Văn A',
-    ngaySinh    : '1985-03-15',
-    gioiTinh    : true,
-    soDienThoai : '0901234567',
-    email       : 'gv001@stu.edu.vn',
-    anhDaiDien  : 'https://i.pravatar.cc/150?img=3',
-    diaChi      : 'Quận 3, TP. HCM',
-    maKhoa      : 1,
-    tenKhoa     : 'Công nghệ thông tin',
-    maVaiTro    : 2,
+    maNguoiDung: 2,
+    maSo: 'GV001',
+    tenDangNhap: 'gv.nguyenvana',
+    hoTen: 'Nguyễn Văn A',
+    ngaySinh: '1985-03-15',
+    gioiTinh: true,
+    soDienThoai: '0901234567',
+    email: 'gv001@stu.edu.vn',
+    anhDaiDien: 'https://i.pravatar.cc/150?img=3',
+    diaChi: 'Quận 3, TP. HCM',
+    maKhoa: 1,
+    tenKhoa: 'Công nghệ thông tin',
+    maVaiTro: 2,
     dangHoatDong: true,
   },
   student: {
-    maNguoiDung : 5,
-    maSo        : 'DH52200320',
-    hoTen       : 'Đặng Võ Phương Anh',
-    ngaySinh    : '20-05-2003',
-    gioiTinh    : false,          // false = Nữ
-    soDienThoai : '0901234567',
-    email       : 'DH52200320@student.stu.edu.vn',
-    anhDaiDien  : 'https://i.pravatar.cc/150?img=11',
-    diaChi      : 'Quận 8, TP. HCM',
-    maKhoa      : 1,
-    tenKhoa     : 'Công nghệ thông tin',
-    tenLop      : 'LT_WEB_01',   // Không có trong NguoiDung, join từ LopHoc khi cần
-    maVaiTro    : 3,
+    maNguoiDung: 5,
+    maSo: 'DH52200320',
+    hoTen: 'Đặng Võ Phương Anh',
+    ngaySinh: '20-05-2003',
+    gioiTinh: false,          // false = Nữ
+    soDienThoai: '0901234567',
+    email: 'DH52200320@student.stu.edu.vn',
+    anhDaiDien: 'https://i.pravatar.cc/150?img=11',
+    diaChi: 'Quận 8, TP. HCM',
+    maKhoa: 1,
+    tenKhoa: 'Công nghệ thông tin',
+    tenLop: 'LT_WEB_01',   // Không có trong NguoiDung, join từ LopHoc khi cần
+    maVaiTro: 3,
     dangHoatDong: true,
   },
 };
@@ -66,15 +66,8 @@ const gioiTinhDisplay = (bit) => {
 };
 
 // ============================================================
-// HELPER: kiểm tra quy chuẩn mật khẩu
+// HELPER: kiểm tra quy chuẩn mật khẩu (Đã chuyển logic vào component)
 // ============================================================
-const checkPasswordRules = (pass) => ({
-  length : pass.length >= 6 && pass.length <= 10,
-  lower  : /[a-z]/.test(pass),
-  upper  : /[A-Z]/.test(pass),
-  number : /[0-9]/.test(pass),
-  special: /[^a-zA-Z0-9]/.test(pass),
-});
 
 // ============================================================
 // SUB-COMPONENT: Rule check item (✅ / ❌)
@@ -98,18 +91,30 @@ const UserProfile = ({ role }) => {
 
   useEffect(() => {
     // TODO: thay bằng axios.get(`/api/nguoidung/me`) khi có backend
-    setUserData(MOCK_BY_ROLE[role] || MOCK_BY_ROLE.student);
+    const mock = MOCK_BY_ROLE[role] || MOCK_BY_ROLE.student;
+    const storedStr = localStorage.getItem('userInfo');
+    if (storedStr) {
+      const storedUser = JSON.parse(storedStr);
+      setUserData({
+        ...mock,
+        hoTen: storedUser.hoTen || mock.hoTen,
+        maSo: storedUser.maSo || mock.maSo,
+        anhDaiDien: storedUser.anhDaiDien || mock.anhDaiDien
+      });
+    } else {
+      setUserData(mock);
+    }
   }, [role]);
 
   // ── MODAL CẬP NHẬT HỒ SƠ ────────────────────────────────
-  const [isEditOpen, setIsEditOpen]   = useState(false);
-  const [editForm, setEditForm]       = useState({});
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editForm, setEditForm] = useState({});
 
   const openEditModal = () => {
     setEditForm({
       soDienThoai: userData.soDienThoai || '',
-      email      : userData.email       || '',
-      diaChi     : userData.diaChi      || '',
+      email: userData.email || '',
+      diaChi: userData.diaChi || '',
     });
     setIsEditOpen(true);
   };
@@ -126,25 +131,35 @@ const UserProfile = ({ role }) => {
   };
 
   // ── MODAL ĐỔI MẬT KHẨU ──────────────────────────────────
-  const [isPassOpen, setIsPassOpen]   = useState(false);
+  const [isPassOpen, setIsPassOpen] = useState(false);
 
   // Giá trị input
-  const [oldPass,     setOldPass]     = useState('');
-  const [newPass,     setNewPass]     = useState('');
+  const [oldPass, setOldPass] = useState('');
+  const [newPass, setNewPass] = useState('');
   const [confirmPass, setConfirmPass] = useState('');
 
   // Ẩn/hiện mật khẩu
-  const [showOld,     setShowOld]     = useState(false);
-  const [showNew,     setShowNew]     = useState(false);
+  const [showOld, setShowOld] = useState(false);
+  const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
   // Thông báo lỗi riêng từng ô
-  const [errOld,     setErrOld]       = useState('');
-  const [errNew,     setErrNew]       = useState('');
-  const [errConfirm, setErrConfirm]   = useState('');
+  const [errOld, setErrOld] = useState('');
+  const [errNew, setErrNew] = useState('');
+  const [errConfirm, setErrConfirm] = useState('');
 
   // Quy chuẩn pass mới — tính realtime
-  const rules = checkPasswordRules(newPass);
+  const rules = {
+    length : newPass.length >= 8,
+    lower  : /[a-z]/.test(newPass),
+    upper  : /[A-Z]/.test(newPass),
+    number : /[0-9]/.test(newPass),
+    special: /[!@#$%^&*(),.?":{}|<>]/.test(newPass),
+    noSpace: !/\s/.test(newPass) && newPass.length > 0,
+    noAccountCode: newPass.length > 0 ? (!userData.maSo || !newPass.includes(userData.maSo)) : false,
+    noUsername: newPass.length > 0 ? (!userData.tenDangNhap || !newPass.includes(userData.tenDangNhap)) : false,
+    notOldPass: newPass.length > 0 && oldPass !== '' && newPass !== oldPass
+  };
   const allRulesOk = Object.values(rules).every(Boolean);
 
   // Reset khi đóng modal
@@ -208,13 +223,13 @@ const UserProfile = ({ role }) => {
 
   // ── LABEL THEO ROLE ──────────────────────────────────────
   const roleNameDisplay = {
-    admin  : 'Quản trị viên',
+    admin: 'Quản trị viên',
     teacher: 'Giảng viên',
     student: 'Sinh viên',
   }[role] || 'Người dùng';
 
   const codeLabelDisplay = {
-    admin  : 'Mã số admin',
+    admin: 'Mã số admin',
     teacher: 'Mã số giảng viên',
     student: 'Mã số sinh viên',
   }[role] || 'Mã số';
@@ -245,7 +260,7 @@ const UserProfile = ({ role }) => {
             <span className="info-label">{codeLabelDisplay}</span>
             <span className="info-value">{userData.maSo}</span>
           </div>
-          
+
           <div className="info-item">
             <span className="info-label">Họ và tên</span>
             <span className="info-value">{userData.hoTen}</span>
@@ -454,11 +469,15 @@ const UserProfile = ({ role }) => {
                 {/* Checklist quy chuẩn — chỉ hiện khi user bắt đầu gõ */}
                 {newPass.length > 0 && (
                   <div className="password-rules">
-                    <RuleItem ok={rules.length}  text="Độ dài từ 6 đến 10 ký tự" />
-                    <RuleItem ok={rules.lower}   text="Có chữ thường (a-z)" />
-                    <RuleItem ok={rules.upper}   text="Có chữ hoa (A-Z)" />
-                    <RuleItem ok={rules.number}  text="Có chữ số (0-9)" />
+                    <RuleItem ok={rules.length} text="Độ dài tối thiểu 8 ký tự" />
+                    <RuleItem ok={rules.upper} text="Có chữ hoa (A-Z)" />
+                    <RuleItem ok={rules.lower} text="Có chữ thường (a-z)" />
+                    <RuleItem ok={rules.number} text="Có số (0-9)" />
                     <RuleItem ok={rules.special} text="Có ký tự đặc biệt (!@#...)" />
+                    <RuleItem ok={rules.noSpace} text="Không có khoảng trắng" />
+                    <RuleItem ok={rules.noAccountCode} text="Không chứa mã tài khoản" />
+                    <RuleItem ok={rules.notOldPass} text="Không trùng mật khẩu cũ" />
+                    <RuleItem ok={rules.noUsername} text="Không chứa tên user (username)" />
                   </div>
                 )}
               </div>
@@ -490,7 +509,13 @@ const UserProfile = ({ role }) => {
 
               <div className="modal-footer">
                 <button type="button" className="btn-cancel" onClick={closePassModal}>Hủy</button>
-                <button type="submit" className="btn-save">Xác nhận</button>
+                <button 
+                  type="submit" 
+                  className={`btn-save ${(!allRulesOk || confirmPass !== newPass || oldPass === '') ? 'btn-disabled' : ''}`}
+                  disabled={!allRulesOk || confirmPass !== newPass || oldPass === ''}
+                >
+                  Xác nhận
+                </button>
               </div>
             </form>
           </div>

@@ -6,6 +6,16 @@
 --         theo dõi tiến độ và thảo luận trong lớp học
 -- ============================================================
 
+USE master;
+GO
+
+IF DB_ID(N'QuanLyLopHocDBv2') IS NOT NULL
+BEGIN
+    ALTER DATABASE QuanLyLopHocDBv2 SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+    DROP DATABASE QuanLyLopHocDBv2;
+END
+GO
+
 CREATE DATABASE QuanLyLopHocDBv2;
 GO
 
@@ -66,10 +76,16 @@ CREATE TABLE NguoiDung (
     AnhDaiDien    NVARCHAR(MAX) NULL,                         -- Đường dẫn ảnh đại diện (URL hoặc path)
     MaKhoa        INT           NULL,                         -- Khoa mà người dùng thuộc về (FK)
     MaVaiTro      INT           NOT NULL,                     -- Vai trò của người dùng (FK)
+    LopSinhVien   VARCHAR(50)   NULL,                         -- Lớp hành chính của sinh viên (chỉ dành cho Role=3)
     DangHoatDong  BIT           DEFAULT 1,                    -- Trạng thái: 1 = Đang hoạt động, 0 = Đã khóa (Soft Delete)
     NgayTao       DATETIME      DEFAULT GETDATE(),            -- Thời điểm tài khoản được tạo
     FOREIGN KEY (MaVaiTro) REFERENCES VaiTro(MaVaiTro),
-    FOREIGN KEY (MaKhoa)   REFERENCES Khoa(MaKhoa)
+    FOREIGN KEY (MaKhoa)   REFERENCES Khoa(MaKhoa),
+    CONSTRAINT CHK_PhanQuyen_Khoa_Lop CHECK (
+        (MaVaiTro = 1 AND MaKhoa IS NULL AND LopSinhVien IS NULL) OR             -- Admin: không Khoa, không Lớp
+        (MaVaiTro = 2 AND MaKhoa IS NOT NULL AND LopSinhVien IS NULL) OR         -- Giảng viên: có Khoa, không Lớp
+        (MaVaiTro = 3 AND MaKhoa IS NOT NULL AND LopSinhVien IS NOT NULL)        -- Sinh viên: có Khoa, có Lớp
+    )
 );
 
 -- ============================================================
@@ -86,6 +102,8 @@ CREATE TABLE LopHoc (
     NgayBatDau    DATE          NULL,                        -- Ngày bắt đầu môn học
     NgayKetThuc   DATE          NULL,                        -- Ngày kết thúc môn học
     ThoiGianHoc   NVARCHAR(255) NULL,                       -- Lịch học (ví dụ: Thứ 2,4,6 18:00-20:00)
+    ChoPhepDangKyNhom BIT       DEFAULT 1,                   -- Trạng thái Khóa chốt nhóm: 1 = Mở, 0 = Đã khóa
+    HanDangKyNhom DATETIME      NULL,                        -- Hạn đăng ký nhóm    
     FOREIGN KEY (MaGiangVien) REFERENCES NguoiDung(MaNguoiDung),
     FOREIGN KEY (MaHocKy)    REFERENCES HocKy(MaHocKy)
 );
@@ -332,108 +350,108 @@ VALUES
 -- Email = mã sinh viên + @student.stu.edu.vn
 -- MaVaiTro = 3 (Sinh viên), MaKhoa = 1 (CNTT - mặc định)
 -- ============================================================
-INSERT INTO NguoiDung (MaSo, TenDangNhap, MatKhauHash, HoTen, Email, MaKhoa, MaVaiTro, DangHoatDong)
+INSERT INTO NguoiDung (MaSo, TenDangNhap, MatKhauHash, HoTen, Email, MaKhoa, MaVaiTro, LopSinhVien, DangHoatDong)
 VALUES
-('DH52200320','dh52200320','hashed_TempPass',N'Đặng Võ Phương Anh',    'DH52200320@student.stu.edu.vn',1,3,1),
-('DH52300086','dh52300086','hashed_TempPass',N'Trần Quốc Anh',         'DH52300086@student.stu.edu.vn',1,3,1),
-('DH52300101','dh52300101','hashed_TempPass',N'Dương Hoàng Ân',        'DH52300101@student.stu.edu.vn',1,3,1),
-('DH52300141','dh52300141','hashed_TempPass',N'Hồ Gia Bảo',            'DH52300141@student.stu.edu.vn',1,3,1),
-('DH52200360','dh52200360','hashed_TempPass',N'Lâm Quốc Bảo',          'DH52200360@student.stu.edu.vn',1,3,1),
-('DH52200362','dh52200362','hashed_TempPass',N'Mông Quyền Gia Bảo',    'DH52200362@student.stu.edu.vn',1,3,1),
-('DH52200377','dh52200377','hashed_TempPass',N'Trần Quốc Bảo',         'DH52200377@student.stu.edu.vn',1,3,1),
-('DH52300129','dh52300129','hashed_TempPass',N'Bùi Công Bằng',         'DH52300129@student.stu.edu.vn',1,3,1),
-('DH52102314','dh52102314','hashed_TempPass',N'Tống Thanh Bình',        'DH52102314@student.stu.edu.vn',1,3,1),
-('DH52300204','dh52300204','hashed_TempPass',N'Huỳnh Tuấn Cảnh',       'DH52300204@student.stu.edu.vn',1,3,1),
-('DH52300203','dh52300203','hashed_TempPass',N'Trang Hồng Cẩm',        'DH52300203@student.stu.edu.vn',1,3,1),
-('DH52200422','dh52200422','hashed_TempPass',N'Lâm Đoàn Việt Cường',   'DH52200422@student.stu.edu.vn',1,3,1),
-('DH52110674','dh52110674','hashed_TempPass',N'Nguyễn Trần Ngọc Diễm', 'DH52110674@student.stu.edu.vn',1,3,1),
-('DH52300249','dh52300249','hashed_TempPass',N'Đặng Chí Dũng',         'DH52300249@student.stu.edu.vn',1,3,1),
-('DH52300256','dh52300256','hashed_TempPass',N'Lê Trí Dũng',           'DH52300256@student.stu.edu.vn',1,3,1),
-('DH52200539','dh52200539','hashed_TempPass',N'Phạm Quang Dũng',       'DH52200539@student.stu.edu.vn',1,3,1),
-('DH52004120','dh52004120','hashed_TempPass',N'Hỷ Văn Đạt',            'DH52004120@student.stu.edu.vn',1,3,1),
-('DH52300409','dh52300409','hashed_TempPass',N'Nguyễn Phát Đạt',       'DH52300409@student.stu.edu.vn',1,3,1),
-('DH52300435','dh52300435','hashed_TempPass',N'Trần Tiến Đạt',         'DH52300435@student.stu.edu.vn',1,3,1),
-('DH52100015','dh52100015','hashed_TempPass',N'Hoàng Văn Đức',         'DH52100015@student.stu.edu.vn',1,3,1),
-('DH52300454','dh52300454','hashed_TempPass',N'Lê Quang Giàu',         'DH52300454@student.stu.edu.vn',1,3,1),
-('DH52103503','dh52103503','hashed_TempPass',N'Nguyễn Phạm Duy Hải',   'DH52103503@student.stu.edu.vn',1,3,1),
-('DH52103781','dh52103781','hashed_TempPass',N'Nguyễn Nhật Hào',       'DH52103781@student.stu.edu.vn',1,3,1),
-('DH52200646','dh52200646','hashed_TempPass',N'Trần Minh Hảo',         'DH52200646@student.stu.edu.vn',1,3,1),
-('DH52110884','dh52110884','hashed_TempPass',N'Nguyễn Trọng Hiền',     'DH52110884@student.stu.edu.vn',1,3,1),
-('DH52100311','dh52100311','hashed_TempPass',N'Đặng Ngọc Hiếu',        'DH52100311@student.stu.edu.vn',1,3,1),
-('DH52101717','dh52101717','hashed_TempPass',N'Lê Minh Hiếu',          'DH52101717@student.stu.edu.vn',1,3,1),
-('DH52300591','dh52300591','hashed_TempPass',N'Võ Văn Hoài',           'DH52300591@student.stu.edu.vn',1,3,1),
-('DH52300654','dh52300654','hashed_TempPass',N'Đỗ Minh Huy',           'DH52300654@student.stu.edu.vn',1,3,1),
-('DH52108356','dh52108356','hashed_TempPass',N'Hoàng Gia Huy',         'DH52108356@student.stu.edu.vn',1,3,1),
-('DH52300718','dh52300718','hashed_TempPass',N'Trần Nguyễn Anh Huy',   'DH52300718@student.stu.edu.vn',1,3,1),
-('DH52300720','dh52300720','hashed_TempPass',N'Trần Quang Huy',        'DH52300720@student.stu.edu.vn',1,3,1),
-('DH52200809','dh52200809','hashed_TempPass',N'Trần Trường Huy',       'DH52200809@student.stu.edu.vn',1,3,1),
-('DH52200812','dh52200812','hashed_TempPass',N'Võ Khắc Huy',           'DH52200812@student.stu.edu.vn',1,3,1),
-('DH52200755','dh52200755','hashed_TempPass',N'Huỳnh Lê Thu Hương',    'DH52200755@student.stu.edu.vn',1,3,1),
-('DH52300628','dh52300628','hashed_TempPass',N'Trần Phú Hữu',          'DH52300628@student.stu.edu.vn',1,3,1),
-('DH52200832','dh52200832','hashed_TempPass',N'Đinh Tấn Khang',        'DH52200832@student.stu.edu.vn',1,3,1),
-('DH52200861','dh52200861','hashed_TempPass',N'Trần Thới Khanh',       'DH52200861@student.stu.edu.vn',1,3,1),
-('DH52300918','dh52300918','hashed_TempPass',N'Tăng Dương Đình Khôi',  'DH52300918@student.stu.edu.vn',1,3,1),
-('DH52300935','dh52300935','hashed_TempPass',N'Phạm Trần Trung Kiên',  'DH52300935@student.stu.edu.vn',1,3,1),
-('DH52200944','dh52200944','hashed_TempPass',N'Dương Tuấn Kiệt',       'DH52200944@student.stu.edu.vn',1,3,1),
-('DH52301080','dh52301080','hashed_TempPass',N'Nguyễn Thanh Hoàng Phi Long','DH52301080@student.stu.edu.vn',1,3,1),
-('DH52200991','dh52200991','hashed_TempPass',N'Bùi Đỗ Phúc Lộc',      'DH52200991@student.stu.edu.vn',1,3,1),
-('DH52200993','dh52200993','hashed_TempPass',N'Đặng Phước Lộc',        'DH52200993@student.stu.edu.vn',1,3,1),
-('DH52301100','dh52301100','hashed_TempPass',N'Phan Văn Minh Luân',    'DH52301100@student.stu.edu.vn',1,3,1),
-('DH52301200','dh52301200','hashed_TempPass',N'Nguyễn Hoàng Nam',      'DH52301200@student.stu.edu.vn',1,3,1),
-('DH52301202','dh52301202','hashed_TempPass',N'Nguyễn Khắc Nam',       'DH52301202@student.stu.edu.vn',1,3,1),
-('DH52301280','dh52301280','hashed_TempPass',N'Trương Nguyễn Tuấn Ngọc','DH52301280@student.stu.edu.vn',1,3,1),
-('DH52301324','dh52301324','hashed_TempPass',N'Nguyễn Thái Nguyên',    'DH52301324@student.stu.edu.vn',1,3,1),
-('DH52201138','dh52201138','hashed_TempPass',N'Lê Thành Nhân',         'DH52201138@student.stu.edu.vn',1,3,1),
-('DH52201160','dh52201160','hashed_TempPass',N'Phạm Yến Nhi',          'DH52201160@student.stu.edu.vn',1,3,1),
-('DH52203931','dh52203931','hashed_TempPass',N'Trần Ngọc Khánh Như',   'DH52203931@student.stu.edu.vn',1,3,1),
-('DH52301477','dh52301477','hashed_TempPass',N'Nguyễn Tấn Phát',       'DH52301477@student.stu.edu.vn',1,3,1),
-('DH52301482','dh52301482','hashed_TempPass',N'Nguyễn Văn Phát',       'DH52301482@student.stu.edu.vn',1,3,1),
-('DH52105157','dh52105157','hashed_TempPass',N'Nguyễn Phú',            'DH52105157@student.stu.edu.vn',1,3,1),
-('DH52301542','dh52301542','hashed_TempPass',N'Lê Hoàng Phúc',         'DH52301542@student.stu.edu.vn',1,3,1),
-('DH52301557','dh52301557','hashed_TempPass',N'Nguyễn Văn Phúc',       'DH52301557@student.stu.edu.vn',1,3,1),
-('DH52301562','dh52301562','hashed_TempPass',N'Trần Nguyễn Minh Phúc', 'DH52301562@student.stu.edu.vn',1,3,1),
-('DH52105381','dh52105381','hashed_TempPass',N'Trần Huỳnh Tuấn Phương','DH52105381@student.stu.edu.vn',1,3,1),
-('DH52301601','dh52301601','hashed_TempPass',N'Nguyễn Duy Quang',      'DH52301601@student.stu.edu.vn',1,3,1),
-('DH52301606','dh52301606','hashed_TempPass',N'Trần Dương Quang',      'DH52301606@student.stu.edu.vn',1,3,1),
-('DH52301629','dh52301629','hashed_TempPass',N'Tống Minh Quân',        'DH52301629@student.stu.edu.vn',1,3,1),
-('DH52201334','dh52201334','hashed_TempPass',N'Phan Gia Quý',          'DH52201334@student.stu.edu.vn',1,3,1),
-('DH52201348','dh52201348','hashed_TempPass',N'Lê Thị Mỹ Quỳnh',      'DH52201348@student.stu.edu.vn',1,3,1),
-('DH52301652','dh52301652','hashed_TempPass',N'Nguyễn Thị Mỹ Quỳnh',  'DH52301652@student.stu.edu.vn',1,3,1),
-('DH52201351','dh52201351','hashed_TempPass',N'Lê Văn Sắc',            'DH52201351@student.stu.edu.vn',1,3,1),
-('DH52201374','dh52201374','hashed_TempPass',N'Phạm Văn Sơn',          'DH52201374@student.stu.edu.vn',1,3,1),
-('DH52301721','dh52301721','hashed_TempPass',N'Đỗ Tấn Tài',            'DH52301721@student.stu.edu.vn',1,3,1),
-('DH52111688','dh52111688','hashed_TempPass',N'Nguyễn Mạnh Tài',       'DH52111688@student.stu.edu.vn',1,3,1),
-('DH52301734','dh52301734','hashed_TempPass',N'Nguyễn Thành Tài',      'DH52301734@student.stu.edu.vn',1,3,1),
-('DH52301752','dh52301752','hashed_TempPass',N'Hoàng Thị Mỹ Tâm',     'DH52301752@student.stu.edu.vn',1,3,1),
-('DH52203933','dh52203933','hashed_TempPass',N'Nguyễn Khai Tâm',       'DH52203933@student.stu.edu.vn',1,3,1),
-('DH52301770','dh52301770','hashed_TempPass',N'Trịnh Duy Tân',         'DH52301770@student.stu.edu.vn',1,3,1),
-('DH52201448','dh52201448','hashed_TempPass',N'Ngô Kiến Thanh',        'DH52201448@student.stu.edu.vn',1,3,1),
-('DH52301814','dh52301814','hashed_TempPass',N'Nguyễn Phước Thành',    'DH52301814@student.stu.edu.vn',1,3,1),
-('DH52201431','dh52201431','hashed_TempPass',N'Chung Nguyễn Quốc Thắng','DH52201431@student.stu.edu.vn',1,3,1),
-('DH52301846','dh52301846','hashed_TempPass',N'Nguyễn Hữu Thiện',      'DH52301846@student.stu.edu.vn',1,3,1),
-('DH52105095','dh52105095','hashed_TempPass',N'Nguyễn Cảnh Thịnh',     'DH52105095@student.stu.edu.vn',1,3,1),
-('DH52301884','dh52301884','hashed_TempPass',N'Tô Duy Phúc Thịnh',     'DH52301884@student.stu.edu.vn',1,3,1),
-('DH52201507','dh52201507','hashed_TempPass',N'Trần Ngọc Thịnh',       'DH52201507@student.stu.edu.vn',1,3,1),
-('DH52201512','dh52201512','hashed_TempPass',N'Nguyễn Nhựt Thoại',     'DH52201512@student.stu.edu.vn',1,3,1),
-('DH52301866','dh52301866','hashed_TempPass',N'Nguyễn Tấn Thống',      'DH52301866@student.stu.edu.vn',1,3,1),
-('DH52006207','dh52006207','hashed_TempPass',N'Huỳnh Hồng Thuyên',     'DH52006207@student.stu.edu.vn',1,3,1),
-('DH52301830','dh52301830','hashed_TempPass',N'Hàng Minh Thức',        'DH52301830@student.stu.edu.vn',1,3,1),
-('DH52301984','dh52301984','hashed_TempPass',N'Lê Minh Tiến',          'DH52301984@student.stu.edu.vn',1,3,1),
-('DH52111901','dh52111901','hashed_TempPass',N'Đào Đăng Đức Toàn',     'DH52111901@student.stu.edu.vn',1,3,1),
-('DH52302040','dh52302040','hashed_TempPass',N'Hà Thị Huỳnh Trang',    'DH52302040@student.stu.edu.vn',1,3,1),
-('DH52302074','dh52302074','hashed_TempPass',N'Nguyễn Ngọc Bảo Trân',  'DH52302074@student.stu.edu.vn',1,3,1),
-('DH52302090','dh52302090','hashed_TempPass',N'Lê Minh Trí',           'DH52302090@student.stu.edu.vn',1,3,1),
-('DH52201624','dh52201624','hashed_TempPass',N'Mai Hữu Trí',           'DH52201624@student.stu.edu.vn',1,3,1),
-('DH52302101','dh52302101','hashed_TempPass',N'Phan Minh Trí',         'DH52302101@student.stu.edu.vn',1,3,1),
-('DH52302505','dh52302505','hashed_TempPass',N'Nguyễn Trần Trọng',     'DH52302505@student.stu.edu.vn',1,3,1),
-('DH52302391','dh52302391','hashed_TempPass',N'Trần Đình Trọng',       'DH52302391@student.stu.edu.vn',1,3,1),
-('DH52302228','dh52302228','hashed_TempPass',N'Trần Hoàng Tuấn',       'DH52302228@student.stu.edu.vn',1,3,1),
-('DH52201723','dh52201723','hashed_TempPass',N'Võ Anh Tuấn',           'DH52201723@student.stu.edu.vn',1,3,1),
-('DH52201741','dh52201741','hashed_TempPass',N'Phạm Minh Tuyến',       'DH52201741@student.stu.edu.vn',1,3,1),
-('DH52102853','dh52102853','hashed_TempPass',N'Dương Lê Văn',          'DH52102853@student.stu.edu.vn',1,3,1),
-('DH52302292','dh52302292','hashed_TempPass',N'Đoàn Quốc Vinh',        'DH52302292@student.stu.edu.vn',1,3,1),
-('DH52201776','dh52201776','hashed_TempPass',N'Nguyễn Long Vũ',        'DH52201776@student.stu.edu.vn',1,3,1),
-('DH52302337','dh52302337','hashed_TempPass',N'Chu Phú Quốc Vương',    'DH52302337@student.stu.edu.vn',1,3,1);
+('DH52200320','dh52200320','hashed_TempPass',N'Đặng Võ Phương Anh',    'DH52200320@student.stu.edu.vn',1,3,'D22_TH01',1),
+('DH52300086','dh52300086','hashed_TempPass',N'Trần Quốc Anh',         'DH52300086@student.stu.edu.vn',1,3,'D23_TH02',1),
+('DH52300101','dh52300101','hashed_TempPass',N'Dương Hoàng Ân',        'DH52300101@student.stu.edu.vn',1,3,'D23_TH02',1),
+('DH52300141','dh52300141','hashed_TempPass',N'Hồ Gia Bảo',            'DH52300141@student.stu.edu.vn',1,3,'D23_TH03',1),
+('DH52200360','dh52200360','hashed_TempPass',N'Lâm Quốc Bảo',          'DH52200360@student.stu.edu.vn',1,3,'D22_TH01',1),
+('DH52200362','dh52200362','hashed_TempPass',N'Mông Quyền Gia Bảo',    'DH52200362@student.stu.edu.vn',1,3,'D22_TH02',1),
+('DH52200377','dh52200377','hashed_TempPass',N'Trần Quốc Bảo',         'DH52200377@student.stu.edu.vn',1,3,'D22_TH02',1),
+('DH52300129','dh52300129','hashed_TempPass',N'Bùi Công Bằng',         'DH52300129@student.stu.edu.vn',1,3,'D23_TH01',1),
+('DH52102314','dh52102314','hashed_TempPass',N'Tống Thanh Bình',        'DH52102314@student.stu.edu.vn',1,3,'D21_TH01',1),
+('DH52300204','dh52300204','hashed_TempPass',N'Huỳnh Tuấn Cảnh',       'DH52300204@student.stu.edu.vn',1,3,'D23_TH01',1),
+('DH52300203','dh52300203','hashed_TempPass',N'Trang Hồng Cẩm',        'DH52300203@student.stu.edu.vn',1,3,'D23_TH02',1),
+('DH52200422','dh52200422','hashed_TempPass',N'Lâm Đoàn Việt Cường',   'DH52200422@student.stu.edu.vn',1,3,'D22_TH03',1),
+('DH52110674','dh52110674','hashed_TempPass',N'Nguyễn Trần Ngọc Diễm', 'DH52110674@student.stu.edu.vn',1,3,'D21_TH02',1),
+('DH52300249','dh52300249','hashed_TempPass',N'Đặng Chí Dũng',         'DH52300249@student.stu.edu.vn',1,3,'D23_TH03',1),
+('DH52300256','dh52300256','hashed_TempPass',N'Lê Trí Dũng',           'DH52300256@student.stu.edu.vn',1,3,'D23_TH03',1),
+('DH52200539','dh52200539','hashed_TempPass',N'Phạm Quang Dũng',       'DH52200539@student.stu.edu.vn',1,3,'D22_TH04',1),
+('DH52004120','dh52004120','hashed_TempPass',N'Hỷ Văn Đạt',            'DH52004120@student.stu.edu.vn',1,3,'D20_TH01',1),
+('DH52300409','dh52300409','hashed_TempPass',N'Nguyễn Phát Đạt',       'DH52300409@student.stu.edu.vn',1,3,'D23_TH04',1),
+('DH52300435','dh52300435','hashed_TempPass',N'Trần Tiến Đạt',         'DH52300435@student.stu.edu.vn',1,3,'D23_TH05',1),
+('DH52100015','dh52100015','hashed_TempPass',N'Hoàng Văn Đức',         'DH52100015@student.stu.edu.vn',1,3,'D21_TH03',1),
+('DH52300454','dh52300454','hashed_TempPass',N'Lê Quang Giàu',         'DH52300454@student.stu.edu.vn',1,3,'D23_TH01',1),
+('DH52103503','dh52103503','hashed_TempPass',N'Nguyễn Phạm Duy Hải',   'DH52103503@student.stu.edu.vn',1,3,'D21_TH04',1),
+('DH52103781','dh52103781','hashed_TempPass',N'Nguyễn Nhật Hào',       'DH52103781@student.stu.edu.vn',1,3,'D21_TH05',1),
+('DH52200646','dh52200646','hashed_TempPass',N'Trần Minh Hảo',         'DH52200646@student.stu.edu.vn',1,3,'D22_TH05',1),
+('DH52110884','dh52110884','hashed_TempPass',N'Nguyễn Trọng Hiền',     'DH52110884@student.stu.edu.vn',1,3,'D21_TH06',1),
+('DH52100311','dh52100311','hashed_TempPass',N'Đặng Ngọc Hiếu',        'DH52100311@student.stu.edu.vn',1,3,'D21_TH01',1),
+('DH52101717','dh52101717','hashed_TempPass',N'Lê Minh Hiếu',          'DH52101717@student.stu.edu.vn',1,3,'D21_TH02',1),
+('DH52300591','dh52300591','hashed_TempPass',N'Võ Văn Hoài',           'DH52300591@student.stu.edu.vn',1,3,'D23_TH02',1),
+('DH52300654','dh52300654','hashed_TempPass',N'Đỗ Minh Huy',           'DH52300654@student.stu.edu.vn',1,3,'D23_TH03',1),
+('DH52108356','dh52108356','hashed_TempPass',N'Hoàng Gia Huy',         'DH52108356@student.stu.edu.vn',1,3,'D21_TH04',1),
+('DH52300718','dh52300718','hashed_TempPass',N'Trần Nguyễn Anh Huy',   'DH52300718@student.stu.edu.vn',1,3,'D23_TH04',1),
+('DH52300720','dh52300720','hashed_TempPass',N'Trần Quang Huy',        'DH52300720@student.stu.edu.vn',1,3,'D23_TH05',1),
+('DH52200809','dh52200809','hashed_TempPass',N'Trần Trường Huy',       'DH52200809@student.stu.edu.vn',1,3,'D22_TH01',1),
+('DH52200812','dh52200812','hashed_TempPass',N'Võ Khắc Huy',           'DH52200812@student.stu.edu.vn',1,3,'D22_TH02',1),
+('DH52200755','dh52200755','hashed_TempPass',N'Huỳnh Lê Thu Hương',    'DH52200755@student.stu.edu.vn',1,3,'D22_TH03',1),
+('DH52300628','dh52300628','hashed_TempPass',N'Trần Phú Hữu',          'DH52300628@student.stu.edu.vn',1,3,'D23_TH01',1),
+('DH52200832','dh52200832','hashed_TempPass',N'Đinh Tấn Khang',        'DH52200832@student.stu.edu.vn',1,3,'D22_TH04',1),
+('DH52200861','dh52200861','hashed_TempPass',N'Trần Thới Khanh',       'DH52200861@student.stu.edu.vn',1,3,'D22_TH05',1),
+('DH52300918','dh52300918','hashed_TempPass',N'Tăng Dương Đình Khôi',  'DH52300918@student.stu.edu.vn',1,3,'D23_TH02',1),
+('DH52300935','dh52300935','hashed_TempPass',N'Phạm Trần Trung Kiên',  'DH52300935@student.stu.edu.vn',1,3,'D23_TH03',1),
+('DH52200944','dh52200944','hashed_TempPass',N'Dương Tuấn Kiệt',       'DH52200944@student.stu.edu.vn',1,3,'D22_TH01',1),
+('DH52301080','dh52301080','hashed_TempPass',N'Nguyễn Thanh Hoàng Phi Long','DH52301080@student.stu.edu.vn',1,3,'D23_TH04',1),
+('DH52200991','dh52200991','hashed_TempPass',N'Bùi Đỗ Phúc Lộc',      'DH52200991@student.stu.edu.vn',1,3,'D22_TH02',1),
+('DH52200993','dh52200993','hashed_TempPass',N'Đặng Phước Lộc',        'DH52200993@student.stu.edu.vn',1,3,'D22_TH03',1),
+('DH52301100','dh52301100','hashed_TempPass',N'Phan Văn Minh Luân',    'DH52301100@student.stu.edu.vn',1,3,'D23_TH05',1),
+('DH52301200','dh52301200','hashed_TempPass',N'Nguyễn Hoàng Nam',      'DH52301200@student.stu.edu.vn',1,3,'D23_TH01',1),
+('DH52301202','dh52301202','hashed_TempPass',N'Nguyễn Khắc Nam',       'DH52301202@student.stu.edu.vn',1,3,'D23_TH02',1),
+('DH52301280','dh52301280','hashed_TempPass',N'Trương Nguyễn Tuấn Ngọc','DH52301280@student.stu.edu.vn',1,3,'D23_TH03',1),
+('DH52301324','dh52301324','hashed_TempPass',N'Nguyễn Thái Nguyên',    'DH52301324@student.stu.edu.vn',1,3,'D23_TH04',1),
+('DH52201138','dh52201138','hashed_TempPass',N'Lê Thành Nhân',         'DH52201138@student.stu.edu.vn',1,3,'D22_TH04',1),
+('DH52201160','dh52201160','hashed_TempPass',N'Phạm Yến Nhi',          'DH52201160@student.stu.edu.vn',1,3,'D22_TH05',1),
+('DH52203931','dh52203931','hashed_TempPass',N'Trần Ngọc Khánh Như',   'DH52203931@student.stu.edu.vn',1,3,'D22_TH01',1),
+('DH52301477','dh52301477','hashed_TempPass',N'Nguyễn Tấn Phát',       'DH52301477@student.stu.edu.vn',1,3,'D23_TH05',1),
+('DH52301482','dh52301482','hashed_TempPass',N'Nguyễn Văn Phát',       'DH52301482@student.stu.edu.vn',1,3,'D23_TH01',1),
+('DH52105157','dh52105157','hashed_TempPass',N'Nguyễn Phú',            'DH52105157@student.stu.edu.vn',1,3,'D21_TH05',1),
+('DH52301542','dh52301542','hashed_TempPass',N'Lê Hoàng Phúc',         'DH52301542@student.stu.edu.vn',1,3,'D23_TH02',1),
+('DH52301557','dh52301557','hashed_TempPass',N'Nguyễn Văn Phúc',       'DH52301557@student.stu.edu.vn',1,3,'D23_TH03',1),
+('DH52301562','dh52301562','hashed_TempPass',N'Trần Nguyễn Minh Phúc', 'DH52301562@student.stu.edu.vn',1,3,'D23_TH04',1),
+('DH52105381','dh52105381','hashed_TempPass',N'Trần Huỳnh Tuấn Phương','DH52105381@student.stu.edu.vn',1,3,'D21_TH06',1),
+('DH52301601','dh52301601','hashed_TempPass',N'Nguyễn Duy Quang',      'DH52301601@student.stu.edu.vn',1,3,'D23_TH05',1),
+('DH52301606','dh52301606','hashed_TempPass',N'Trần Dương Quang',      'DH52301606@student.stu.edu.vn',1,3,'D23_TH01',1),
+('DH52301629','dh52301629','hashed_TempPass',N'Tống Minh Quân',        'DH52301629@student.stu.edu.vn',1,3,'D23_TH02',1),
+('DH52201334','dh52201334','hashed_TempPass',N'Phan Gia Quý',          'DH52201334@student.stu.edu.vn',1,3,'D22_TH02',1),
+('DH52201348','dh52201348','hashed_TempPass',N'Lê Thị Mỹ Quỳnh',      'DH52201348@student.stu.edu.vn',1,3,'D22_TH03',1),
+('DH52301652','dh52301652','hashed_TempPass',N'Nguyễn Thị Mỹ Quỳnh',  'DH52301652@student.stu.edu.vn',1,3,'D23_TH03',1),
+('DH52201351','dh52201351','hashed_TempPass',N'Lê Văn Sắc',            'DH52201351@student.stu.edu.vn',1,3,'D22_TH04',1),
+('DH52201374','dh52201374','hashed_TempPass',N'Phạm Văn Sơn',          'DH52201374@student.stu.edu.vn',1,3,'D22_TH05',1),
+('DH52301721','dh52301721','hashed_TempPass',N'Đỗ Tấn Tài',            'DH52301721@student.stu.edu.vn',1,3,'D23_TH04',1),
+('DH52111688','dh52111688','hashed_TempPass',N'Nguyễn Mạnh Tài',       'DH52111688@student.stu.edu.vn',1,3,'D21_TH01',1),
+('DH52301734','dh52301734','hashed_TempPass',N'Nguyễn Thành Tài',      'DH52301734@student.stu.edu.vn',1,3,'D23_TH05',1),
+('DH52301752','dh52301752','hashed_TempPass',N'Hoàng Thị Mỹ Tâm',     'DH52301752@student.stu.edu.vn',1,3,'D23_TH01',1),
+('DH52203933','dh52203933','hashed_TempPass',N'Nguyễn Khai Tâm',       'DH52203933@student.stu.edu.vn',1,3,'D22_TH01',1),
+('DH52301770','dh52301770','hashed_TempPass',N'Trịnh Duy Tân',         'DH52301770@student.stu.edu.vn',1,3,'D23_TH02',1),
+('DH52201448','dh52201448','hashed_TempPass',N'Ngô Kiến Thanh',        'DH52201448@student.stu.edu.vn',1,3,'D22_TH02',1),
+('DH52301814','dh52301814','hashed_TempPass',N'Nguyễn Phước Thành',    'DH52301814@student.stu.edu.vn',1,3,'D23_TH03',1),
+('DH52201431','dh52201431','hashed_TempPass',N'Chung Nguyễn Quốc Thắng','DH52201431@student.stu.edu.vn',1,3,'D22_TH03',1),
+('DH52301846','dh52301846','hashed_TempPass',N'Nguyễn Hữu Thiện',      'DH52301846@student.stu.edu.vn',1,3,'D23_TH04',1),
+('DH52105095','dh52105095','hashed_TempPass',N'Nguyễn Cảnh Thịnh',     'DH52105095@student.stu.edu.vn',1,3,'D21_TH02',1),
+('DH52301884','dh52301884','hashed_TempPass',N'Tô Duy Phúc Thịnh',     'DH52301884@student.stu.edu.vn',1,3,'D23_TH05',1),
+('DH52201507','dh52201507','hashed_TempPass',N'Trần Ngọc Thịnh',       'DH52201507@student.stu.edu.vn',1,3,'D22_TH04',1),
+('DH52201512','dh52201512','hashed_TempPass',N'Nguyễn Nhựt Thoại',     'DH52201512@student.stu.edu.vn',1,3,'D22_TH05',1),
+('DH52301866','dh52301866','hashed_TempPass',N'Nguyễn Tấn Thống',      'DH52301866@student.stu.edu.vn',1,3,'D23_TH01',1),
+('DH52006207','dh52006207','hashed_TempPass',N'Huỳnh Hồng Thuyên',     'DH52006207@student.stu.edu.vn',1,3,'D20_TH02',1),
+('DH52301830','dh52301830','hashed_TempPass',N'Hàng Minh Thức',        'DH52301830@student.stu.edu.vn',1,3,'D23_TH02',1),
+('DH52301984','dh52301984','hashed_TempPass',N'Lê Minh Tiến',          'DH52301984@student.stu.edu.vn',1,3,'D23_TH03',1),
+('DH52111901','dh52111901','hashed_TempPass',N'Đào Đăng Đức Toàn',     'DH52111901@student.stu.edu.vn',1,3,'D21_TH03',1),
+('DH52302040','dh52302040','hashed_TempPass',N'Hà Thị Huỳnh Trang',    'DH52302040@student.stu.edu.vn',1,3,'D23_TH04',1),
+('DH52302074','dh52302074','hashed_TempPass',N'Nguyễn Ngọc Bảo Trân',  'DH52302074@student.stu.edu.vn',1,3,'D23_TH05',1),
+('DH52302090','dh52302090','hashed_TempPass',N'Lê Minh Trí',           'DH52302090@student.stu.edu.vn',1,3,'D23_TH01',1),
+('DH52201624','dh52201624','hashed_TempPass',N'Mai Hữu Trí',           'DH52201624@student.stu.edu.vn',1,3,'D22_TH01',1),
+('DH52302101','dh52302101','hashed_TempPass',N'Phan Minh Trí',         'DH52302101@student.stu.edu.vn',1,3,'D23_TH02',1),
+('DH52302505','dh52302505','hashed_TempPass',N'Nguyễn Trần Trọng',     'DH52302505@student.stu.edu.vn',1,3,'D23_TH03',1),
+('DH52302391','dh52302391','hashed_TempPass',N'Trần Đình Trọng',       'DH52302391@student.stu.edu.vn',1,3,'D23_TH04',1),
+('DH52302228','dh52302228','hashed_TempPass',N'Trần Hoàng Tuấn',       'DH52302228@student.stu.edu.vn',1,3,'D23_TH05',1),
+('DH52201723','dh52201723','hashed_TempPass',N'Võ Anh Tuấn',           'DH52201723@student.stu.edu.vn',1,3,'D22_TH02',1),
+('DH52201741','dh52201741','hashed_TempPass',N'Phạm Minh Tuyến',       'DH52201741@student.stu.edu.vn',1,3,'D22_TH03',1),
+('DH52102853','dh52102853','hashed_TempPass',N'Dương Lê Văn',          'DH52102853@student.stu.edu.vn',1,3,'D21_TH04',1),
+('DH52302292','dh52302292','hashed_TempPass',N'Đoàn Quốc Vinh',        'DH52302292@student.stu.edu.vn',1,3,'D23_TH01',1),
+('DH52201776','dh52201776','hashed_TempPass',N'Nguyễn Long Vũ',        'DH52201776@student.stu.edu.vn',1,3,'D22_TH04',1),
+('DH52302337','dh52302337','hashed_TempPass',N'Chu Phú Quốc Vương',    'DH52302337@student.stu.edu.vn',1,3,'D23_TH02',1);
 
 GO
 
@@ -444,10 +462,9 @@ PRINT N'Lưu ý: Cột MatKhauHash cần được backend hash thực tế bằn
 -- ============================================================
 -- 3 TÀI KHOẢN TEST (TẠO THÊM THEO YÊU CẦU)
 -- ============================================================
-INSERT INTO NguoiDung (MaSo, TenDangNhap, MatKhauHash, HoTen, Email, MaKhoa, MaVaiTro, DangHoatDong)
+INSERT INTO NguoiDung (MaSo, TenDangNhap, MatKhauHash, HoTen, Email, MaKhoa, MaVaiTro, LopSinhVien, DangHoatDong)
 VALUES
-('ADMIN999', 'admin_test', '123456', N'Tài khoản Admin Test', 'admin_test@stu.edu.vn', NULL, 1, 1),
-('GV999', 'gv_test', '123456', N'Tài khoản Giảng viên Test', 'gv_test@stu.edu.vn', 1, 2, 1),
-('SV999', 'sv_test', '123456', N'Tài khoản Sinh viên Test', 'sv_test@student.stu.edu.vn', 1, 3, 1);
+('ADMIN999', 'admin_test', '123456', N'Tài khoản Admin Test', 'admin_test@stu.edu.vn', NULL, 1, NULL, 1),
+('GV999', 'gv_test', '123456', N'Tài khoản Giảng viên Test', 'gv_test@stu.edu.vn', 1, 2, NULL, 1),
+('SV999', 'sv_test', '123456', N'Tài khoản Sinh viên Test', 'sv_test@student.stu.edu.vn', 1, 3, 'D21_TH09', 1);
 
-SELECT * FROM NguoiDung 

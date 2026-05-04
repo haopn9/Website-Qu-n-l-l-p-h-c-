@@ -1,23 +1,21 @@
 /* Dashboard.css - Trang tổng quan */
 
-/* Header Gradient - Giống GroupManagement */
+/* Header */
 .dashboard-header-gradient {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 20px;
-  padding: 28px 32px;
-  margin-bottom: 28px;
-  color: white;
+  margin-bottom: 2rem;
 }
 
 .dashboard-header-gradient h2 {
-  font-size: 24px;
-  font-weight: 600;
-  margin-bottom: 8px;
+  font-size: 2rem;
+  color: #2c3e50;
+  margin: 0 0 0.5rem 0;
+  font-weight: 700;
 }
 
 .dashboard-header-gradient p {
-  font-size: 14px;
-  opacity: 0.9;
+  color: #7f8c8d;
+  margin: 0;
+  font-size: 1rem;
 }
 
 /* Stats Cards */
@@ -252,7 +250,7 @@
     grid-template-columns: 1fr;
   }
   .dashboard-header-gradient {
-    padding: 20px;
+    margin-bottom: 1.5rem;
   }
   .dashboard-header-gradient h2 {
     font-size: 20px;

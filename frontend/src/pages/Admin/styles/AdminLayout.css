@@ -12,16 +12,15 @@
 }
 
 /* ========== SIDEBAR MENU BÊN TRÁI ========== */
-.admin-sidebar {
+.sidebar {
   width: 280px;
-  background: linear-gradient(180deg, #1a1f36 0%, #0f1119 100%);
-  color: #a0aec0;
+  background-color: #152259;
+  /* Màu xanh đen giống thiết kế */
+  color: white;
   display: flex;
   flex-direction: column;
-  position: fixed;
-  height: 100vh;
   overflow-y: auto;
-  z-index: 100;
+  /* Cho phép cuộn nếu menu quá dài */
 }
 
 /* Sidebar Profile */
@@ -139,9 +138,11 @@
   .admin-sidebar {
     width: 80px;
   }
+
   .admin-main {
     margin-left: 80px;
   }
+
   .sidebar-profile .user-name,
   .sidebar-profile .user-role,
   .sidebar-profile .user-class,
@@ -149,6 +150,7 @@
   .menu-item span {
     display: none;
   }
+
   .menu-item {
     justify-content: center;
   }

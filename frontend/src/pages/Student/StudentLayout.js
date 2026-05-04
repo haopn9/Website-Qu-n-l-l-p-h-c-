@@ -1,10 +1,23 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Outlet, Link } from 'react-router-dom';
 // Cập nhật import các Icon chính xác
 import { FaHome, FaUserEdit, FaBook, FaUsers, FaTasks, FaComments, FaSitemap, FaSignOutAlt } from 'react-icons/fa';
 import './StudentLayout.css';
 
 const StudentLayout = () => {
+  const [userInfo, setUserInfo] = useState({
+    hoTen: 'Sinh viên',
+    anhDaiDien: 'https://i.pravatar.cc/150?img=11',
+    maSo: 'SV001234'
+  });
+
+  useEffect(() => {
+    const stored = localStorage.getItem('userInfo');
+    if (stored) {
+      setUserInfo(JSON.parse(stored));
+    }
+  }, []);
+
   return (
     <div className="student-layout-container">
       
@@ -14,11 +27,11 @@ const StudentLayout = () => {
         {/* Phần Avatar, Tên và Mã số User */}
         <div className="sidebar-profile">
           <div className="avatar-circle">
-            <img src="https://i.pravatar.cc/150?img=11" alt="Avatar" />
+            <img src={userInfo.anhDaiDien || "https://i.pravatar.cc/150?img=11"} alt="Avatar" />
           </div>
-          <h3 className="user-name">User</h3>
+          <h3 className="user-name">{userInfo.hoTen}</h3>
           {/* Thêm dòng mã số User */}
-          <p className="user-code">SV001234</p>
+          <p className="user-code">{userInfo.maSo}</p>
         </div>
 
         {/* Danh sách Menu đã cập nhật Icon */}

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace Backend.Models;
@@ -20,6 +20,10 @@ public partial class LopHoc
     public DateOnly? NgayKetThuc { get; set; }
 
     public string? ThoiGianHoc { get; set; }
+
+    public bool? ChoPhepDangKyNhom { get; set; }
+
+    public DateTime? HanDangKyNhom { get; set; }
 
     public virtual ICollection<DeTai> DeTais { get; set; } = new List<DeTai>();
 

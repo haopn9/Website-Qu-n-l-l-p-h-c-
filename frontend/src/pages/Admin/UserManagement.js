@@ -1,14 +1,20 @@
 // UserManagement.js
 import React, { useState, useEffect } from 'react';
-import { FaPlus, FaSearch, FaEdit, FaTrash, FaTimes, FaLock, FaUnlock } from 'react-icons/fa';
+import { FaPlus, FaSearch, FaEdit, FaTimes, FaLock, FaKey } from 'react-icons/fa';
 import './styles/UserManagement.css';
+import userService from '../../services/userService';
 
 const UserManagement = () => {
   const [users, setUsers] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRole, setSelectedRole] = useState('all');
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importState, setImportState] = useState(1);
+  const [importFile, setImportFile] = useState(null);
+  const [importData, setImportData] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [newUser, setNewUser] = useState({
     maSo: '',
     tenDangNhap: '',
@@ -16,7 +22,8 @@ const UserManagement = () => {
     email: '',
     matKhau: '',
     maKhoa: '1',
-    maVaiTro: '3'
+    maVaiTro: '3',
+    lopSinhVien: ''
   });
 
   // Danh sách khoa từ bảng Khoa
@@ -33,15 +40,125 @@ const UserManagement = () => {
     { MaVaiTro: 3, TenVaiTro: 'Sinh viên' },
   ];
 
+  const lopSinhVienList = [
+    'D20_TH01',
+    'D21_TH01',
+    'D21_TH02',
+    'D22_TH01',
+    'D22_TH02',
+    'D23_TH01',
+    'D23_TH02',
+    'D23_TH03',
+  ];
+
+  const resetNewUser = () => {
+    setNewUser({
+      maSo: '',
+      tenDangNhap: '',
+      hoTen: '',
+      email: '',
+      matKhau: '',
+      maKhoa: '1',
+      maVaiTro: '3',
+      lopSinhVien: ''
+    });
+  };
+
+  const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+
+  const normalizeText = (value) =>
+    value
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, '');
+
+  const passwordExists = (password) =>
+    users.some(user => user.matKhau === password || user.matKhauHash === password);
+
+  const passwordContainsUserName = (password, userName) => {
+    const normalizedUserName = normalizeText(userName);
+    if (!normalizedUserName) return false;
+    return normalizeText(password).includes(normalizedUserName);
+  };
+
+  const shuffleText = (value) => {
+    const chars = value.split('');
+    for (let i = chars.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [chars[i], chars[j]] = [chars[j], chars[i]];
+    }
+    return chars.join('');
+  };
+
+  const generatePasswordCandidate = () => {
+    const upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const lower = 'abcdefghijklmnopqrstuvwxyz';
+    const number = '0123456789';
+    const special = '!@#$%^&*';
+    const allChars = upper + lower + number + special;
+    const pick = (chars) => chars[Math.floor(Math.random() * chars.length)];
+    const targetLength = 12;
+    let password = [pick(upper), pick(lower), pick(number), pick(special)];
+
+    while (password.length < targetLength) {
+      password.push(pick(allChars));
+    }
+
+    return shuffleText(password.join(''));
+  };
+
+  const handleGeneratePassword = () => {
+    let generatedPassword = '';
+
+    for (let attempt = 0; attempt < 100; attempt += 1) {
+      const candidate = generatePasswordCandidate();
+      const userNames = [newUser.tenDangNhap, newUser.hoTen, newUser.maSo].filter(Boolean);
+      const containsUserName = userNames.some(name => passwordContainsUserName(candidate, name));
+
+      if (!passwordExists(candidate) && !containsUserName && !/\s/.test(candidate)) {
+        generatedPassword = candidate;
+        break;
+      }
+    }
+
+    if (!generatedPassword) {
+      alert('Không thể sinh mật khẩu phù hợp, vui lòng thử lại.');
+      return;
+    }
+
+    setNewUser({ ...newUser, matKhau: generatedPassword });
+  };
+
+  const handleRoleChange = (value) => {
+    const nextUser = { ...newUser, maVaiTro: value };
+
+    if (value === '1') {
+      nextUser.maKhoa = '';
+      nextUser.lopSinhVien = '';
+    }
+
+    if (value === '2') {
+      nextUser.maKhoa = nextUser.maKhoa || '1';
+      nextUser.lopSinhVien = '';
+    }
+
+    if (value === '3') {
+      nextUser.maKhoa = nextUser.maKhoa || '1';
+    }
+
+    setNewUser(nextUser);
+  };
+
   const fetchUsers = async () => {
     try {
-      const response = await fetch('http://localhost:5186/api/nguoidung');
-      if (response.ok) {
-        const data = await response.json();
-        setUsers(data);
-      }
-    } catch (error) {
-      console.error('Lỗi lấy danh sách người dùng:', error);
+      setLoading(true);
+      const data = await userService.getAllUsers();
+      setUsers(data);
+      setError('');
+    } catch (err) {
+      setError('Lỗi lấy danh sách người dùng: ' + (err.message || 'Lỗi server'));
+      console.error('Error fetching users:', err);
     } finally {
       setLoading(false);
     }
@@ -54,51 +171,67 @@ const UserManagement = () => {
   // Lọc người dùng
   const filteredUsers = users.filter(user => {
     const matchesSearch = user.hoTen.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          user.tenDangNhap.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          user.maSo.toLowerCase().includes(searchTerm.toLowerCase());
+      user.tenDangNhap.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.maSo.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesRole = selectedRole === 'all' || user.maVaiTro === parseInt(selectedRole);
     return matchesSearch && matchesRole;
   });
 
-  const toggleUserStatus = async (userId) => {
-    try {
-      const response = await fetch(`http://localhost:5186/api/nguoidung/${userId}/trangthai`, {
-        method: 'PUT'
-      });
-      if (response.ok) {
-        setUsers(users.map(user => 
-          user.maNguoiDung === userId 
-            ? { ...user, dangHoatDong: !user.dangHoatDong }
+
+  const deleteUser = async (userId) => {
+    if (window.confirm('Bạn có chắc muốn khóa (xóa mềm) người dùng này?')) {
+      try {
+        await userService.deleteUser(userId);
+        // Xóa mềm -> Đổi trạng thái thành false
+        setUsers(users.map(user =>
+          user.maNguoiDung === userId
+            ? { ...user, dangHoatDong: false }
             : user
         ));
-      } else {
-        alert('Có lỗi xảy ra khi cập nhật trạng thái');
+        setError('');
+      } catch (err) {
+        setError('Lỗi khóa người dùng: ' + (err.message || 'Lỗi server'));
+        console.error('Error deleting user:', err);
       }
-    } catch (error) {
-      console.error('Lỗi cập nhật trạng thái:', error);
     }
   };
 
-  const deleteUser = async (userId) => {
-    if (window.confirm('Bạn có chắc muốn khóa (xóa) người dùng này?')) {
-      try {
-        const response = await fetch(`http://localhost:5186/api/nguoidung/${userId}`, {
-          method: 'DELETE'
-        });
-        if (response.ok) {
-          // Xóa mềm -> Đổi trạng thái thành false
-          setUsers(users.map(user => 
-            user.maNguoiDung === userId 
-              ? { ...user, dangHoatDong: false }
-              : user
-          ));
-        } else {
-          alert('Có lỗi xảy ra khi khóa người dùng');
-        }
-      } catch (error) {
-        console.error('Lỗi khóa người dùng:', error);
-      }
+  // --- Logic Import Excel ---
+  const handleFileChange = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      setImportFile(e.target.files[0]);
     }
+  };
+
+  const handleCheckData = () => {
+    if (!importFile) {
+      alert('Vui lòng chọn file Excel!');
+      return;
+    }
+    // Giả lập đọc 5 dòng đầu hợp lệ
+    const mockPreviewData = [
+      { maSo: 'SV001', hoTen: 'Nguyễn Văn A', email: 'nva@stu.edu.vn' },
+      { maSo: 'SV002', hoTen: 'Trần Thị B', email: 'ttb@stu.edu.vn' },
+      { maSo: 'SV003', hoTen: 'Lê Văn C', email: 'lvc@stu.edu.vn' },
+    ];
+    setImportData(mockPreviewData);
+    setImportState(2);
+  };
+
+  const handleImport = async () => {
+    // API call import here (TODO)
+    alert('Import thành công (Giả lập Backend gửi mail qua Gmail SMTP cho sinh viên)');
+    setShowImportModal(false);
+    setImportState(1);
+    setImportFile(null);
+    setImportData([]);
+  };
+
+  const closeImportModal = () => {
+    setShowImportModal(false);
+    setImportState(1);
+    setImportFile(null);
+    setImportData([]);
   };
 
   const handleAddUser = async () => {
@@ -106,7 +239,42 @@ const UserManagement = () => {
       alert('Vui lòng nhập đầy đủ thông tin!');
       return;
     }
-    
+
+    if (!isValidEmail(newUser.email)) {
+      alert('Email không đúng định dạng. Vui lòng kiểm tra lại!');
+      return;
+    }
+
+    if ((newUser.maVaiTro === '2' || newUser.maVaiTro === '3') && !newUser.maKhoa) {
+      alert('Vui lòng chọn khoa cho tài khoản giảng viên hoặc sinh viên!');
+      return;
+    }
+
+    if (newUser.maVaiTro === '3' && !newUser.lopSinhVien) {
+      alert('Vui lòng chọn lớp sinh viên!');
+      return;
+    }
+
+    if (/\s/.test(newUser.matKhau)) {
+      alert('Mật khẩu không được chứa khoảng trắng!');
+      return;
+    }
+
+    if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*]).{8,12}$/.test(newUser.matKhau)) {
+      alert('Mật khẩu phải dài 8-12 ký tự, có chữ hoa, chữ thường, số và ký tự đặc biệt.');
+      return;
+    }
+
+    if ([newUser.tenDangNhap, newUser.hoTen, newUser.maSo].some(name => passwordContainsUserName(newUser.matKhau, name))) {
+      alert('Mật khẩu không được chứa tên hoặc mã số của người dùng!');
+      return;
+    }
+
+    if (passwordExists(newUser.matKhau)) {
+      alert('Mật khẩu không được trùng với mật khẩu của tài khoản khác!');
+      return;
+    }
+
     try {
       const response = await fetch('http://localhost:5186/api/nguoidung', {
         method: 'POST',
@@ -119,15 +287,16 @@ const UserManagement = () => {
           matKhau: newUser.matKhau,
           hoTen: newUser.hoTen,
           email: newUser.email,
-          maKhoa: parseInt(newUser.maKhoa),
-          maVaiTro: parseInt(newUser.maVaiTro)
+          maKhoa: newUser.maKhoa ? parseInt(newUser.maKhoa) : 0,
+          maVaiTro: parseInt(newUser.maVaiTro),
+          lopSinhVien: newUser.maVaiTro === '3' ? newUser.lopSinhVien : null
         })
       });
 
       if (response.ok) {
         alert('Thêm người dùng thành công!');
         fetchUsers(); // Lấy lại danh sách mới
-        setNewUser({ maSo: '', tenDangNhap: '', hoTen: '', email: '', matKhau: '', maKhoa: '1', maVaiTro: '3' });
+        resetNewUser();
         setShowAddModal(false);
       } else {
         const errorData = await response.json();
@@ -153,16 +322,24 @@ const UserManagement = () => {
       </div>
 
       <div className="toolbar-modern">
-        <button className="btn-add-modern" onClick={() => setShowAddModal(true)}>
-          <FaPlus /> Thêm người dùng
-        </button>
-        
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button className="btn-add-modern" onClick={() => {
+            resetNewUser();
+            setShowAddModal(true);
+          }}>
+            <FaPlus /> Thêm người dùng
+          </button>
+          <button className="btn-add-modern" style={{ backgroundColor: '#217346' }} onClick={() => setShowImportModal(true)}>
+            Import Excel
+          </button>
+        </div>
+
         <div className="search-filter-group">
           <div className="search-box-modern">
             <FaSearch className="search-icon" />
-            <input 
-              type="text" 
-              placeholder="Tìm kiếm theo tên, mã số, tài khoản..." 
+            <input
+              type="text"
+              placeholder="Tìm kiếm theo tên, mã số, tài khoản..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -172,9 +349,9 @@ const UserManagement = () => {
               </button>
             )}
           </div>
-          
-          <select 
-            className="filter-select-modern" 
+
+          <select
+            className="filter-select-modern"
             value={selectedRole}
             onChange={(e) => setSelectedRole(e.target.value)}
           >
@@ -221,15 +398,8 @@ const UserManagement = () => {
                     <button className="action-btn edit" title="Sửa">
                       <FaEdit />
                     </button>
-                    <button 
-                      className="action-btn edit" 
-                      title={user.dangHoatDong ? 'Khóa' : 'Mở khóa'}
-                      onClick={() => toggleUserStatus(user.maNguoiDung)}
-                    >
-                      {user.dangHoatDong ? <FaLock /> : <FaUnlock />}
-                    </button>
-                    <button className="action-btn delete" title="Xóa" onClick={() => deleteUser(user.maNguoiDung)}>
-                      <FaTrash />
+                    <button className="action-btn delete" title="Khóa/Xóa mềm" onClick={() => deleteUser(user.maNguoiDung)}>
+                      <FaLock />
                     </button>
                   </td>
                 </tr>
@@ -237,7 +407,7 @@ const UserManagement = () => {
             </tbody>
           </table>
         </div>
-        
+
         <div className="table-footer">
           <span>Hiển thị {filteredUsers.length} / {users.length} người dùng (từ bảng NguoiDung)</span>
         </div>
@@ -256,68 +426,93 @@ const UserManagement = () => {
             <div className="modal-body">
               <div className="form-group">
                 <label>Mã số (MSSV/MSGV) <span className="required">*</span></label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   placeholder="VD: DH52200320 hoặc GV001"
                   value={newUser.maSo}
-                  onChange={(e) => setNewUser({...newUser, maSo: e.target.value})}
+                  onChange={(e) => setNewUser({ ...newUser, maSo: e.target.value })}
                 />
               </div>
               <div className="form-group">
                 <label>Tên đăng nhập <span className="required">*</span></label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   placeholder="Username"
                   value={newUser.tenDangNhap}
-                  onChange={(e) => setNewUser({...newUser, tenDangNhap: e.target.value})}
+                  onChange={(e) => setNewUser({ ...newUser, tenDangNhap: e.target.value })}
                 />
               </div>
               <div className="form-group">
                 <label>Họ và tên <span className="required">*</span></label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   placeholder="Nhập họ và tên"
                   value={newUser.hoTen}
-                  onChange={(e) => setNewUser({...newUser, hoTen: e.target.value})}
+                  onChange={(e) => setNewUser({ ...newUser, hoTen: e.target.value })}
                 />
               </div>
               <div className="form-group">
                 <label>Email <span className="required">*</span></label>
-                <input 
-                  type="email" 
+                <input
+                  type="email"
                   placeholder="example@stu.edu.vn"
+                  className={newUser.email && !isValidEmail(newUser.email) ? 'input-error' : ''}
                   value={newUser.email}
-                  onChange={(e) => setNewUser({...newUser, email: e.target.value})}
+                  onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
                 />
+                {newUser.email && !isValidEmail(newUser.email) && (
+                  <span className="field-error">Email chưa đúng định dạng.</span>
+                )}
               </div>
               <div className="form-group">
                 <label>Mật khẩu <span className="required">*</span></label>
-                <input 
-                  type="password" 
-                  placeholder="Nhập mật khẩu"
-                  value={newUser.matKhau}
-                  onChange={(e) => setNewUser({...newUser, matKhau: e.target.value})}
-                />
+                <div className="password-row">
+                  <input
+                    type="text"
+                    placeholder="Nhập mật khẩu"
+                    value={newUser.matKhau}
+                    onChange={(e) => setNewUser({ ...newUser, matKhau: e.target.value })}
+                  />
+                  <button type="button" className="btn-random-password" onClick={handleGeneratePassword}>
+                    <FaKey /> Mật khẩu ngẫu nhiên
+                  </button>
+                </div>
+                <span className="field-hint">8-12 ký tự, có chữ hoa, chữ thường, số, ký tự đặc biệt và không có khoảng trắng.</span>
+              </div>
+              <div className="form-group">
+                <label>Vai trò (tham chiếu bảng VaiTro) <span className="required">*</span></label>
+                <select
+                  value={newUser.maVaiTro}
+                  onChange={(e) => handleRoleChange(e.target.value)}
+                >
+                  {vaiTroList.map(role => (
+                    <option key={role.MaVaiTro} value={role.MaVaiTro}>{role.TenVaiTro}</option>
+                  ))}
+                </select>
               </div>
               <div className="form-group">
                 <label>Khoa (tham chiếu bảng Khoa)</label>
-                <select 
+                <select
                   value={newUser.maKhoa}
-                  onChange={(e) => setNewUser({...newUser, maKhoa: e.target.value})}
+                  disabled={newUser.maVaiTro === '1'}
+                  onChange={(e) => setNewUser({ ...newUser, maKhoa: e.target.value })}
                 >
+                  <option value="">Không thuộc khoa</option>
                   {khoaList.map(khoa => (
                     <option key={khoa.MaKhoa} value={khoa.MaKhoa}>{khoa.TenKhoa}</option>
                   ))}
                 </select>
               </div>
               <div className="form-group">
-                <label>Vai trò (tham chiếu bảng VaiTro) <span className="required">*</span></label>
-                <select 
-                  value={newUser.maVaiTro}
-                  onChange={(e) => setNewUser({...newUser, maVaiTro: e.target.value})}
+                <label>Lớp sinh viên</label>
+                <select
+                  value={newUser.lopSinhVien}
+                  disabled={newUser.maVaiTro !== '3'}
+                  onChange={(e) => setNewUser({ ...newUser, lopSinhVien: e.target.value })}
                 >
-                  {vaiTroList.map(role => (
-                    <option key={role.MaVaiTro} value={role.MaVaiTro}>{role.TenVaiTro}</option>
+                  <option value="">Không thuộc lớp sinh viên</option>
+                  {lopSinhVienList.map(lop => (
+                    <option key={lop} value={lop}>{lop}</option>
                   ))}
                 </select>
               </div>
@@ -325,6 +520,88 @@ const UserManagement = () => {
             <div className="modal-footer">
               <button className="btn-cancel" onClick={() => setShowAddModal(false)}>Hủy</button>
               <button className="btn-save" onClick={handleAddUser}>Thêm vào NguoiDung</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Modal Import Excel */}
+      {showImportModal && (
+        <div className="modal-overlay" onClick={closeImportModal}>
+          <div className="modal-container" style={{ maxWidth: '600px' }} onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Import danh sách từ Excel</h3>
+              <button className="modal-close" onClick={closeImportModal}>
+                <FaTimes />
+              </button>
+            </div>
+            <div className="modal-body">
+              {importState === 1 ? (
+                <>
+                  <div className="form-group" style={{ flexDirection: 'row', gap: '15px' }}>
+                    <div style={{ flex: 1 }}>
+                      <label>Vai trò</label>
+                      <select>
+                        <option value="2">Giảng viên</option>
+                        <option value="3">Sinh viên</option>
+                      </select>
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <label>Khoa</label>
+                      <select>
+                        {khoaList.map(k => <option key={k.MaKhoa} value={k.MaKhoa}>{k.TenKhoa}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                  <div className="form-group">
+                    <label>Tải lên file Excel</label>
+                    <div style={{ border: '2px dashed #cbd5e1', padding: '30px', textAlign: 'center', borderRadius: '8px', cursor: 'pointer' }}>
+                      <p style={{ margin: '0 0 10px', color: '#64748b' }}>Kéo thả file vào đây hoặc bấm chọn file (chỉ hỗ trợ .xlsx, .xls)</p>
+                      <input type="file" accept=".xlsx, .xls" onChange={handleFileChange} />
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div style={{ backgroundColor: '#ecfdf5', color: '#059669', padding: '12px', borderRadius: '8px', marginBottom: '15px', fontWeight: 'bold' }}>
+                    ✅ Tìm thấy {importData.length + 42} dòng hợp lệ.
+                  </div>
+                  <div className="table-wrapper" style={{ maxHeight: '200px', overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
+                    <table className="data-table-modern" style={{ margin: 0 }}>
+                      <thead>
+                        <tr>
+                          <th style={{ position: 'sticky', top: 0, backgroundColor: '#f8fafc' }}>Mã số</th>
+                          <th style={{ position: 'sticky', top: 0, backgroundColor: '#f8fafc' }}>Họ tên</th>
+                          <th style={{ position: 'sticky', top: 0, backgroundColor: '#f8fafc' }}>Email</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {importData.map((row, idx) => (
+                          <tr key={idx}>
+                            <td>{row.maSo}</td>
+                            <td>{row.hoTen}</td>
+                            <td>{row.email}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <p style={{ fontSize: '12px', color: '#94a3b8', marginTop: '10px' }}>Hiển thị 5 dòng đầu tiên để xác nhận.</p>
+                </>
+              )}
+            </div>
+            <div className="modal-footer">
+              {importState === 1 ? (
+                <>
+                  <button className="btn-cancel" style={{ marginRight: 'auto', color: '#2563eb' }}>Tải file mẫu</button>
+                  <button className="btn-cancel" onClick={closeImportModal}>Hủy</button>
+                  <button className="btn-save" style={{ backgroundColor: '#eab308', color: '#fff' }} onClick={handleCheckData}>Kiểm tra dữ liệu</button>
+                </>
+              ) : (
+                <>
+                  <button className="btn-cancel" onClick={() => setImportState(1)}>Quay lại tải file khác</button>
+                  <button className="btn-save" style={{ backgroundColor: '#10b981' }} onClick={handleImport}>Tiến hành Import</button>
+                </>
+              )}
             </div>
           </div>
         </div>

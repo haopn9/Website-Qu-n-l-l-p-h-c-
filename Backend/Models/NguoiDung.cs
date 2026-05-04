@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace Backend.Models;
@@ -30,6 +30,8 @@ public partial class NguoiDung
     public int? MaKhoa { get; set; }
 
     public int MaVaiTro { get; set; }
+
+    public string? LopSinhVien { get; set; }
 
     public bool? DangHoatDong { get; set; }
 

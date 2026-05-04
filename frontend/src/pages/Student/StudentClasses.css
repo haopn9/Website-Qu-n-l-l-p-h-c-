@@ -66,6 +66,47 @@
   text-transform: uppercase;
 }
 
+.sc-section-filter {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.sc-semester-select {
+  min-width: 210px;
+  height: 38px;
+  padding: 0 38px 0 13px;
+  border: 1px solid #d9e0ec;
+  border-radius: 8px;
+  background-color: #fff;
+  color: #152259;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+  background-image:
+    linear-gradient(45deg, transparent 50%, #667085 50%),
+    linear-gradient(135deg, #667085 50%, transparent 50%);
+  background-position:
+    calc(100% - 18px) 16px,
+    calc(100% - 13px) 16px;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.sc-semester-select:hover {
+  border-color: #b5c3d8;
+}
+
+.sc-semester-select:focus {
+  border-color: #378add;
+  box-shadow: 0 0 0 3px rgba(55, 138, 221, 0.12);
+}
+
 /* Lưới Lớp học */
 .grid {
   display: grid;

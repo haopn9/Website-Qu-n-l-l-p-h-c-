@@ -1,21 +1,34 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Outlet, Link } from 'react-router-dom';
 // Import icon riêng cho Giảng viên
 import { FaHome, FaChalkboard, FaBookOpen, FaUsers, FaChartLine, FaUserEdit, FaSignOutAlt } from 'react-icons/fa';
 import '../Student/StudentLayout.css'; // Tái sử dụng CSS
 
 const TeacherLayout = () => {
+  const [userInfo, setUserInfo] = useState({
+    hoTen: 'Thầy Minh Khang',
+    anhDaiDien: 'https://i.pravatar.cc/150?img=3',
+    maSo: 'GV00123'
+  });
+
+  useEffect(() => {
+    const stored = localStorage.getItem('userInfo');
+    if (stored) {
+      setUserInfo(JSON.parse(stored));
+    }
+  }, []);
+
   return (
     <div className="student-layout-container">
       <aside className="sidebar">
-        
+
         {/* Avatar Giảng viên */}
         <div className="sidebar-profile">
           <div className="avatar-circle">
-            <img src="https://i.pravatar.cc/150?img=3" alt="Teacher Avatar" />
+            <img src={userInfo.anhDaiDien || "https://i.pravatar.cc/150?img=3"} alt="Teacher Avatar" />
           </div>
-          <h3 className="user-name">Thầy Minh Khang</h3>
-          <p className="user-code">GV00123</p>
+          <h3 className="user-name">{userInfo.hoTen}</h3>
+          <p className="user-code">{userInfo.maSo}</p>
         </div>
 
         {/* Menu Giảng viên */}
@@ -59,7 +72,7 @@ const TeacherLayout = () => {
       </aside>
 
       <main className="main-content">
-        <Outlet /> 
+        <Outlet />
       </main>
     </div>
   );

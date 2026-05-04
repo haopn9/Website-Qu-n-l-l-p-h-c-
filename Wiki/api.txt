@@ -1,9 +1,9 @@
-POST   /api/xacthuc/login -> đăng nhập user
-GET    /api/admin/thongke -> thống kê user ởtrang amdin
-GET    /api/nguoidung -> lấy danh sách ở trang admin
-POST   /api/nguoidung -> thêm user ở trang admin
-PUT    /api/nguoidung/{id}/trangthai -> khóa / mở khóa tài khoản user ở trang admin
-DELETE /api/nguoidung/{id} -> xóa account user ở tarng admin
+POST   /api/xacthuc/dangnhap
+GET    /api/admin/thongke
+GET    /api/nguoidung
+POST   /api/nguoidung
+PUT    /api/nguoidung/{id}/trangthai
+DELETE /api/nguoidung/{id}
 GET    /api/lophoc
 POST   /api/lophoc
 DELETE /api/lophoc/{id}         

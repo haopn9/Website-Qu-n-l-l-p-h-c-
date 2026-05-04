@@ -162,107 +162,6 @@ function MessageBubble({ msg }) {
 }
 
 // ============================================================
-// COMPONENT: Modal tạo nhóm chat
-// ============================================================
-function CreateChatGroupModal({ onClose }) {
-  const [groupName, setGroupName] = useState('');
-  const [selectedMembers, setSelectedMembers] = useState([]);
-  const [selectedClass, setSelectedClass] = useState('1');
-
-  // Giả lập: User là trưởng của 2 nhóm
-  const isLeaderOfMultiple = true;
-  const mockClasses = [
-    { id: '1', name: 'LT_WEB_01 — Lập trình Web' },
-    { id: '2', name: 'MMT_03 — Mạng máy tính' }
-  ];
-
-  // Mock danh sách thành viên trong lớp
-  const classMembers = [
-    { id: 'LC', name: 'Lê Văn C', bg: '#e1f5ee', color: '#0f6e56' },
-    { id: 'PD', name: 'Phạm Thị D', bg: '#fbeaf0', color: '#993556' },
-    { id: 'HT', name: 'Hoàng Thị T', bg: '#e1f5ee', color: '#0f6e56' },
-    { id: 'MT', name: 'Minh Tuấn', bg: '#fbeaf0', color: '#993556' },
-  ];
-
-  const toggleMember = (id) => {
-    setSelectedMembers(prev =>
-      prev.includes(id) ? prev.filter(m => m !== id) : [...prev, id]
-    );
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!groupName.trim()) {
-      alert('Vui lòng nhập tên nhóm!');
-      return;
-    }
-    if (selectedMembers.length === 0) {
-      alert('Vui lòng chọn ít nhất 1 thành viên!');
-      return;
-    }
-    alert(`Đã tạo nhóm chat "${groupName}" thành công!`);
-    onClose();
-  };
-
-  return (
-    <div className="sc-modal-overlay" onClick={onClose}>
-      <div className="sc-modal-content" onClick={e => e.stopPropagation()}>
-        <div className="sc-modal-header">
-          <h3><FaUsers style={{ marginRight: '8px' }} /> Tạo nhóm chat</h3>
-          <button className="sc-close-btn" onClick={onClose}><FaTimes /></button>
-        </div>
-        
-        <form onSubmit={handleSubmit}>
-          <div className="sc-modal-body">
-            <div className="sc-form-group">
-              <label>Tên nhóm chat <span className="sc-required">*</span></label>
-              <input 
-                className="sc-input" 
-                placeholder="Nhập tên nhóm..." 
-                value={groupName} 
-                onChange={e => setGroupName(e.target.value)} 
-                required 
-              />
-            </div>
-
-            {isLeaderOfMultiple && (
-              <div className="sc-form-group">
-                <label>Lớp học phần <span className="sc-required">*</span></label>
-                <select className="sc-input" value={selectedClass} onChange={e => setSelectedClass(e.target.value)}>
-                  {mockClasses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
-              </div>
-            )}
-
-            <div className="sc-form-group" style={{ marginTop: '15px' }}>
-              <label>Thêm thành viên vào nhóm chat</label>
-              <div className="sc-member-list">
-                {classMembers.map(m => (
-                  <label key={m.id} className="sc-member-item">
-                    <input 
-                      type="checkbox" 
-                      checked={selectedMembers.includes(m.id)}
-                      onChange={() => toggleMember(m.id)}
-                    />
-                    <div className="sc-member-av" style={{ background: m.bg, color: m.color }}>{m.id}</div>
-                    <span className="sc-member-name">{m.name}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-          </div>
-          
-          <div className="sc-modal-footer">
-            <button type="button" className="sc-btn-cancel" onClick={onClose}>Hủy</button>
-            <button type="submit" className="sc-btn-submit">Tạo nhóm</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
-
-// ============================================================
 // COMPONENT: Modal Thành viên Nhóm Chat
 // ============================================================
 function ChatMembersModal({ room, onClose }) {
@@ -306,9 +205,6 @@ function ChatDetailsModal({ room, onClose }) {
   const options = [
     { icon: '🔍', label: 'Tìm kiếm trong đoạn chat' },
     { icon: '📌', label: 'Xem tin nhắn ghim' },
-    { icon: '🖼️', label: 'Thay đổi ảnh đại diện nhóm' },
-    { icon: '🎨', label: 'Đổi chủ đề (Theme)' },
-    { icon: '👍', label: 'Thay đổi biểu tượng cảm xúc' },
     { icon: '📁', label: 'Xem file phương tiện & tệp' },
     { icon: '🔗', label: 'Xem liên kết đã chia sẻ' },
   ];
@@ -350,7 +246,6 @@ export default function StudentChat() {
   const [rooms, setRooms]                 = useState(mockRooms);
   const [inputText, setInputText]         = useState('');
   const [search, setSearch]               = useState('');
-  const [showCreateModal, setShowCreateModal] = useState(false);
   const [showMembersModal, setShowMembersModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const chatBodyRef                        = useRef(null);
@@ -452,9 +347,6 @@ export default function StudentChat() {
     <div className="chat-wrap">
       <div className="chat-top">
         <h1>Không gian thảo luận</h1>
-        {isLeader && (
-          <button className="create-chat-btn" onClick={() => setShowCreateModal(true)}>+ Tạo nhóm chat</button>
-        )}
       </div>
 
       <div className="chat-shell">
@@ -538,9 +430,6 @@ export default function StudentChat() {
         </div>
       </div>
 
-      {showCreateModal && (
-        <CreateChatGroupModal onClose={() => setShowCreateModal(false)} />
-      )}
       {showMembersModal && (
         <ChatMembersModal room={activeRoom} onClose={() => setShowMembersModal(false)} />
       )}

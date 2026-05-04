@@ -26,12 +26,14 @@ import StudentManageGroup from './pages/Student/StudentManageGroup'; // trang đ
 import Dashboard from './pages/Admin/Dashboard';
 import UserManagement from './pages/Admin/UserManagement';
 import ClassManagement from './pages/Admin/ClassManagement';
-import GroupManagement from './pages/Admin/GroupManagement';
-import MessageManagement from './pages/Admin/MessageManagement';
-
+import SystemSettings from './pages/Admin/SystemSettings';
 
 // Import trang giảng viên
 import ManageClasses from './pages/Teacher/ManageClasses/ManageClasses';
+import ManageTopics from './pages/Teacher/ManageTopics/ManageTopics';
+import ManageGroups from './pages/Teacher/ManageGroups/ManageGroups';
+import Tracking from './pages/Teacher/Tracking/Tracking';
+import TeacherDashboard from './pages/Teacher/TeacherDashboard';
 
 
 function App() {
@@ -60,17 +62,19 @@ function App() {
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="users" element={<UserManagement />} />
           <Route path="classes" element={<ClassManagement />} />
-          <Route path="groups" element={<GroupManagement />} />
-          <Route path="messages" element={<MessageManagement />} />
+          <Route path="settings" element={<SystemSettings />} />
           <Route path="profile" element={<UserProfile role="admin" />} />
         </Route>
 
         {/* Tuyến đường Giảng viên */}
         <Route path="/teacher" element={<TeacherLayout />}>
-          {/* Gọi  Profile ở đây */}
+          <Route index element={<TeacherDashboard />} />
+          <Route path="dashboard" element={<TeacherDashboard />} />
           <Route path="profile" element={<UserProfile role="teacher" />} />
           <Route path="manage-classes" element={<ManageClasses />} />
-          {/* Các trang khác của GV... */}
+          <Route path="manage-topics" element={<ManageTopics />} />
+          <Route path="manage-groups" element={<ManageGroups />} />
+          <Route path="tracking" element={<Tracking />} />
         </Route>
 
       </Routes>

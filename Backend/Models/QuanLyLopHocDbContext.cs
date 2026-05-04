@@ -176,6 +176,8 @@ public partial class QuanLyLopHocDbContext : DbContext
                 .IsUnicode(false);
             entity.Property(e => e.TenLop).HasMaxLength(100);
             entity.Property(e => e.ThoiGianHoc).HasMaxLength(255);
+            entity.Property(e => e.ChoPhepDangKyNhom).HasDefaultValue(true);
+            entity.Property(e => e.HanDangKyNhom).HasColumnType("datetime");
 
             entity.HasOne(d => d.MaGiangVienNavigation).WithMany(p => p.LopHocs)
                 .HasForeignKey(d => d.MaGiangVien)
@@ -225,6 +227,9 @@ public partial class QuanLyLopHocDbContext : DbContext
             entity.Property(e => e.HoTen).HasMaxLength(100);
             entity.Property(e => e.MaSo)
                 .HasMaxLength(20)
+                .IsUnicode(false);
+            entity.Property(e => e.LopSinhVien)
+                .HasMaxLength(50)
                 .IsUnicode(false);
             entity.Property(e => e.MatKhauHash)
                 .HasMaxLength(255)

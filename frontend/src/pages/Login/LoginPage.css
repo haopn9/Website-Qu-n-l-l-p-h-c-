@@ -262,3 +262,99 @@
   from { opacity: 0; }
   to { opacity: 1; }
 }
+
+/* =========================================
+   FORGOT PASSWORD FORM STYLES
+========================================= */
+.forgot-form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  text-align: left;
+}
+
+.forgot-desc {
+  font-size: 14px;
+  color: #475569;
+  margin: 0 0 10px 0;
+  line-height: 1.5;
+}
+
+.forgot-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px 15px;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  outline: none;
+  font-size: 16px;
+  transition: border-color 0.2s;
+}
+
+.forgot-input:focus {
+  border-color: #7b89dd;
+}
+
+.forgot-btn {
+  width: 100%;
+  padding: 12px;
+  background-color: #7b89dd;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.forgot-btn:hover:not(:disabled) {
+  background-color: #6370c8;
+}
+
+.forgot-btn:disabled {
+  background-color: #cbd5e1;
+  cursor: not-allowed;
+}
+
+.forgot-timer {
+  font-size: 14px;
+  color: #ef4444;
+  margin: 0;
+  font-weight: 500;
+  text-align: center;
+}
+
+.timer-expired {
+  color: #64748b;
+}
+
+.resend-link {
+  color: #7b89dd;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.resend-link:hover {
+  text-decoration: underline;
+}
+
+.password-validation {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  background-color: #f8fafc;
+  padding: 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  margin-top: -5px;
+  margin-bottom: 10px;
+}
+
+.password-validation .valid {
+  color: #10b981;
+}
+
+.password-validation .invalid {
+  color: #94a3b8;
+}

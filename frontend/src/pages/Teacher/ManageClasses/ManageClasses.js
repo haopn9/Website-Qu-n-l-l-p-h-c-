@@ -2,126 +2,140 @@ import React, { useState, useEffect } from 'react';
 import './ManageClasses.css';
 import { FaPlus, FaSearch, FaChalkboardTeacher, FaUsers, FaBookOpen, FaCalendarAlt, FaEye, FaEdit, FaTrash, FaTimes, FaCopy } from 'react-icons/fa';
 
-// ===== DỮ LIỆU GIẢ LẬP (Sẽ xóa dần khi có API) =====
-
-const mockStudents = {
-  1: [
-    { userId: 101, userCode: 'SV001', fullName: 'Nguyễn Văn An', groupName: 'Nhóm 1' },
-    { userId: 102, userCode: 'SV002', fullName: 'Trần Thị Bình', groupName: 'Nhóm 1' },
-    { userId: 103, userCode: 'SV003', fullName: 'Lê Hoàng Cường', groupName: 'Nhóm 2' },
-    { userId: 104, userCode: 'SV004', fullName: 'Phạm Minh Đức', groupName: 'Nhóm 2' },
-    { userId: 105, userCode: 'SV005', fullName: 'Hoàng Thị Hoa', groupName: 'Nhóm 3' },
-    { userId: 106, userCode: 'SV006', fullName: 'Võ Thanh Hùng', groupName: 'Chưa có nhóm' },
-  ],
-  2: [
-    { userId: 201, userCode: 'SV010', fullName: 'Đỗ Quang Khải', groupName: 'Nhóm 1' },
-    { userId: 202, userCode: 'SV011', fullName: 'Bùi Anh Tuấn', groupName: 'Nhóm 2' },
-  ],
-};
-
 const ManageClasses = () => {
   const [classes, setClasses] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
-
-  // Lấy dữ liệu từ API
-  useEffect(() => {
-    const fetchClasses = async () => {
-      try {
-        const res = await fetch('http://localhost:5186/api/LopHoc');
-        if (res.ok) {
-          const data = await res.json();
-          // Map dữ liệu từ backend sang cấu trúc frontend đang dùng
-          const mappedData = data.map(item => ({
-            classId: item.maLop,
-            classCode: item.maLopHoc,
-            className: item.tenLop,
-            semester: 'Chưa cập nhật',
-            startDate: 'Chưa cập nhật',
-            endDate: 'Chưa cập nhật',
-            studentCount: 0,
-            groupCount: 0,
-            status: 'active',
-            giangVien: item.giangVien
-          }));
-          setClasses(mappedData);
-        }
-      } catch (err) {
-        console.error("Lỗi kết nối API:", err);
-      }
-    };
-    fetchClasses();
-  }, []);
+  const [hocKyList, setHocKyList] = useState([]);
   const [filterSemester, setFilterSemester] = useState('all');
-
-  // Modal states
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedClass, setSelectedClass] = useState(null);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [importState, setImportState] = useState(1);
+  const [importFile, setImportFile] = useState(null);
+  const [importData, setImportData] = useState([]);
 
-  // Form state
+  const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}');
+  const maGiangVien = userInfo.maNguoiDung || 1;
+
   const [formData, setFormData] = useState({
-    className: '', classCode: '', semester: 'HK2 2025-2026',
-    startDate: '', endDate: ''
+    className: '',
+    classCode: '',
+    semester: '',
+    startDate: '',
+    endDate: ''
   });
 
-  // ===== XỬ LÝ =====
+  const generateClassCode = () => Math.random().toString(36).substring(2, 8).toUpperCase();
+
+  const mapClass = (item) => ({
+    classId: item.maLop,
+    classCode: item.maLopHoc,
+    className: item.tenLop,
+    maHocKy: item.maHocKy,
+    semester: item.tenHocKy || `HK ${item.maHocKy}`,
+    startDate: item.ngayBatDau || '',
+    endDate: item.ngayKetThuc || '',
+    tenGiangVien: item.tenGiangVien,
+    studentCount: item.soSinhVien || 0,
+    groupCount: item.soNhom || 0,
+    status: item.trangThai || 'active',
+    students: item.danhSachSinhVien || [],
+    groups: item.danhSachNhom || []
+  });
+
+  const fetchData = async () => {
+    try {
+      const [classRes, hocKyRes] = await Promise.all([
+        fetch('http://localhost:5186/api/lophoc'),
+        fetch('http://localhost:5186/api/lophoc/hocky')
+      ]);
+
+      if (hocKyRes.ok) {
+        const hkData = await hocKyRes.json();
+        setHocKyList(hkData);
+      }
+
+      if (classRes.ok) {
+        const data = await classRes.json();
+        setClasses(data.filter((item) => item.maGiangVien === maGiangVien).map(mapClass));
+      }
+    } catch (err) {
+      console.error('Lỗi kết nối API:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleFormChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   const handleCreateClass = async (e) => {
     e.preventDefault();
-    
-    // Payload theo DTO của Backend
-    const payload = {
-        TenLop: formData.className,
-        MaLopHoc: formData.classCode,
-        MaGiangVien: 1, // Fix cứng tạm do frontend chưa có chức năng chọn giảng viên
-        MaHocKy: 1      // Fix cứng tạm
-    };
+    const selectedHK = hocKyList.find((hk) => hk.tenHocKy === formData.semester);
+    const maHocKy = selectedHK ? selectedHK.maHocKy : (hocKyList[0]?.maHocKy || 1);
 
     try {
-        const res = await fetch('http://localhost:5186/api/LopHoc', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
+      const res = await fetch('http://localhost:5186/api/lophoc', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tenLop: formData.className,
+          maLopHoc: formData.classCode,
+          maGiangVien,
+          maHocKy,
+          ngayBatDau: formData.startDate || null,
+          ngayKetThuc: formData.endDate || null
+        })
+      });
+
+      if (res.ok) {
+        await fetchData();
+        setIsCreateModalOpen(false);
+        setFormData({
+          className: '',
+          classCode: generateClassCode(),
+          semester: hocKyList[0]?.tenHocKy || '',
+          startDate: '',
+          endDate: ''
         });
-        
-        if (res.ok) {
-            const data = await res.json();
-            const newClass = {
-                classId: data.maLop,
-                className: formData.className,
-                classCode: formData.classCode,
-                semester: formData.semester,
-                startDate: formData.startDate,
-                endDate: formData.endDate,
-                studentCount: 0, groupCount: 0, status: 'active'
-            };
-            setClasses([newClass, ...classes]);
-            setIsCreateModalOpen(false);
-            setFormData({ className: '', classCode: '', semester: 'HK2 2025-2026', startDate: '', endDate: '' });
-            alert('Tạo lớp học thành công!');
-        } else {
-            alert('Có lỗi từ server khi tạo lớp!');
-        }
+        alert('Tạo lớp học thành công!');
+      } else {
+        const errorData = await res.json();
+        alert(errorData.thongBao || 'Có lỗi từ server khi tạo lớp!');
+      }
     } catch (err) {
-        console.error("Lỗi:", err);
-        alert('Không thể kết nối đến API Backend!');
+      console.error('Lỗi:', err);
+      alert('Không thể kết nối đến API Backend!');
     }
   };
 
   const handleEditClass = (e) => {
     e.preventDefault();
-    setClasses(classes.map(c => c.classId === selectedClass.classId ? { ...c, ...formData } : c));
+    setClasses(classes.map((c) => (c.classId === selectedClass.classId ? { ...c, ...formData } : c)));
     setIsEditModalOpen(false);
-    alert('Cập nhật lớp học thành công!');
+    alert('Cập nhật giao diện lớp học thành công!');
   };
 
-  const handleDeleteClass = (classId) => {
-    if (window.confirm('Bạn có chắc muốn xóa lớp học này?')) {
-      setClasses(classes.filter(c => c.classId !== classId));
+  const handleDeleteClass = async (classId) => {
+    if (!window.confirm('Bạn có chắc muốn xóa lớp học này?')) return;
+
+    try {
+      const res = await fetch(`http://localhost:5186/api/lophoc/${classId}`, { method: 'DELETE' });
+      if (res.ok) {
+        setClasses(classes.filter((c) => c.classId !== classId));
+        alert('Xóa lớp học thành công!');
+      } else {
+        alert('Có lỗi khi xóa lớp học!');
+      }
+    } catch (err) {
+      console.error('Lỗi xóa lớp:', err);
+      alert('Không thể kết nối API!');
     }
   };
 
@@ -133,8 +147,11 @@ const ManageClasses = () => {
   const handleOpenEdit = (cls) => {
     setSelectedClass(cls);
     setFormData({
-      className: cls.className, classCode: cls.classCode, semester: cls.semester,
-      startDate: cls.startDate, endDate: cls.endDate
+      className: cls.className,
+      classCode: cls.classCode,
+      semester: cls.semester,
+      startDate: cls.startDate ? cls.startDate.substring(0, 10) : '',
+      endDate: cls.endDate ? cls.endDate.substring(0, 10) : ''
     });
     setIsEditModalOpen(true);
   };
@@ -145,88 +162,94 @@ const ManageClasses = () => {
   };
 
   const handleRemoveStudent = (studentId) => {
-    if (window.confirm('Xóa sinh viên khỏi lớp?')) {
-      alert('Đã xóa sinh viên khỏi lớp!');
+    alert(`UI đã sẵn chỗ xóa sinh viên #${studentId}. API thao tác danh sách sinh viên sẽ nối sau.`);
+  };
+
+  const handleFileChange = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      setImportFile(e.target.files[0]);
     }
   };
 
-  // Filter
-  const filteredClasses = classes.filter(c => {
-    const matchSearch = c.className.toLowerCase().includes(searchTerm.toLowerCase()) ||
+  const handleCheckData = () => {
+    if (!importFile) {
+      alert('Vui lòng chọn file Excel!');
+      return;
+    }
+    setImportData([
+      { userCode: 'SV021', fullName: 'Le Vy', studentClass: 'D20CQCN01-N' },
+      { userCode: 'SV022', fullName: 'Tran An', studentClass: 'D20CQCN01-N' },
+    ]);
+    setImportState(2);
+  };
+
+  const handleImport = () => {
+    alert('Import thành công!');
+    setIsImportModalOpen(false);
+    setImportState(1);
+    setImportFile(null);
+    setImportData([]);
+  };
+
+  const filteredClasses = classes.filter((c) => {
+    const matchSearch =
+      c.className.toLowerCase().includes(searchTerm.toLowerCase()) ||
       c.classCode.toLowerCase().includes(searchTerm.toLowerCase());
     const matchSemester = filterSemester === 'all' || c.semester === filterSemester;
     return matchSearch && matchSemester;
   });
 
-  // Stats
   const totalClasses = classes.length;
-  const activeClasses = classes.filter(c => c.status === 'active').length;
+  const activeClasses = classes.filter((c) => c.status === 'active').length;
   const totalStudents = classes.reduce((sum, c) => sum + c.studentCount, 0);
   const totalGroups = classes.reduce((sum, c) => sum + c.groupCount, 0);
-
-  const semesters = [...new Set(classes.map(c => c.semester))];
+  const semesters = [...new Set(classes.map((c) => c.semester))];
 
   return (
     <div className="manage-classes-container">
-      {/* HEADER */}
       <div className="page-header">
         <div>
-          <h2 className="page-title">Quản lý Lớp học</h2>
+          <h2 className="page-title">Quản lý lớp học</h2>
           <p className="page-subtitle">Tạo và quản lý các lớp học phần do bạn phụ trách</p>
         </div>
-        <button className="btn-primary" onClick={() => setIsCreateModalOpen(true)}>
+        <button className="btn-primary" onClick={() => {
+          setIsCreateModalOpen(true);
+          setFormData({ ...formData, classCode: generateClassCode(), semester: hocKyList[0]?.tenHocKy || '' });
+        }}>
           <FaPlus /> Tạo lớp mới
         </button>
       </div>
 
-      {/* THỐNG KÊ */}
       <div className="stats-row">
         <div className="stat-card">
           <div className="stat-icon blue"><FaChalkboardTeacher /></div>
-          <div className="stat-info">
-            <h4>Tổng lớp học</h4>
-            <span className="stat-number">{totalClasses}</span>
-          </div>
+          <div className="stat-info"><h4>Tổng lớp học</h4><span className="stat-number">{totalClasses}</span></div>
         </div>
         <div className="stat-card">
           <div className="stat-icon green"><FaBookOpen /></div>
-          <div className="stat-info">
-            <h4>Đang hoạt động</h4>
-            <span className="stat-number">{activeClasses}</span>
-          </div>
+          <div className="stat-info"><h4>Đang hoạt động</h4><span className="stat-number">{activeClasses}</span></div>
         </div>
         <div className="stat-card">
           <div className="stat-icon orange"><FaUsers /></div>
-          <div className="stat-info">
-            <h4>Tổng sinh viên</h4>
-            <span className="stat-number">{totalStudents}</span>
-          </div>
+          <div className="stat-info"><h4>Tổng sinh viên</h4><span className="stat-number">{totalStudents}</span></div>
         </div>
         <div className="stat-card">
           <div className="stat-icon purple"><FaCalendarAlt /></div>
-          <div className="stat-info">
-            <h4>Tổng nhóm</h4>
-            <span className="stat-number">{totalGroups}</span>
-          </div>
+          <div className="stat-info"><h4>Tổng nhóm</h4><span className="stat-number">{totalGroups}</span></div>
         </div>
       </div>
 
-      {/* THANH TÌM KIẾM + LỌC */}
       <div className="toolbar-row">
         <div className="search-box">
           <FaSearch className="search-icon" />
-          <input
-            type="text" placeholder="Tìm kiếm lớp học..."
-            value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
-          />
+          <input type="text" placeholder="Tìm kiếm lớp học..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
         </div>
         <select className="filter-select" value={filterSemester} onChange={(e) => setFilterSemester(e.target.value)}>
           <option value="all">Tất cả học kỳ</option>
-          {semesters.map(s => <option key={s} value={s}>{s}</option>)}
+          {semesters.map((s) => <option key={s} value={s}>{s}</option>)}
         </select>
       </div>
 
-      {/* BẢNG DANH SÁCH */}
       <div className="data-table-wrapper">
         {filteredClasses.length === 0 ? (
           <div className="empty-state">
@@ -247,7 +270,7 @@ const ManageClasses = () => {
               </tr>
             </thead>
             <tbody>
-              {filteredClasses.map(cls => (
+              {filteredClasses.map((cls) => (
                 <tr key={cls.classId}>
                   <td><span className="class-code-tag">{cls.classCode}</span></td>
                   <td><strong>{cls.className}</strong></td>
@@ -255,8 +278,8 @@ const ManageClasses = () => {
                   <td>{cls.studentCount}</td>
                   <td>{cls.groupCount}</td>
                   <td>
-                    <span className={`badge ${cls.status === 'active' ? 'badge-active' : 'badge-ended'}`}>
-                      {cls.status === 'active' ? 'Đang hoạt động' : 'Đã kết thúc'}
+                    <span className={`badge ${cls.status === 'inactive' ? 'badge-ended' : 'badge-active'}`}>
+                      {cls.status === 'inactive' ? 'Đã kết thúc' : 'Đang hoạt động'}
                     </span>
                   </td>
                   <td>
@@ -273,7 +296,6 @@ const ManageClasses = () => {
         )}
       </div>
 
-      {/* MODAL TẠO LỚP MỚI */}
       {isCreateModalOpen && (
         <div className="modal-overlay" onClick={() => setIsCreateModalOpen(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -286,18 +308,18 @@ const ManageClasses = () => {
                 <div className="form-grid">
                   <div className="form-group">
                     <label>Mã lớp học *</label>
-                    <input type="text" name="classCode" value={formData.classCode} onChange={handleFormChange} placeholder="VD: LTW01" required />
+                    <input type="text" name="classCode" value={formData.classCode} readOnly style={{ backgroundColor: '#f1f5f9', cursor: 'not-allowed' }} required />
                   </div>
                   <div className="form-group">
                     <label>Tên môn học *</label>
-                    <input type="text" name="className" value={formData.className} onChange={handleFormChange} placeholder="VD: Lập trình Web" required />
+                    <input type="text" name="className" value={formData.className} onChange={handleFormChange} required />
                   </div>
                   <div className="form-group">
                     <label>Học kỳ *</label>
                     <select name="semester" value={formData.semester} onChange={handleFormChange}>
-                      <option value="HK2 2025-2026">HK2 2025-2026</option>
-                      <option value="HK1 2025-2026">HK1 2025-2026</option>
-                      <option value="HK1 2026-2027">HK1 2026-2027</option>
+                      {hocKyList.length > 0 ? hocKyList.map((hk) => (
+                        <option key={hk.maHocKy} value={hk.tenHocKy}>{hk.tenHocKy}</option>
+                      )) : <option value="">Đang tải...</option>}
                     </select>
                   </div>
                   <div className="form-group">
@@ -319,7 +341,6 @@ const ManageClasses = () => {
         </div>
       )}
 
-      {/* MODAL CHỈNH SỬA LỚP */}
       {isEditModalOpen && selectedClass && (
         <div className="modal-overlay" onClick={() => setIsEditModalOpen(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -341,9 +362,7 @@ const ManageClasses = () => {
                   <div className="form-group">
                     <label>Học kỳ</label>
                     <select name="semester" value={formData.semester} onChange={handleFormChange}>
-                      <option value="HK2 2025-2026">HK2 2025-2026</option>
-                      <option value="HK1 2025-2026">HK1 2025-2026</option>
-                      <option value="HK1 2026-2027">HK1 2026-2027</option>
+                      {hocKyList.map((hk) => <option key={hk.maHocKy} value={hk.tenHocKy}>{hk.tenHocKy}</option>)}
                     </select>
                   </div>
                   <div className="form-group">
@@ -365,7 +384,6 @@ const ManageClasses = () => {
         </div>
       )}
 
-      {/* MODAL XEM CHI TIẾT LỚP + DANH SÁCH SINH VIÊN */}
       {isDetailModalOpen && selectedClass && (
         <div className="modal-overlay" onClick={() => setIsDetailModalOpen(false)}>
           <div className="modal-content modal-lg" onClick={(e) => e.stopPropagation()}>
@@ -380,13 +398,18 @@ const ManageClasses = () => {
                 </div>
                 <div className="class-info">
                   <h4>{selectedClass.className}</h4>
-                  <p>{selectedClass.semester} &nbsp;|&nbsp; {selectedClass.startDate} → {selectedClass.endDate}</p>
+                  <p>{selectedClass.semester} | {selectedClass.startDate?.substring?.(0, 10) || ''} → {selectedClass.endDate?.substring?.(0, 10) || ''}</p>
                 </div>
               </div>
 
-              <h4 style={{ marginBottom: 12, color: '#152259' }}>Danh sách sinh viên ({(mockStudents[selectedClass.classId] || []).length})</h4>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <h4 style={{ color: '#152259', margin: 0 }}>Danh sách sinh viên ({selectedClass.students.length})</h4>
+                <button className="btn-primary" style={{ padding: '6px 12px', fontSize: '14px' }} onClick={() => setIsImportModalOpen(true)}>
+                  <FaPlus style={{ marginRight: 5 }} /> Import Excel
+                </button>
+              </div>
 
-              {(mockStudents[selectedClass.classId] || []).length === 0 ? (
+              {selectedClass.students.length === 0 ? (
                 <div className="empty-state">
                   <p>Chưa có sinh viên trong lớp này</p>
                 </div>
@@ -397,19 +420,21 @@ const ManageClasses = () => {
                       <th>STT</th>
                       <th>MSSV</th>
                       <th>Họ và tên</th>
+                      <th>Lớp sinh viên</th>
                       <th>Nhóm</th>
                       <th>Thao tác</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {(mockStudents[selectedClass.classId] || []).map((sv, idx) => (
-                      <tr key={sv.userId}>
+                    {selectedClass.students.map((sv, idx) => (
+                      <tr key={sv.maNguoiDung}>
                         <td>{idx + 1}</td>
-                        <td><strong>{sv.userCode}</strong></td>
-                        <td>{sv.fullName}</td>
-                        <td>{sv.groupName}</td>
+                        <td><strong>{sv.maSo}</strong></td>
+                        <td>{sv.hoTen}</td>
+                        <td>{sv.lopSinhVien || 'Chưa cập nhật'}</td>
+                        <td>{sv.tenNhom || 'Chưa có nhóm'}</td>
                         <td>
-                          <button className="btn-sm danger" onClick={() => handleRemoveStudent(sv.userId)}>Xóa</button>
+                          <button className="btn-sm danger" onClick={() => handleRemoveStudent(sv.maNguoiDung)}>Xóa</button>
                         </td>
                       </tr>
                     ))}
@@ -419,6 +444,68 @@ const ManageClasses = () => {
             </div>
             <div className="modal-footer">
               <button className="btn-cancel" onClick={() => setIsDetailModalOpen(false)}>Đóng</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isImportModalOpen && (
+        <div className="modal-overlay" onClick={() => setIsImportModalOpen(false)}>
+          <div className="modal-container" style={{ maxWidth: '600px', backgroundColor: '#fff', padding: '20px', borderRadius: '8px' }} onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px' }}>
+              <h3>Import danh sách sinh viên từ Excel</h3>
+              <button className="close-btn" style={{ background: 'none', border: 'none', fontSize: '18px', cursor: 'pointer' }} onClick={() => setIsImportModalOpen(false)}><FaTimes /></button>
+            </div>
+            <div className="modal-body">
+              {importState === 1 ? (
+                <div className="form-group">
+                  <label style={{ display: 'block', marginBottom: '10px', fontWeight: 'bold' }}>Tải lên file Excel</label>
+                  <div style={{ border: '2px dashed #cbd5e1', padding: '30px', textAlign: 'center', borderRadius: '8px', cursor: 'pointer' }}>
+                    <p style={{ margin: '0 0 10px', color: '#64748b' }}>Kéo thả file vào đây hoặc bấm chọn file (.xlsx, .xls)</p>
+                    <input type="file" accept=".xlsx, .xls" onChange={handleFileChange} />
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div style={{ backgroundColor: '#ecfdf5', color: '#059669', padding: '12px', borderRadius: '8px', marginBottom: '15px', fontWeight: 'bold' }}>
+                    Tìm thấy {importData.length + 38} dòng hợp lệ.
+                  </div>
+                  <div className="table-wrapper" style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                    <table className="student-table" style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
+                      <thead>
+                        <tr>
+                          <th style={{ padding: '8px', borderBottom: '1px solid #ddd' }}>MSSV</th>
+                          <th style={{ padding: '8px', borderBottom: '1px solid #ddd' }}>Họ tên</th>
+                          <th style={{ padding: '8px', borderBottom: '1px solid #ddd' }}>Lớp sinh viên</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {importData.map((row, idx) => (
+                          <tr key={idx}>
+                            <td style={{ padding: '8px', borderBottom: '1px solid #eee' }}>{row.userCode}</td>
+                            <td style={{ padding: '8px', borderBottom: '1px solid #eee' }}>{row.fullName}</td>
+                            <td style={{ padding: '8px', borderBottom: '1px solid #eee' }}>{row.studentClass}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              )}
+            </div>
+            <div className="modal-footer" style={{ display: 'flex', gap: '10px', marginTop: '20px', justifyContent: 'flex-end' }}>
+              {importState === 1 ? (
+                <>
+                  <button className="btn-cancel" style={{ marginRight: 'auto', color: '#2563eb', background: 'none', border: 'none', cursor: 'pointer' }}>Tải file mẫu</button>
+                  <button className="btn-cancel" style={{ background: '#f1f5f9', border: 'none', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer' }} onClick={() => setIsImportModalOpen(false)}>Hủy</button>
+                  <button className="btn-save" style={{ backgroundColor: '#eab308', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer' }} onClick={handleCheckData}>Kiểm tra dữ liệu</button>
+                </>
+              ) : (
+                <>
+                  <button className="btn-cancel" style={{ background: '#f1f5f9', border: 'none', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer' }} onClick={() => setImportState(1)}>Quay lại</button>
+                  <button className="btn-save" style={{ backgroundColor: '#10b981', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer' }} onClick={handleImport}>Tiến hành Import</button>
+                </>
+              )}
             </div>
           </div>
         </div>

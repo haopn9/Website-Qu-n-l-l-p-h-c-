@@ -1,278 +1,380 @@
-import React, { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { FaArrowLeft, FaBullhorn, FaUsers, FaChevronDown, FaChevronUp } from 'react-icons/fa';
+import React, { useMemo, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import {
+  FaArrowLeft,
+  FaBookOpen,
+  FaChalkboardTeacher,
+  FaClipboardList,
+  FaLayerGroup,
+  FaSearch,
+  FaUsers,
+} from 'react-icons/fa';
 import './StudentClassDetail.css';
 
-// ============================================================
-// DỮ LIỆU MẪU — đồng bộ DB v2
-// Sau này: axios.get(`/api/lophoc/${maLop}`)
-// ============================================================
 const mockClassData = {
   1: {
-    maLop      : 1,
-    maLopHoc   : 'LT_WEB_01',
-    tenLop     : 'Lập trình Web',
-    tenGV      : 'Nguyễn Văn A',
-    emailGV    : 'gv001@stu.edu.vn',
-    thoiGianHoc: 'Thứ 2, 4, 6 · 18:00 – 20:00',
-    ngayBatDau : '03/03/2026',
+    maLop: 1,
+    maLopHoc: 'LT_WEB_01',
+    tenLop: 'Lập trình Web',
+    monHoc: 'Công nghệ Web',
+    tenGV: 'Nguyễn Văn A',
+    hocKyNamHoc: 'Học kỳ 2, năm học 2025-2026',
+    ngayBatDau: '03/03/2026',
     ngayKetThuc: '20/06/2026',
-    tenHocKy   : 'Học kỳ 2 2025-2026',
-    soSinhVien : 32,
-    soNhom     : 8,
-    tienDo     : 62,
-    mauSac     : '#378add',
-    // Bảng tin thông báo của GV (giống Google Classroom)
-    thongBao: [
-      {
-        id: 3,
-        tieuDe : 'Lịch nộp bài cuối kỳ',
-        noiDung: 'Nhắc nhở: Deadline nộp báo cáo cuối kỳ là 15/06/2026. Các nhóm chuẩn bị file PDF + source code nén .zip gửi qua hệ thống.',
-        thoiGian: '18/04/2026 · 09:00',
-        ghimLai : true,
-        fileDinhKem: [],
-      },
-      {
-        id: 2,
-        tieuDe : 'Buổi học tuần tới dời sang thứ 3',
-        noiDung: 'Do lịch thi giữa kỳ, buổi học thứ 2 tuần 20/04 sẽ dời sang thứ 3 21/04 cùng giờ. Mọi người chú ý điều chỉnh lịch.',
-        thoiGian: '15/04/2026 · 14:30',
-        ghimLai : false,
-        fileDinhKem: [],
-      },
-      {
-        id: 1,
-        tieuDe : 'Tài liệu tham khảo môn học',
-        noiDung: 'Mình đã upload tài liệu slides tuần 1-5 lên hệ thống. Các bạn tải về ôn tập trước buổi kiểm tra giữa kỳ.',
-        thoiGian: '02/03/2026 · 08:00',
-        ghimLai : false,
-        fileDinhKem: [
-          { tenFile: 'Slides_tuan1-5.pdf', dungLuong: '4.2 MB' },
-        ],
-      },
+    mauSac: '#378add',
+    sinhVien: [
+      { mssv: 'DH52200320', hoTen: 'Đặng Võ Phương Anh', lop: 'D22_TH01' },
+      { mssv: 'DH52300001', hoTen: 'Trần Thị Bích', lop: 'D23_TH02' },
+      { mssv: 'DH52300002', hoTen: 'Lê Văn Cường', lop: 'D23_TH02' },
+      { mssv: 'DH52300003', hoTen: 'Phạm Thị Dung', lop: 'D23_TH01' },
+      { mssv: 'DH52300004', hoTen: 'Nguyễn Quốc Huy', lop: 'D23_TH03' },
     ],
-    // Danh sách sinh viên trong lớp (từ bảng SinhVienLop join NguoiDung)
-    danhSachSV: [
-      { maSo: 'DH52200320', hoTen: 'Đặng Võ Phương Anh', nhom: 'Nhóm 1', laNhomTruong: true,  bg: '#e6f1fb', color: '#185fa5', kyHieu: 'PA' },
-      { maSo: 'DH52300086', hoTen: 'Trần Quốc Anh',      nhom: 'Nhóm 1', laNhomTruong: false, bg: '#faeeda', color: '#854f0b', kyHieu: 'QA' },
-      { maSo: 'DH52300141', hoTen: 'Hồ Gia Bảo',         nhom: 'Nhóm 1', laNhomTruong: false, bg: '#e1f5ee', color: '#0f6e56', kyHieu: 'GB' },
-      { maSo: 'DH52200362', hoTen: 'Mông Quyền Gia Bảo', nhom: 'Nhóm 1', laNhomTruong: false, bg: '#fbeaf0', color: '#993556', kyHieu: 'MB' },
-      { maSo: 'DH52300129', hoTen: 'Bùi Công Bằng',      nhom: 'Nhóm 2', laNhomTruong: true,  bg: '#f1efe8', color: '#5f5e5a', kyHieu: 'CB' },
-      { maSo: 'DH52300204', hoTen: 'Huỳnh Tuấn Cảnh',    nhom: 'Nhóm 2', laNhomTruong: false, bg: '#e6f1fb', color: '#185fa5', kyHieu: 'TC' },
-      { maSo: 'DH52200422', hoTen: 'Lâm Đoàn Việt Cường',nhom: 'Nhóm 2', laNhomTruong: false, bg: '#faeeda', color: '#854f0b', kyHieu: 'VC' },
-      { maSo: 'DH52300249', hoTen: 'Đặng Chí Dũng',      nhom: 'Nhóm 3', laNhomTruong: true,  bg: '#e1f5ee', color: '#0f6e56', kyHieu: 'CD' },
+    nhom: [
+      { tenNhom: 'Nhóm 1', truongNhom: 'Trần Thị Bích', soThanhVien: 5, deTai: 'Website quản lý lớp học' },
+      { tenNhom: 'Nhóm 2', truongNhom: 'Hoàng Thị Hoa', soThanhVien: 4, deTai: 'Ứng dụng đặt lịch khám bệnh' },
+      { tenNhom: 'Nhóm 3', truongNhom: 'Chưa có', soThanhVien: 3, deTai: 'Chưa đăng ký đề tài' },
+      { tenNhom: 'Nhóm 4', truongNhom: 'Đỗ Quang Khải', soThanhVien: 5, deTai: 'Hệ thống quản lý kho' },
+    ],
+    deTai: [
+      { tenDeTai: 'Website quản lý lớp học', moTa: 'Quản lý lớp, nhóm, đề tài và tiến độ sinh viên.', sanPhamKyVong: 'Web app React + ASP.NET API, báo cáo và source code.', ngayBatDau: '03/03/2026', ngayKetThuc: '20/06/2026', tepDinhKem: 'YeuCau_Web_QuanLyLopHoc.pdf', nhomDangKy: 'Nhóm 1', trangThai: 'Đã duyệt' },
+      { tenDeTai: 'Ứng dụng đặt lịch khám bệnh', moTa: 'Cho phép bệnh nhân đặt lịch và theo dõi lịch khám.', sanPhamKyVong: 'Prototype đầy đủ luồng đặt lịch, xác nhận, hủy lịch.', ngayBatDau: '03/03/2026', ngayKetThuc: '20/06/2026', tepDinhKem: 'MoTa_DatLichKham.pdf', nhomDangKy: 'Nhóm 2', trangThai: 'Đã đăng ký' },
+      { tenDeTai: 'Hệ thống quản lý kho', moTa: 'Theo dõi nhập xuất tồn và báo cáo hàng hóa.', sanPhamKyVong: 'Dashboard tồn kho, phiếu nhập/xuất, báo cáo Excel.', ngayBatDau: '05/03/2026', ngayKetThuc: '15/06/2026', tepDinhKem: 'QuanLyKho_Requirement.docx', nhomDangKy: 'Nhóm 4', trangThai: 'Đã duyệt' },
+      { tenDeTai: 'Sàn trao đổi tài liệu học tập', moTa: 'Sinh viên chia sẻ, tìm kiếm và đánh giá tài liệu.', sanPhamKyVong: 'Có phân quyền, upload file, tìm kiếm và thống kê lượt tải.', ngayBatDau: '10/03/2026', ngayKetThuc: '20/06/2026', tepDinhKem: 'TaiLieu_SanTraoDoi.zip', nhomDangKy: 'Chưa có', trangThai: 'Chưa đăng ký' },
     ],
   },
   2: {
-    maLop: 2, maLopHoc: 'CSDL_02', tenLop: 'Cơ sở dữ liệu',
-    tenGV: 'Trần Thị B', emailGV: 'gv002@stu.edu.vn',
-    thoiGianHoc: 'Thứ 3, 5 · 13:00 – 15:00',
-    ngayBatDau: '04/03/2026', ngayKetThuc: '18/06/2026',
-    tenHocKy: 'Học kỳ 2 2025-2026', soSinhVien: 28, soNhom: 7, tienDo: 80,
+    maLop: 2,
+    maLopHoc: 'CSDL_02',
+    tenLop: 'Cơ sở dữ liệu',
+    monHoc: 'Cơ sở dữ liệu',
+    tenGV: 'Trần Thị B',
+    hocKyNamHoc: 'Học kỳ 2, năm học 2025-2026',
+    ngayBatDau: '04/03/2026',
+    ngayKetThuc: '18/06/2026',
     mauSac: '#1d9e75',
-    thongBao: [
-      { id: 1, tieuDe: 'Kế hoạch học tập học kỳ 2', noiDung: 'Các bạn xem kế hoạch chi tiết môn CSDL đính kèm bên dưới.', thoiGian: '05/03/2026 · 07:30', ghimLai: true, fileDinhKem: [{ tenFile: 'KeHoach_CSDL_HK2.pdf', dungLuong: '1.1 MB' }] },
+    sinhVien: [
+      { mssv: 'DH52300591', hoTen: 'Võ Văn Hoài', lop: 'D23_TH01' },
+      { mssv: 'DH52300086', hoTen: 'Trần Quốc Anh', lop: 'D23_TH03' },
+      { mssv: 'DH52300114', hoTen: 'Nguyễn Thu Hà', lop: 'D23_TH02' },
+      { mssv: 'DH52300207', hoTen: 'Lê Minh Tuấn', lop: 'D23_TH01' },
     ],
-    danhSachSV: [
-      { maSo: 'DH52300086', hoTen: 'Trần Quốc Anh',  nhom: 'Nhóm 3', laNhomTruong: false, bg: '#e6f1fb', color: '#185fa5', kyHieu: 'QA' },
-      { maSo: 'DH52300591', hoTen: 'Võ Văn Hoài',    nhom: 'Nhóm 3', laNhomTruong: true,  bg: '#faeeda', color: '#854f0b', kyHieu: 'VH' },
+    nhom: [
+      { tenNhom: 'Nhóm 1', truongNhom: 'Lê Minh Tuấn', soThanhVien: 4, deTai: 'Quản lý thư viện' },
+      { tenNhom: 'Nhóm 2', truongNhom: 'Nguyễn Thu Hà', soThanhVien: 4, deTai: 'Hệ thống bán hàng' },
+      { tenNhom: 'Nhóm 3', truongNhom: 'Võ Văn Hoài', soThanhVien: 3, deTai: 'Hệ thống thư viện' },
+    ],
+    deTai: [
+      { tenDeTai: 'Quản lý thư viện', moTa: 'Quản lý sách, độc giả, mượn trả và thống kê.', sanPhamKyVong: 'Web app + tài liệu thiết kế + demo.', ngayBatDau: '04/03/2026', ngayKetThuc: '18/06/2026', tepDinhKem: 'QuanLyThuVien.pdf', nhomDangKy: 'Nhóm 1', trangThai: 'Đã duyệt' },
+      { tenDeTai: 'Hệ thống bán hàng', moTa: 'Quản lý sản phẩm, đơn hàng và doanh thu.', sanPhamKyVong: 'Website bán hàng, báo cáo kỹ thuật và source code.', ngayBatDau: '04/03/2026', ngayKetThuc: '18/06/2026', tepDinhKem: 'HeThongBanHang.docx', nhomDangKy: 'Nhóm 2', trangThai: 'Đã đăng ký' },
+      { tenDeTai: 'Ứng dụng tuyển dụng', moTa: 'Kết nối ứng viên và nhà tuyển dụng.', sanPhamKyVong: 'Prototype quy trình đăng tin, ứng tuyển, duyệt hồ sơ.', ngayBatDau: '10/03/2026', ngayKetThuc: '18/06/2026', tepDinhKem: 'UngDungTuyenDung.pdf', nhomDangKy: 'Chưa có', trangThai: 'Chưa đăng ký' },
     ],
   },
   3: {
-    maLop: 3, maLopHoc: 'MMT_03', tenLop: 'Mạng máy tính',
-    tenGV: 'Lê Hồng C', emailGV: 'gv003@stu.edu.vn',
-    thoiGianHoc: 'Thứ 7 · 07:30 – 11:30',
-    ngayBatDau: '07/03/2026', ngayKetThuc: '27/06/2026',
-    tenHocKy: 'Học kỳ 2 2025-2026', soSinhVien: 35, soNhom: 9, tienDo: 40,
+    maLop: 3,
+    maLopHoc: 'MMT_03',
+    tenLop: 'Mạng máy tính',
+    monHoc: 'Mạng máy tính',
+    tenGV: 'Lê Hồng C',
+    hocKyNamHoc: 'Học kỳ 2, năm học 2025-2026',
+    ngayBatDau: '07/03/2026',
+    ngayKetThuc: '27/06/2026',
     mauSac: '#ef9f27',
-    thongBao: [
-      { id: 1, tieuDe: 'Phân công nhóm môn MMT', noiDung: 'Danh sách nhóm đã được chốt. Các bạn kiểm tra và phản hồi nếu có sai sót trước 10/03.', thoiGian: '07/03/2026 · 08:00', ghimLai: false, fileDinhKem: [] },
+    sinhVien: [
+      { mssv: 'DH52300086', hoTen: 'Trần Quốc Anh', lop: 'D23_TH03' },
+      { mssv: 'DH52300100', hoTen: 'Nguyễn Minh Tú', lop: 'D23_TH02' },
+      { mssv: 'DH52300108', hoTen: 'Dương Bảo Châu', lop: 'D23_TH01' },
+      { mssv: 'DH52300221', hoTen: 'Võ Minh Khoa', lop: 'D23_TH03' },
     ],
-    danhSachSV: [
-      { maSo: 'DH52300086', hoTen: 'Trần Quốc Anh', nhom: 'Nhóm 5', laNhomTruong: false, bg: '#e6f1fb', color: '#185fa5', kyHieu: 'QA' },
+    nhom: [
+      { tenNhom: 'Nhóm 1', truongNhom: 'Võ Minh Khoa', soThanhVien: 4, deTai: 'Thiết kế mạng LAN' },
+      { tenNhom: 'Nhóm 2', truongNhom: 'Chưa có', soThanhVien: 3, deTai: 'Chưa đăng ký đề tài' },
+      { tenNhom: 'Nhóm 3', truongNhom: 'Dương Bảo Châu', soThanhVien: 4, deTai: 'Phân tích TCP/IP' },
+    ],
+    deTai: [
+      { tenDeTai: 'Thiết kế mạng LAN', moTa: 'Phân tích yêu cầu và đề xuất mô hình mạng doanh nghiệp.', sanPhamKyVong: 'Sơ đồ mạng, bảng thiết bị, báo cáo phân tích chi phí.', ngayBatDau: '07/03/2026', ngayKetThuc: '27/06/2026', tepDinhKem: 'MMT_LAN_DoanhNghiep.pdf', nhomDangKy: 'Nhóm 1', trangThai: 'Đã đăng ký' },
+      { tenDeTai: 'Phân tích TCP/IP', moTa: 'Mô phỏng và đánh giá hoạt động của bộ giao thức TCP/IP.', sanPhamKyVong: 'Báo cáo phân tích, demo mô phỏng bằng công cụ mạng.', ngayBatDau: '07/03/2026', ngayKetThuc: '27/06/2026', tepDinhKem: 'TCPIP_Analysis.pdf', nhomDangKy: 'Nhóm 3', trangThai: 'Đã duyệt' },
+      { tenDeTai: 'Giám sát mạng nội bộ', moTa: 'Theo dõi thiết bị, cảnh báo lỗi và xuất báo cáo.', sanPhamKyVong: 'Dashboard giám sát, cảnh báo lỗi và báo cáo.', ngayBatDau: '07/03/2026', ngayKetThuc: '27/06/2026', tepDinhKem: 'GiamSatMang.docx', nhomDangKy: 'Chưa có', trangThai: 'Chưa đăng ký' },
     ],
   },
 };
 
-// ============================================================
-// COMPONENT: Thông báo (bảng tin)
-// ============================================================
-function ThongBaoCard({ tb }) {
-  const [expanded, setExpanded] = useState(tb.ghimLai);
+const tabs = [
+  { key: 'info', label: 'Thông tin lớp', icon: <FaBookOpen /> },
+  { key: 'students', label: 'Sinh viên', icon: <FaUsers /> },
+  { key: 'groups', label: 'Nhóm', icon: <FaLayerGroup /> },
+  { key: 'topics', label: 'Đề tài', icon: <FaClipboardList /> },
+];
+
+function StatusBadge({ status }) {
+  const statusClass = {
+    'Chưa đăng ký': 'pending',
+    'Đã đăng ký': 'registered',
+    'Đã duyệt': 'approved',
+  }[status] || 'pending';
+
+  return <span className={`cd-status cd-status-${statusClass}`}>{status}</span>;
+}
+
+function InfoTab({ lopHoc }) {
+  const infoRows = [
+    { label: 'Tên lớp môn học', value: lopHoc.tenLop },
+    { label: 'Mã lớp', value: lopHoc.maLopHoc },
+    { label: 'Môn học', value: lopHoc.monHoc },
+    { label: 'Giảng viên', value: lopHoc.tenGV },
+    { label: 'Học kỳ, năm học', value: lopHoc.hocKyNamHoc },
+    { label: 'Ngày bắt đầu', value: lopHoc.ngayBatDau },
+    { label: 'Ngày kết thúc', value: lopHoc.ngayKetThuc },
+  ];
 
   return (
-    <div className={`tb-card ${tb.ghimLai ? 'tb-pinned' : ''}`}>
-      <div className="tb-header" onClick={() => setExpanded(v => !v)}>
-        <div className="tb-left">
-          <div className="tb-icon">
-            <FaBullhorn />
-          </div>
-          <div>
-            <div className="tb-title">
-              {tb.ghimLai && <span className="pin-badge">📌 Ghim</span>}
-              {tb.tieuDe}
+    <div className="cd-info-layout">
+      <div className="cd-panel">
+        <div className="cd-panel-title">Thông tin lớp môn học</div>
+        <div className="cd-info-grid">
+          {infoRows.map((row) => (
+            <div className="cd-info-item" key={row.label}>
+              <span>{row.label}</span>
+              <strong>{row.value}</strong>
             </div>
-            <div className="tb-time">{tb.thoiGian}</div>
-          </div>
+          ))}
         </div>
-        <button className="tb-toggle">
-          {expanded ? <FaChevronUp /> : <FaChevronDown />}
-        </button>
       </div>
 
-      {expanded && (
-        <div className="tb-body">
-          <p className="tb-content">{tb.noiDung}</p>
-          {tb.fileDinhKem.length > 0 && (
-            <div className="tb-files">
-              {tb.fileDinhKem.map((f, i) => (
-                <div key={i} className="tb-file">
-                  📄 {f.tenFile} &nbsp;·&nbsp; {f.dungLuong}
-                </div>
-              ))}
-            </div>
-          )}
+      <div className="cd-stat-grid">
+        <div className="cd-stat-card">
+          <span>Sinh viên</span>
+          <strong>{lopHoc.sinhVien.length}</strong>
         </div>
+        <div className="cd-stat-card">
+          <span>Nhóm</span>
+          <strong>{lopHoc.nhom.length}</strong>
+        </div>
+        <div className="cd-stat-card">
+          <span>Đề tài</span>
+          <strong>{lopHoc.deTai.length}</strong>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function StudentsTab({ students }) {
+  const [keyword, setKeyword] = useState('');
+  const filteredStudents = useMemo(() => {
+    const normalizedKeyword = keyword.trim().toLowerCase();
+    if (!normalizedKeyword) return students;
+
+    return students.filter((student) =>
+      `${student.mssv} ${student.hoTen} ${student.lop}`.toLowerCase().includes(normalizedKeyword)
+    );
+  }, [keyword, students]);
+
+  return (
+    <div className="cd-panel">
+      <div className="cd-toolbar">
+        <div>
+          <div className="cd-panel-title">Danh sách sinh viên</div>
+          <p>{filteredStudents.length} sinh viên trong lớp</p>
+        </div>
+        <label className="cd-search">
+          <FaSearch />
+          <input
+            value={keyword}
+            onChange={(event) => setKeyword(event.target.value)}
+            placeholder="Tìm MSSV, họ tên, lớp"
+          />
+        </label>
+      </div>
+
+      <div className="cd-table-wrap">
+        <table className="cd-table">
+          <thead>
+            <tr>
+              <th>STT</th>
+              <th>MSSV</th>
+              <th>Họ tên</th>
+              <th>Lớp</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredStudents.map((student, index) => (
+              <tr key={student.mssv}>
+                <td>{index + 1}</td>
+                <td>{student.mssv}</td>
+                <td>{student.hoTen}</td>
+                <td>{student.lop}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function GroupsTab({ groups }) {
+  return (
+    <div className="cd-group-grid">
+      {groups.map((group) => (
+        <div className="cd-group-card" key={group.tenNhom}>
+          <div className="cd-group-head">
+            <div>
+              <span>Nhóm</span>
+              <strong>{group.tenNhom}</strong>
+            </div>
+            <div className="cd-member-count">{group.soThanhVien} SV</div>
+          </div>
+          <div className="cd-group-row">
+            <span>Trưởng nhóm</span>
+            <strong className={group.truongNhom === 'Chưa có' ? 'cd-muted-danger' : ''}>{group.truongNhom}</strong>
+          </div>
+          <div className="cd-group-topic">
+            <span>Đề tài đang đăng ký</span>
+            <strong>{group.deTai}</strong>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function TopicDetailModal({ topic, onClose }) {
+  return (
+    <div className="cd-modal-overlay" onClick={onClose}>
+      <div className="cd-modal" onClick={(event) => event.stopPropagation()}>
+        <div className="cd-modal-header">
+          <h3>Chi tiết đề tài</h3>
+          <button className="cd-modal-close" onClick={onClose}>×</button>
+        </div>
+        <div className="cd-modal-body">
+          <div className="cd-detail-title">
+            <span>Đề tài</span>
+            <strong>{topic.tenDeTai}</strong>
+          </div>
+          <div className="cd-detail-grid">
+            <div><span>Ngày bắt đầu</span><strong>{topic.ngayBatDau}</strong></div>
+            <div><span>Ngày kết thúc</span><strong>{topic.ngayKetThuc}</strong></div>
+            <div><span>Nhóm đăng ký</span><strong>{topic.nhomDangKy}</strong></div>
+            <div><span>Trạng thái</span><strong>{topic.trangThai}</strong></div>
+          </div>
+          <div className="cd-detail-section">
+            <span>Mô tả yêu cầu</span>
+            <p>{topic.moTa}</p>
+          </div>
+          <div className="cd-detail-section">
+            <span>Sản phẩm kỳ vọng</span>
+            <p>{topic.sanPhamKyVong}</p>
+          </div>
+          <div className="cd-detail-file">
+            <span>Tài liệu đính kèm</span>
+            <strong>{topic.tepDinhKem || 'Chưa có tài liệu đính kèm'}</strong>
+          </div>
+        </div>
+        <div className="cd-modal-footer">
+          <button className="cd-modal-primary" onClick={onClose}>Đã hiểu</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TopicsTab({ topics }) {
+  const [selectedTopic, setSelectedTopic] = useState(null);
+
+  return (
+    <div className="cd-panel">
+      <div className="cd-panel-title">Danh sách đề tài</div>
+      <div className="cd-topic-list">
+        {topics.map((topic) => (
+          <div className="cd-topic-item" key={topic.tenDeTai}>
+            <div className="cd-topic-main">
+              <div>
+                <h3>{topic.tenDeTai}</h3>
+                <p>{topic.moTa}</p>
+              </div>
+              <StatusBadge status={topic.trangThai} />
+            </div>
+            <div className="cd-topic-meta">
+              <span>Nhóm đăng ký</span>
+              <strong>{topic.nhomDangKy}</strong>
+            </div>
+            <button className="cd-topic-detail-btn" onClick={() => setSelectedTopic(topic)}>
+              Xem chi tiết đề tài
+            </button>
+          </div>
+        ))}
+      </div>
+      {selectedTopic && (
+        <TopicDetailModal topic={selectedTopic} onClose={() => setSelectedTopic(null)} />
       )}
     </div>
   );
 }
 
-// ============================================================
-// COMPONENT: Hàng sinh viên
-// ============================================================
-function SinhVienRow({ sv }) {
-  return (
-    <div className="sv-row">
-      <div className="sv-av" style={{ background: sv.bg, color: sv.color }}>
-        {sv.kyHieu}
-      </div>
-      <div className="sv-info">
-        <div className="sv-name">{sv.hoTen}</div>
-        <div className="sv-code">{sv.maSo}</div>
-      </div>
-      <div className="sv-right">
-        <span className="sv-nhom">{sv.nhom}</span>
-        {sv.laNhomTruong && (
-          <span className="sv-leader-badge">Nhóm trưởng</span>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ============================================================
-// MAIN COMPONENT
-// ============================================================
 const StudentClassDetail = () => {
-  const { maLop } = useParams();          // Lấy từ URL: /student/classes/:maLop
-  const navigate  = useNavigate();
-  const [activeTab, setActiveTab] = useState('bangtIn'); // 'bangTin' | 'thanhVien'
+  const { maLop } = useParams();
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState('info');
+  const lopHoc = mockClassData[Number(maLop)];
 
-  // Tìm dữ liệu lớp theo maLop từ URL
-  const lopHoc = mockClassData[parseInt(maLop)];
-
-  // Trường hợp maLop không hợp lệ
   if (!lopHoc) {
     return (
       <div className="cd-wrap">
         <div className="cd-not-found">
           <p>Không tìm thấy lớp học.</p>
-          <button className="cd-back-btn" onClick={() => navigate('/student/classes')}>
-            ← Quay lại
+          <button className="cd-solid-btn" onClick={() => navigate('/student/classes')}>
+            Quay lại lớp học
           </button>
         </div>
       </div>
     );
   }
 
+  const renderTabContent = () => {
+    if (activeTab === 'students') return <StudentsTab students={lopHoc.sinhVien} />;
+    if (activeTab === 'groups') return <GroupsTab groups={lopHoc.nhom} />;
+    if (activeTab === 'topics') return <TopicsTab topics={lopHoc.deTai} />;
+    return <InfoTab lopHoc={lopHoc} />;
+  };
+
   return (
     <div className="cd-wrap">
-      {/* BANNER ĐẦU TRANG */}
-      <div className="cd-banner" style={{ background: `linear-gradient(135deg, ${lopHoc.mauSac}dd, ${lopHoc.mauSac}88)` }}>
+      <div className="cd-hero" style={{ '--class-color': lopHoc.mauSac }}>
         <button className="cd-back-btn" onClick={() => navigate('/student/classes')}>
-          <FaArrowLeft /> Quay lại
+          <FaArrowLeft />
+          Quay lại
         </button>
-        <div className="cd-banner-content">
-          <div className="cd-class-name">{lopHoc.tenLop}</div>
-          <div className="cd-class-code">Mã lớp: {lopHoc.maLopHoc} &nbsp;·&nbsp; {lopHoc.tenHocKy}</div>
-          <div className="cd-class-meta">
-            <span>👨‍🏫 {lopHoc.tenGV}</span>
-            <span>📅 {lopHoc.thoiGianHoc}</span>
-            <span>👥 {lopHoc.soSinhVien} sinh viên &nbsp;·&nbsp; {lopHoc.soNhom} nhóm</span>
+        <div className="cd-hero-content">
+          <div className="cd-subtitle">
+            <FaChalkboardTeacher />
+            {lopHoc.tenGV}
           </div>
-        </div>
-
-        {/* Thanh tiến độ */}
-        <div className="cd-progress-wrap">
-          <div className="cd-progress-label">
-            Tiến độ môn học &nbsp;
-            <strong>{lopHoc.tienDo}%</strong>
+          <h1>{lopHoc.tenLop}</h1>
+          <div className="cd-hero-meta">
+            <span>Mã lớp: {lopHoc.maLopHoc}</span>
+            <span>Môn học: {lopHoc.monHoc}</span>
+            <span>{lopHoc.hocKyNamHoc}</span>
           </div>
-          <div className="cd-pbar">
-            <div className="cd-pfill" style={{ width: `${lopHoc.tienDo}%` }} />
+          <div className="cd-hero-dates">
+            {lopHoc.ngayBatDau} - {lopHoc.ngayKetThuc}
           </div>
         </div>
       </div>
 
-      {/* TAB BAR */}
-      <div className="cd-tab-bar">
-        <button
-          className={`cd-tab ${activeTab === 'bangTin' ? 'active' : ''}`}
-          onClick={() => setActiveTab('bangTin')}
-        >
-          <FaBullhorn style={{ marginRight: 6 }} /> Bảng tin
-        </button>
-        <button
-          className={`cd-tab ${activeTab === 'thanhVien' ? 'active' : ''}`}
-          onClick={() => setActiveTab('thanhVien')}
-        >
-          <FaUsers style={{ marginRight: 6 }} /> Thành viên ({lopHoc.soSinhVien})
-        </button>
+      <div className="cd-tabs">
+        {tabs.map((tab) => (
+          <button
+            key={tab.key}
+            className={`cd-tab ${activeTab === tab.key ? 'active' : ''}`}
+            onClick={() => setActiveTab(tab.key)}
+          >
+            {tab.icon}
+            <span>{tab.label}</span>
+          </button>
+        ))}
       </div>
 
-      <div className="cd-body">
-        {/* ── TAB BẢNG TIN ── */}
-        {activeTab === 'bangTin' && (
-          <div className="cd-feed">
-            {/* Thông tin giảng viên nhỏ bên cạnh */}
-            <div className="cd-sidebar">
-              <div className="cd-info-card">
-                <div className="cd-info-title">Thông tin lớp</div>
-                <div className="cd-info-row"><span>Giảng viên</span><span>{lopHoc.tenGV}</span></div>
-                <div className="cd-info-row"><span>Email GV</span><span>{lopHoc.emailGV}</span></div>
-                <div className="cd-info-row"><span>Lịch học</span><span>{lopHoc.thoiGianHoc}</span></div>
-                <div className="cd-info-row"><span>Bắt đầu</span><span>{lopHoc.ngayBatDau}</span></div>
-                <div className="cd-info-row"><span>Kết thúc</span><span>{lopHoc.ngayKetThuc}</span></div>
-              </div>
-            </div>
-
-            {/* Danh sách thông báo */}
-            <div className="cd-main-feed">
-              {lopHoc.thongBao.length === 0 ? (
-                <div className="cd-empty">Chưa có thông báo nào từ giảng viên.</div>
-              ) : (
-                lopHoc.thongBao.map(tb => <ThongBaoCard key={tb.id} tb={tb} />)
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* ── TAB THÀNH VIÊN ── */}
-        {activeTab === 'thanhVien' && (
-          <div className="cd-members">
-            <div className="cd-members-header">
-              <span className="cd-members-title">Danh sách sinh viên</span>
-              <span className="cd-members-count">{lopHoc.danhSachSV.length} / {lopHoc.soSinhVien} hiển thị</span>
-            </div>
-            <div className="cd-members-list">
-              {lopHoc.danhSachSV.map((sv, i) => (
-                <SinhVienRow key={i} sv={sv} />
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
+      <div className="cd-content">{renderTabContent()}</div>
     </div>
   );
 };

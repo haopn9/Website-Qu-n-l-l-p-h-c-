@@ -28,9 +28,13 @@ public class XacThucController : ControllerBase
     [HttpPost("dangnhap")]
     public async Task<IActionResult> DangNhap([FromBody] DangNhapDto dto)
     {
+        dto.TenDangNhap = dto.TenDangNhap.Trim();
+        dto.MatKhau = dto.MatKhau.Trim();
+
         // Bước 1: Lấy tất cả người dùng ra
         List<NguoiDung> tatCaNguoiDung = await _db.NguoiDungs
             .Include(u => u.MaVaiTroNavigation)
+            .Include(u => u.MaKhoaNavigation)
             .ToListAsync();
 
         // Bước 2: Tìm người dùng theo tên đăng nhập
@@ -85,7 +89,12 @@ public class XacThucController : ControllerBase
         {
             token = tokenString,
             maNguoiDung = nguoiDung.MaNguoiDung,
+            maSo = nguoiDung.MaSo,
             hoTen = nguoiDung.HoTen,
+            email = nguoiDung.Email,
+            maKhoa = nguoiDung.MaKhoa,
+            tenKhoa = nguoiDung.MaKhoaNavigation != null ? nguoiDung.MaKhoaNavigation.TenKhoa : null,
+            lopSinhVien = nguoiDung.LopSinhVien,
             maVaiTro = nguoiDung.MaVaiTro,
             tenVaiTro = tenVaiTro
         });

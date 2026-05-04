@@ -314,7 +314,14 @@
   transition: background 0.2s;
 }
 
-.btn-save:hover { background: #1e3280; }
+.btn-save:hover:not(:disabled) { background: #1e3280; }
+
+.btn-save:disabled, .btn-disabled {
+  background: #cbd5e1 !important;
+  color: #f1f5f9;
+  cursor: not-allowed !important;
+  box-shadow: none !important;
+}
 
 /* ============================================================
    INPUT MẬT KHẨU

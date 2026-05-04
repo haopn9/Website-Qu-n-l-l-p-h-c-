@@ -1,122 +1,35 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaCalendarAlt, FaUserFriends } from 'react-icons/fa';
 import './StudentClasses.css';
-
-// ============================================================
-// DỮ LIỆU MẪU — đồng bộ bảng LopHoc & Nhom (DB v2)
-// Sau này thay bằng: axios.get('/api/lophoc/cua-toi')
-// ============================================================
-const mockClasses = [
-  {
-    maLop      : 1,
-    maLopHoc   : 'LT_WEB_01',
-    tenLop     : 'Lập trình Web',
-    tenGV      : 'Nguyễn Văn A',
-    thoiGianHoc: 'Thứ 2, 4, 6 · 18:00 – 20:00',
-    soSinhVien : 32,
-    soNhom     : 8,
-    tienDo     : 62,
-    mauSac     : '#378add',
-    badgeBg    : '#e6f1fb',
-    badgeColor : '#185fa5',
-    gvBg       : '#e6f1fb',
-    gvColor    : '#185fa5',
-  },
-  {
-    maLop      : 2,
-    maLopHoc   : 'CSDL_02',
-    tenLop     : 'Cơ sở dữ liệu',
-    tenGV      : 'Trần Thị B',
-    thoiGianHoc: 'Thứ 3, 5 · 13:00 – 15:00',
-    soSinhVien : 28,
-    soNhom     : 7,
-    tienDo     : 80,
-    mauSac     : '#1d9e75',
-    badgeBg    : '#e1f5ee',
-    badgeColor : '#0f6e56',
-    gvBg       : '#e1f5ee',
-    gvColor    : '#0f6e56',
-  },
-  {
-    maLop      : 3,
-    maLopHoc   : 'MMT_03',
-    tenLop     : 'Mạng máy tính',
-    tenGV      : 'Lê Hồng C',
-    thoiGianHoc: 'Thứ 7 · 07:30 – 11:30',
-    soSinhVien : 35,
-    soNhom     : 9,
-    tienDo     : 40,
-    mauSac     : '#ef9f27',
-    badgeBg    : '#faeeda',
-    badgeColor : '#854f0b',
-    gvBg       : '#faeeda',
-    gvColor    : '#854f0b',
-  },
-];
-
-// Nhóm của user — maLop dùng để điều hướng sang trang nhóm học tập
-const mockMyGroups = [
-  {
-    maNhom   : 1,
-    tenNhom  : 'Nhóm 1',
-    maLop    : 1,
-    tenLop   : 'Lập trình Web',
-    tenGV    : 'Nguyễn Văn A',
-    laNhomTruong: true,
-    deTai    : 'Đề tài: Website quản lý lớp học — Module làm việc nhóm',
-    thanhVien: [
-      { kyHieu: 'VA', bg: '#e6f1fb', color: '#185fa5' },
-      { kyHieu: 'TB', bg: '#faeeda', color: '#854f0b' },
-      { kyHieu: 'LC', bg: '#e1f5ee', color: '#0f6e56' },
-      { kyHieu: 'PD', bg: '#fbeaf0', color: '#993556' },
-    ],
-  },
-  {
-    maNhom   : 3,
-    tenNhom  : 'Nhóm 3',
-    maLop    : 2,
-    tenLop   : 'Cơ sở dữ liệu',
-    tenGV    : 'Trần Thị B',
-    laNhomTruong: false,
-    deTai    : 'Đề tài: Xây dựng hệ thống quản lý thư viện trường đại học',
-    thanhVien: [
-      { kyHieu: 'HT', bg: '#e1f5ee', color: '#0f6e56' },
-      { kyHieu: 'VA', bg: '#e6f1fb', color: '#185fa5' },
-      { kyHieu: 'NQ', bg: '#fbeaf0', color: '#993556' },
-      { kyHieu: 'BL', bg: '#faeeda', color: '#854f0b' },
-      { kyHieu: '+1', bg: '#f1efe8', color: '#5f5e5a' },
-    ],
-  },
-  {
-    maNhom   : 5,
-    tenNhom  : 'Nhóm 5',
-    maLop    : 3,
-    tenLop   : 'Mạng máy tính',
-    tenGV    : 'Lê Hồng C',
-    laNhomTruong: false,
-    deTai    : 'Đề tài: Phân tích và thiết kế mạng LAN cho doanh nghiệp vừa và nhỏ',
-    thanhVien: [
-      { kyHieu: 'MT', bg: '#fbeaf0', color: '#993556' },
-      { kyHieu: 'VA', bg: '#e6f1fb', color: '#185fa5' },
-      { kyHieu: 'KD', bg: '#e1f5ee', color: '#0f6e56' },
-    ],
-  },
-];
+import classService from '../../services/classService';
 
 // ============================================================
 // MODAL THAM GIA LỚP
 // ============================================================
-function JoinModal({ onClose }) {
+function JoinModal({ onClose, onJoin }) {
   const [code, setCode] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleJoin = () => {
-    if (!code.trim()) { setError('Vui lòng nhập mã lớp.'); return; }
-    // TODO: axios.post('/api/lophoc/tham-gia', { maLopHoc: code })
-    //   .catch(() => setError('Mã lớp không tồn tại hoặc đã đầy.'))
-    alert(`Đã gửi yêu cầu tham gia lớp: ${code}`);
-    onClose();
+  const handleJoin = async () => {
+    if (!code.trim()) { 
+      setError('Vui lòng nhập mã lớp.'); 
+      return; 
+    }
+    
+    setLoading(true);
+    try {
+      await classService.joinClass(code);
+      alert(`Đã tham gia lớp: ${code} thành công!`);
+      onJoin(); // Callback to refresh classes
+      onClose();
+    } catch (err) {
+      setError(err.message || 'Mã lớp không tồn tại hoặc đã đầy.');
+      console.error('Error joining class:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -133,12 +46,15 @@ function JoinModal({ onClose }) {
           value={code}
           onChange={e => { setCode(e.target.value.toUpperCase()); setError(''); }}
           onKeyDown={e => e.key === 'Enter' && handleJoin()}
+          disabled={loading}
           autoFocus
         />
         {error && <span className="sc-field-error">{error}</span>}
         <div className="sc-modal-footer">
-          <button className="sc-btn-cancel" onClick={onClose}>Hủy</button>
-          <button className="sc-btn-primary" onClick={handleJoin}>Tham gia</button>
+          <button className="sc-btn-cancel" onClick={onClose} disabled={loading}>Hủy</button>
+          <button className="sc-btn-primary" onClick={handleJoin} disabled={loading || !code.trim()}>
+            {loading ? 'Đang xử lý...' : 'Tham gia'}
+          </button>
         </div>
       </div>
     </div>
@@ -150,7 +66,7 @@ function JoinModal({ onClose }) {
 // ============================================================
 function ClassCard({ cls, onClick }) {
   return (
-    <div className="cls-card" onClick={onClick}>
+    <div className="cls-card" style={{ cursor: 'pointer' }} onClick={onClick}>
       <div className="cls-banner" style={{ background: cls.mauSac }} />
       <div className="cls-body">
         <div className="cls-name">{cls.tenLop}</div>
@@ -228,11 +144,91 @@ function GroupCard({ group, onClick }) {
 const StudentClasses = () => {
   const navigate = useNavigate();
   const [showModal, setShowModal] = useState(false);
+  const [selectedSemester, setSelectedSemester] = useState('all');
+  const [invitations, setInvitations] = useState([
+    { id: 1, tenLop: 'Phân tích thiết kế hệ thống', tenGV: 'Thầy Cường' }
+  ]);
+  const [classes, setClasses] = useState([]);
+  const [groups, setGroups] = useState([]);
+  const [semesters, setSemesters] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  // Click card lớp → vào trang chi tiết lớp (truyền maLop qua URL)
-  const handleClickClass = (maLop) => {
-    navigate(`/student/classes/${maLop}`);
+  const currentUser = JSON.parse(localStorage.getItem('userInfo') || '{}');
+
+  const colorPalette = [
+    { card: '#5b9bf3', gvBg: '#dbeafe', gvColor: '#1d4ed8', badgeBg: '#dbeafe', badgeColor: '#1e40af' },
+    { card: '#f97316', gvBg: '#ffedd5', gvColor: '#9a3412', badgeBg: '#ffedd5', badgeColor: '#9a3412' },
+    { card: '#10b981', gvBg: '#d1fae5', gvColor: '#065f46', badgeBg: '#d1fae5', badgeColor: '#065f46' },
+    { card: '#8b5cf6', gvBg: '#ede9fe', gvColor: '#5b21b6', badgeBg: '#ede9fe', badgeColor: '#5b21b6' }
+  ];
+
+  const extractInitial = (name) => (name || '?').trim().charAt(0).toUpperCase();
+
+  const buildGroupsFromClasses = (classList, groupsByClass) => {
+    const allGroups = [];
+
+    classList.forEach((cls, index) => {
+      const groupInClass = (groupsByClass[cls.maLop] || []).filter((g) =>
+        (g.thanhVien || []).some((sv) => sv.maNguoiDung === currentUser.maNguoiDung)
+      );
+
+      groupInClass.forEach((g) => {
+        allGroups.push({
+          maNhom: g.maNhom,
+          tenNhom: g.tenNhom,
+          tenLop: cls.tenLop,
+          tenGV: cls.tenGiangVien,
+          deTai: g.tenDeTai || 'Chưa có đề tài',
+          laNhomTruong: g.maNhomTruong === currentUser.maNguoiDung,
+          thanhVien: (g.thanhVien || []).slice(0, 5).map((tv) => ({
+            kyHieu: extractInitial(tv.hoTen),
+            bg: '#e5e7eb',
+            color: '#1f2937'
+          })),
+          _colorIndex: index
+        });
+      });
+    });
+
+    return allGroups;
   };
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const classData = await classService.getAllClasses();
+      setClasses(classData || []);
+
+      const hocKySet = [...new Set((classData || []).map((c) => c.tenHocKy).filter(Boolean))];
+      setSemesters(hocKySet);
+
+      const groupRequests = (classData || []).map(async (cls) => {
+        const response = await fetch(`http://localhost:5186/api/nhom?maLop=${cls.maLop}`);
+        if (!response.ok) return { maLop: cls.maLop, groups: [] };
+        const data = await response.json();
+        return { maLop: cls.maLop, groups: data };
+      });
+
+      const groupResults = await Promise.all(groupRequests);
+      const groupsByClass = groupResults.reduce((acc, item) => {
+        acc[item.maLop] = item.groups || [];
+        return acc;
+      }, {});
+
+      setGroups(buildGroupsFromClasses(classData || [], groupsByClass));
+      setError('');
+    } catch (err) {
+      setError(err.message || 'Không thể tải dữ liệu lớp học');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Click card nhóm → sang trang nhóm học tập, truyền maNhom qua state
   // StudentGroups sẽ đọc location.state.maNhom để highlight đúng nhóm
@@ -246,6 +242,40 @@ const StudentClasses = () => {
     });
   };
 
+  const displayClasses = classes
+    .filter((c) => selectedSemester === 'all' || c.tenHocKy === selectedSemester)
+    .map((cls, index) => {
+      const style = colorPalette[index % colorPalette.length];
+      const tongCongViec = (cls.danhSachNhom || []).reduce((sum, n) => sum + (n.soLuongTask || 0), 0);
+      const daXong = (cls.danhSachNhom || []).reduce((sum, n) => sum + (n.soLuongHoanThanh || 0), 0);
+      const tienDo = tongCongViec > 0 ? Math.round((daXong / tongCongViec) * 100) : 0;
+
+      return {
+        ...cls,
+        tenGV: cls.tenGiangVien,
+        tienDo,
+        mauSac: style.card,
+        gvBg: style.gvBg,
+        gvColor: style.gvColor,
+        badgeBg: style.badgeBg,
+        badgeColor: style.badgeColor
+      };
+    });
+
+  const displayGroups = groups.filter((g) => {
+    if (selectedSemester === 'all') return true;
+    const cls = classes.find((c) => c.tenLop === g.tenLop);
+    return cls?.tenHocKy === selectedSemester;
+  });
+
+  if (loading) {
+    return <div className="loading-state">Đang tải dữ liệu lớp học...</div>;
+  }
+
+  if (error) {
+    return <div className="error-state">{error}</div>;
+  }
+
   return (
     <div className="sc-container">
       {/* HEADER */}
@@ -257,13 +287,43 @@ const StudentClasses = () => {
       </div>
 
       {/* DANH SÁCH LỚP */}
-      <div className="section-label">Đang học — Học kỳ 2 2025-2026</div>
+      <div className="section-label sc-section-filter">
+        <span>Đang học — </span>
+        <select
+          className="sc-semester-select"
+          value={selectedSemester}
+          onChange={(e) => setSelectedSemester(e.target.value)}
+        >
+          <option value="all">Tất cả học kỳ</option>
+          {semesters.map((hk) => (
+            <option key={hk} value={hk}>{hk}</option>
+          ))}
+        </select>
+      </div>
+
+      {invitations.length > 0 && (
+        <div style={{ marginBottom: '20px' }}>
+          <h4 style={{ color: '#1e293b', marginBottom: '10px' }}>Lời mời tham gia lớp</h4>
+          <div className="grid">
+            {invitations.map(inv => (
+              <div key={inv.id} style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '15px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+                <p style={{ margin: '0 0 15px', color: '#475569', fontSize: '14px', lineHeight: '1.5' }}>Hệ thống gửi lời mời tham gia lớp <strong>{inv.tenLop}</strong> của giảng viên <strong>{inv.tenGV}</strong></p>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button onClick={() => setInvitations(invitations.filter(i => i.id !== inv.id))} style={{ flex: 1, padding: '8px', border: '1px solid #cbd5e1', background: '#fff', color: '#475569', borderRadius: '4px', cursor: 'pointer' }}>Từ chối</button>
+                  <button onClick={() => { alert('Đã tham gia lớp!'); setInvitations(invitations.filter(i => i.id !== inv.id)); }} style={{ flex: 1, padding: '8px', border: 'none', background: '#10b981', color: '#fff', borderRadius: '4px', cursor: 'pointer' }}>Tham gia</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="grid">
-        {mockClasses.map(cls => (
+        {displayClasses.map(cls => (
           <ClassCard
             key={cls.maLop}
             cls={cls}
-            onClick={() => handleClickClass(cls.maLop)}
+            onClick={() => navigate(`/student/classes/${cls.maLop}`)}
           />
         ))}
       </div>
@@ -271,7 +331,7 @@ const StudentClasses = () => {
       {/* DANH SÁCH NHÓM */}
       <div className="section-label">Nhóm của tôi trong các lớp</div>
       <div className="nhom-grid">
-        {mockMyGroups.map(g => (
+        {displayGroups.map(g => (
           <GroupCard
             key={g.maNhom}
             group={g}
@@ -279,15 +339,15 @@ const StudentClasses = () => {
           />
         ))}
 
-        {/* Card tham gia lớp mới */}
-        <div className="nhom-card nhom-card--add" onClick={() => setShowModal(true)}>
-          <div className="add-icon">+</div>
-          <div className="add-label">Tham gia lớp mới</div>
-        </div>
       </div>
 
       {/* MODAL THAM GIA LỚP */}
-      {showModal && <JoinModal onClose={() => setShowModal(false)} />}
+      {showModal && (
+        <JoinModal
+          onClose={() => setShowModal(false)}
+          onJoin={fetchData}
+        />
+      )}
     </div>
   );
 };

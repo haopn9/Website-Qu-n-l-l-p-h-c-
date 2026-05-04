@@ -125,41 +125,66 @@ function TransferModal({ groups, onClose }) {
 // MODAL YÊU CẦU VÀO NHÓM
 // ============================================================
 function JoinModal({ groups, onClose }) {
-  const [selectedGroup, setSelectedGroup] = useState(groups[0]?.maNhom || '');
-  const [loiNhan, setLoiNhan] = useState('');
+  const [selectedClassId, setSelectedClassId] = useState(groups[0]?.maLop || '');
+  
+  const classGroups = groups.filter(g => g.maLop === selectedClassId);
+  const [selectedGroupId, setSelectedGroupId] = useState(classGroups[0]?.maNhom || '');
+
+  useEffect(() => {
+    const newClassGroups = groups.filter(g => g.maLop === selectedClassId);
+    setSelectedGroupId(newClassGroups[0]?.maNhom || '');
+  }, [selectedClassId, groups]);
+
+  const targetGroup = groups.find(g => g.maNhom === selectedGroupId);
 
   const handleSend = (e) => {
     e.preventDefault();
-    if (!loiNhan.trim()) return;
-    alert('Đã gửi yêu cầu xin vào nhóm thành công! Đang chờ nhóm trưởng duyệt.');
+    if (!selectedGroupId) return;
+    alert(`Bạn đã tham gia ${targetGroup.tenNhom} lớp ${targetGroup.tenLop} thành công!`);
     onClose();
   };
+
+  const uniqueClasses = Array.from(new Set(groups.map(g => g.maLop))).map(id => groups.find(g => g.maLop === id));
 
   return (
     <div className="sg-modal-overlay" onClick={onClose}>
       <div className="sg-modal-content" onClick={e => e.stopPropagation()}>
         <div className="sg-modal-header">
-          <h3>Yêu cầu vào nhóm</h3>
+          <h3>Đăng ký nhóm</h3>
           <button className="sg-close-btn" onClick={onClose}><FaTimes /></button>
         </div>
         <form className="sg-modal-form" onSubmit={handleSend}>
           <div className="sg-form-group">
-            <label>Chọn nhóm muốn tham gia *</label>
-            <select className="sg-input" value={selectedGroup} onChange={e => setSelectedGroup(Number(e.target.value))}>
-              {groups.map(g => (
-                <option key={g.maNhom} value={g.maNhom} disabled={g.soThanhVien >= g.soToiDa}>
-                  {g.tenNhom} — {g.tenLop} ({g.soThanhVien}/{g.soToiDa} thành viên) {g.soThanhVien >= g.soToiDa ? '- Đã đầy' : ''}
-                </option>
+            <label>Lớp môn học</label>
+            <select className="sg-input" value={selectedClassId} onChange={e => setSelectedClassId(Number(e.target.value))}>
+              {uniqueClasses.map(c => (
+                <option key={c.maLop} value={c.maLop}>{c.tenLop} ({c.maLopHoc})</option>
               ))}
             </select>
           </div>
           <div className="sg-form-group">
-            <label>Lời nhắn cho nhóm trưởng *</label>
-            <textarea className="sg-input" rows="3" placeholder="Xin chào, cho mình vào nhóm với..." value={loiNhan} onChange={e => setLoiNhan(e.target.value)} required style={{ resize: 'vertical' }} />
+            <label>Nhóm</label>
+            <select className="sg-input" value={selectedGroupId} onChange={e => setSelectedGroupId(Number(e.target.value))}>
+              {classGroups.map(g => (
+                <option key={g.maNhom} value={g.maNhom} disabled={g.soThanhVien >= g.soToiDa}>
+                  {g.tenNhom} ({g.soThanhVien}/{g.soToiDa} thành viên) {g.soThanhVien >= g.soToiDa ? '- Đã đầy' : ''}
+                </option>
+              ))}
+            </select>
           </div>
+          {targetGroup && (
+            <div className="sg-form-group" style={{ background: '#f8fafc', padding: '10px', borderRadius: '4px', border: '1px solid #e2e8f0' }}>
+              <label style={{ marginBottom: '8px', display: 'block', fontWeight: 'bold' }}>Thành viên nhóm ({targetGroup.soThanhVien}/{targetGroup.soToiDa})</label>
+              <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '13px', color: '#475569' }}>
+                {targetGroup.thanhVien.map(tv => (
+                  <li key={tv.maSo}>{tv.hoTen} - {tv.maSo}</li>
+                ))}
+              </ul>
+            </div>
+          )}
           <div className="sg-modal-footer">
-            <button type="button" className="sg-btn-cancel" onClick={onClose}>Hủy</button>
-            <button type="submit" className="sg-btn-save" style={{ background: '#378add', color: '#fff' }}>Gửi yêu cầu</button>
+            <button type="button" className="sg-btn-cancel" onClick={onClose}>Đóng</button>
+            <button type="submit" className="sg-btn-save" style={{ background: '#378add', color: '#fff' }} disabled={!targetGroup || targetGroup.soThanhVien >= targetGroup.soToiDa}>Xác nhận tham gia</button>
           </div>
         </form>
       </div>
@@ -196,11 +221,20 @@ const StudentGroups = () => {
         <h1>Nhóm học tập</h1>
         <div style={{ display: 'flex', gap: '10px' }}>
           <button className="sg-btn-outline" style={{ background: '#378add', color: '#fff', borderColor: '#378add' }} onClick={() => setShowJoin(true)}>
-            Yêu cầu vào nhóm
+            Đăng ký nhóm
           </button>
           <button className="sg-btn-outline" onClick={() => setShowTransfer(true)}>
             Yêu cầu chuyển nhóm
           </button>
+          {activeTab === 'nhomCuaToi' && selectedGroup && (
+            <button className="sg-btn-outline" style={{ borderColor: '#e24b4a', color: '#e24b4a' }} onClick={() => {
+              if (window.confirm('Bạn có chắc muốn rời nhóm này?')) {
+                alert('Đã rời nhóm thành công!');
+              }
+            }}>
+              Rời nhóm
+            </button>
+          )}
         </div>
       </div>
 
@@ -249,8 +283,11 @@ const StudentGroups = () => {
                 <div className="sg-smc"><div className="sg-smc-val" style={{ color: '#e24b4a' }}>{selectedGroup.taskTreHan}</div><div className="sg-smc-lbl">Trễ hạn</div></div>
               </div>
               {[
+                { label: 'Chưa bắt đầu', val: 1, color: '#94a3b8' },
                 { label: 'Đang thực hiện', val: selectedGroup.taskDangLam, color: '#378add' },
                 { label: 'Chờ duyệt', val: selectedGroup.taskChoDuyet, color: '#ef9f27' },
+                { label: 'Yêu cầu làm lại', val: 0, color: '#b91c1c' },
+                { label: 'Trễ hạn', val: selectedGroup.taskTreHan, color: '#e24b4a' },
                 { label: 'Hoàn thành', val: selectedGroup.taskHoanThanh, color: '#639922' },
               ].map((item, i) => (
                 <div className="sg-task-bar-row" key={i}>
