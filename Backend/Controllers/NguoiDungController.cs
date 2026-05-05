@@ -1,6 +1,9 @@
 ﻿using Backend.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
+using BCrypt.Net;
 
 namespace Backend.Controllers;
 
@@ -132,6 +135,135 @@ public class NguoiDungController : ControllerBase
 
         return Ok(new { thongBao = "Xóa người dùng thành công" });
     }
+
+    // =============================================
+    // LẤY THÔNG TIN CÁ NHÂN (Profile)
+    // GET: api/nguoidung/me
+    // =============================================
+    [HttpGet("me")]
+    [Authorize]
+    public async Task<IActionResult> LayThongTinCaNhan()
+    {
+        // Lấy MaNguoiDung từ JWT token
+        var maNguoiDungClaim = User.FindFirst("maNguoiDung")?.Value;
+        if (string.IsNullOrEmpty(maNguoiDungClaim) || !int.TryParse(maNguoiDungClaim, out int maNguoiDung))
+        {
+            return Unauthorized(new { thongBao = "Token không hợp lệ" });
+        }
+
+        // Tìm người dùng kèm thông tin liên quan
+        var nguoiDung = await _db.NguoiDungs
+            .Include(u => u.MaVaiTroNavigation)
+            .Include(u => u.MaKhoaNavigation)
+            .FirstOrDefaultAsync(u => u.MaNguoiDung == maNguoiDung);
+
+        if (nguoiDung == null)
+        {
+            return NotFound(new { thongBao = "Không tìm thấy thông tin người dùng" });
+        }
+
+        // Trả về thông tin profile
+        return Ok(new
+        {
+            maNguoiDung = nguoiDung.MaNguoiDung,
+            maSo = nguoiDung.MaSo,
+            tenDangNhap = nguoiDung.TenDangNhap,
+            hoTen = nguoiDung.HoTen,
+            ngaySinh = nguoiDung.NgaySinh,
+            gioiTinh = nguoiDung.GioiTinh,
+            soDienThoai = nguoiDung.SoDienThoai,
+            email = nguoiDung.Email,
+            diaChi = nguoiDung.DiaChi,
+            anhDaiDien = nguoiDung.AnhDaiDien,
+            maKhoa = nguoiDung.MaKhoa,
+            tenKhoa = nguoiDung.MaKhoaNavigation?.TenKhoa,
+            maVaiTro = nguoiDung.MaVaiTro,
+            tenVaiTro = nguoiDung.MaVaiTroNavigation?.TenVaiTro,
+            dangHoatDong = nguoiDung.DangHoatDong,
+            ngayTao = nguoiDung.NgayTao
+        });
+    }
+
+    // =============================================
+    // CẬP NHẬT THÔNG TIN CÁ NHÂN
+    // PUT: api/nguoidung/me
+    // =============================================
+    [HttpPut("me")]
+    [Authorize]
+    public async Task<IActionResult> CapNhatThongTinCaNhan([FromBody] CapNhatProfileDto dto)
+    {
+        // Lấy MaNguoiDung từ JWT token
+        var maNguoiDungClaim = User.FindFirst("maNguoiDung")?.Value;
+        if (string.IsNullOrEmpty(maNguoiDungClaim) || !int.TryParse(maNguoiDungClaim, out int maNguoiDung))
+        {
+            return Unauthorized(new { thongBao = "Token không hợp lệ" });
+        }
+
+        // Tìm người dùng
+        var nguoiDung = await _db.NguoiDungs.FindAsync(maNguoiDung);
+        if (nguoiDung == null)
+        {
+            return NotFound(new { thongBao = "Không tìm thấy người dùng" });
+        }
+
+        // Cập nhật thông tin (chỉ cho phép cập nhật một số trường)
+        nguoiDung.SoDienThoai = dto.SoDienThoai?.Trim() ?? nguoiDung.SoDienThoai;
+        nguoiDung.Email = dto.Email?.Trim() ?? nguoiDung.Email;
+        nguoiDung.DiaChi = dto.DiaChi?.Trim() ?? nguoiDung.DiaChi;
+
+        // Lưu thay đổi
+        await _db.SaveChangesAsync();
+
+        return Ok(new { thongBao = "Cập nhật thông tin cá nhân thành công" });
+    }
+
+    // =============================================
+    // ĐỔI MẬT KHẨU
+    // PUT: api/nguoidung/doi-mat-khau
+    // =============================================
+    [HttpPut("doi-mat-khau")]
+    [Authorize]
+    public async Task<IActionResult> DoiMatKhau([FromBody] DoiMatKhauDto dto)
+    {
+        // Validate input
+        if (string.IsNullOrWhiteSpace(dto.MatKhauCu) || string.IsNullOrWhiteSpace(dto.MatKhauMoi))
+        {
+            return BadRequest(new { thongBao = "Mật khẩu cũ và mật khẩu mới không được để trống" });
+        }
+
+        if (dto.MatKhauMoi.Length < 6)
+        {
+            return BadRequest(new { thongBao = "Mật khẩu mới phải có ít nhất 6 ký tự" });
+        }
+
+        // Lấy MaNguoiDung từ JWT token
+        var maNguoiDungClaim = User.FindFirst("maNguoiDung")?.Value;
+        if (string.IsNullOrEmpty(maNguoiDungClaim) || !int.TryParse(maNguoiDungClaim, out int maNguoiDung))
+        {
+            return Unauthorized(new { thongBao = "Token không hợp lệ" });
+        }
+
+        // Tìm người dùng
+        var nguoiDung = await _db.NguoiDungs.FindAsync(maNguoiDung);
+        if (nguoiDung == null)
+        {
+            return NotFound(new { thongBao = "Không tìm thấy người dùng" });
+        }
+
+        // Kiểm tra mật khẩu cũ
+        if (!BCrypt.Net.BCrypt.Verify(dto.MatKhauCu, nguoiDung.MatKhauHash))
+        {
+            return BadRequest(new { thongBao = "Mật khẩu cũ không đúng" });
+        }
+
+        // Hash mật khẩu mới và cập nhật
+        nguoiDung.MatKhauHash = BCrypt.Net.BCrypt.HashPassword(dto.MatKhauMoi);
+
+        // Lưu thay đổi
+        await _db.SaveChangesAsync();
+
+        return Ok(new { thongBao = "Đổi mật khẩu thành công" });
+    }
 }
 
 // =============================================
@@ -146,4 +278,17 @@ public class ThemNguoiDungDto
     public string Email { get; set; } = "";
     public int MaKhoa { get; set; }
     public int MaVaiTro { get; set; }
+}
+
+public class CapNhatProfileDto
+{
+    public string? SoDienThoai { get; set; }
+    public string? Email { get; set; }
+    public string? DiaChi { get; set; }
+}
+
+public class DoiMatKhauDto
+{
+    public string MatKhauCu { get; set; } = "";
+    public string MatKhauMoi { get; set; } = "";
 }
