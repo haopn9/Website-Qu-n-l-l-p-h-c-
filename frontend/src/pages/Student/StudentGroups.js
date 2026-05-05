@@ -184,25 +184,37 @@ function JoinModal({ groups, onClose }) {
             <label>Nhóm</label>
             <select className="sg-input" value={selectedGroupId} onChange={e => setSelectedGroupId(Number(e.target.value))}>
               {classGroups.map(g => (
-                <option key={g.maNhom} value={g.maNhom} disabled={g.soThanhVien >= g.soToiDa}>
-                  {g.tenNhom} ({g.soThanhVien}/{g.soToiDa} thành viên) {g.soThanhVien >= g.soToiDa ? '- Đã đầy' : ''}
+                <option key={g.maNhom} value={g.maNhom} disabled={g.soThanhVienHienTai >= g.soThanhVienToiDa}>
+                  {g.tenNhom} ({g.soThanhVienHienTai}/{g.soThanhVienToiDa} thành viên) {g.soThanhVienHienTai >= g.soThanhVienToiDa ? '- Đã đầy' : ''}
                 </option>
               ))}
             </select>
           </div>
           {targetGroup && (
             <div className="sg-form-group" style={{ background: '#f8fafc', padding: '10px', borderRadius: '4px', border: '1px solid #e2e8f0' }}>
-              <label style={{ marginBottom: '8px', display: 'block', fontWeight: 'bold' }}>Thành viên nhóm ({targetGroup.soThanhVien}/{targetGroup.soToiDa})</label>
+              <label style={{ marginBottom: '8px', display: 'block', fontWeight: 'bold' }}>Thành viên nhóm ({targetGroup.soThanhVienHienTai}/{targetGroup.soThanhVienToiDa})</label>
               <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '13px', color: '#475569' }}>
-                {targetGroup.thanhVien.map(tv => (
-                  <li key={tv.maSo}>{tv.hoTen} - {tv.maSo}</li>
+                {targetGroup.thanhVien?.map(tv => (
+                  <li key={tv.maNguoiDung}>{tv.hoTen} - {tv.maSo} {tv.vaiTroTrongNhom === 'leader' ? '(Nhóm trưởng)' : ''}</li>
                 ))}
               </ul>
             </div>
           )}
+          {targetGroup && targetGroup.choPhepDangKyNhom === false && (
+            <div className="sg-form-group" style={{ background: '#fee2e2', padding: '10px', borderRadius: '4px', border: '1px solid #f87171', color: '#991b1b', fontSize: '13px' }}>
+               Giảng viên đã chốt danh sách nhóm, bạn không thể đăng ký vào nhóm này nữa.
+            </div>
+          )}
           <div className="sg-modal-footer">
             <button type="button" className="sg-btn-cancel" onClick={onClose}>Đóng</button>
-            <button type="submit" className="sg-btn-save" style={{ background: '#378add', color: '#fff' }} disabled={!targetGroup || targetGroup.soThanhVien >= targetGroup.soToiDa}>Xác nhận tham gia</button>
+            <button 
+              type="submit" 
+              className="sg-btn-save" 
+              style={{ background: '#378add', color: '#fff', opacity: (!targetGroup || targetGroup.soThanhVienHienTai >= targetGroup.soThanhVienToiDa || targetGroup.choPhepDangKyNhom === false) ? 0.5 : 1, cursor: (!targetGroup || targetGroup.soThanhVienHienTai >= targetGroup.soThanhVienToiDa || targetGroup.choPhepDangKyNhom === false) ? 'not-allowed' : 'pointer' }} 
+              disabled={!targetGroup || targetGroup.soThanhVienHienTai >= targetGroup.soThanhVienToiDa || targetGroup.choPhepDangKyNhom === false}
+            >
+              Xác nhận tham gia
+            </button>
           </div>
         </form>
       </div>
@@ -285,6 +297,28 @@ const StudentGroups = () => {
   const selectedGroup = myGroups.find(g => g.maNhom === selectedMaNhom) || myGroups[0];
   const filteredHistory = mockHistory.filter(h => h.hocKy === selectedHocKy);
 
+  const handleLeaveGroup = async () => {
+    if (window.confirm('Bạn có chắc muốn rời nhóm này?')) {
+      try {
+        const token = localStorage.getItem('token');
+        const res = await fetch(`http://localhost:5186/api/nhom/${selectedGroup.maNhom}/roinhom`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          alert('Đã rời nhóm thành công!');
+          window.location.reload();
+        } else {
+          const errorData = await res.json();
+          alert(errorData.thongBao || 'Lỗi khi rời nhóm!');
+        }
+      } catch (err) {
+        console.error(err);
+        alert('Không thể kết nối API!');
+      }
+    }
+  };
+
   if (loading) return <div className="sg-container">Đang tải dữ liệu...</div>;
   return (
     <div className="sg-container">
@@ -297,12 +331,17 @@ const StudentGroups = () => {
           <button className="sg-btn-outline" onClick={() => setShowTransfer(true)}>
             Yêu cầu chuyển nhóm
           </button>
-          {activeTab === 'nhomCuaToi' && selectedGroup && (
-            <button className="sg-btn-outline" style={{ borderColor: '#e24b4a', color: '#e24b4a' }} onClick={() => {
-              if (window.confirm('Bạn có chắc muốn rời nhóm này?')) {
-                alert('Đã rời nhóm thành công!');
-              }
-            }}>
+          {activeTab === 'nhomCuaToi' && selectedGroup && selectedGroup.maNhom && (
+            <button 
+              className="sg-btn-outline" 
+              style={{ 
+                borderColor: selectedGroup.choPhepDangKyNhom === false ? '#cbd5e1' : '#e24b4a', 
+                color: selectedGroup.choPhepDangKyNhom === false ? '#94a3b8' : '#e24b4a',
+                cursor: selectedGroup.choPhepDangKyNhom === false ? 'not-allowed' : 'pointer'
+              }} 
+              onClick={selectedGroup.choPhepDangKyNhom === false ? undefined : handleLeaveGroup}
+              title={selectedGroup.choPhepDangKyNhom === false ? "Giảng viên đã chốt danh sách, không thể rời nhóm" : "Rời nhóm"}
+            >
               Rời nhóm
             </button>
           )}
@@ -316,6 +355,11 @@ const StudentGroups = () => {
 
       {/* TAB NHÓM CỦA TÔI */}
       {activeTab === 'nhomCuaToi' && (
+        !selectedGroup ? (
+          <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
+            Bạn chưa tham gia nhóm nào. Vui lòng chọn "Đăng ký nhóm".
+          </div>
+        ) : (
         <>
           <div className="group-selector-wrapper">
             <span className="group-selector-label">Xem thông tin của:</span>
@@ -373,14 +417,14 @@ const StudentGroups = () => {
 
           <div className="sg-section-label">Thành viên nhóm</div>
           <div className="sg-card">
-            {selectedGroup.thanhVien.map((tv, i) => (
+            {selectedGroup.thanhVien?.map((tv, i) => (
               <div key={i} className="sg-member-row">
                 <div className="sg-av" style={{ background: tv.bg, color: tv.color }}>{tv.ky}</div>
                 <div style={{ flex: 1 }}>
                   <div className="sg-mname">
                     {tv.hoTen}
                     {tv.isMe && <span className="sg-badge-me">Tôi</span>}
-                    {tv.laNhomTruong && <span className="sg-badge" style={{ background: '#faeeda', color: '#854f0b' }}>Nhóm trưởng</span>}
+                    {tv.vaiTroTrongNhom === 'leader' && <span className="sg-badge" style={{ background: '#faeeda', color: '#854f0b' }}>Nhóm trưởng</span>}
                   </div>
                   <div className="sg-msub">{tv.maSo}</div>
                 </div>
@@ -394,6 +438,7 @@ const StudentGroups = () => {
             ))}
           </div>
         </>
+        )
       )}
 
       {/* TAB LỊCH SỬ */}

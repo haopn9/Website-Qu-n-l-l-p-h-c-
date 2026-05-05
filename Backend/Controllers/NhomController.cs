@@ -59,7 +59,17 @@ public class NhomController : ControllerBase
                 tenNhomTruong = nhom.MaNhomTruongNavigation?.HoTen ?? "Chưa có",
                 soThanhVienHienTai = nhom.MaSinhViens.Count,
                 soThanhVienToiDa = nhom.SoThanhVienToiDa,
-                tenDeTai = nhom.MaDeTaiNavigation?.TenDeTai ?? "Chưa có đề tài"
+                tenDeTai = nhom.MaDeTaiNavigation?.TenDeTai ?? "Chưa có đề tài",
+                choPhepDangKyNhom = nhom.MaLopNavigation?.ChoPhepDangKyNhom, // Lấy trạng thái chốt nhóm
+                thanhVien = nhom.MaSinhViens.Select(sv => new {
+                    maNguoiDung = sv.MaNguoiDung,
+                    maSo = sv.MaSo,
+                    hoTen = sv.HoTen,
+                    vaiTroTrongNhom = nhom.MaNhomTruong == sv.MaNguoiDung ? "leader" : "member",
+                    bg = "#e6f1fb", // Màu hiển thị mặc định cho frontend
+                    color = "#185fa5",
+                    ky = sv.HoTen.Substring(sv.HoTen.LastIndexOf(' ') + 1, 1).ToUpper() // Lấy ký tự đầu của tên
+                }).ToList()
             });
         }
 
@@ -92,6 +102,7 @@ public class NhomController : ControllerBase
                 maLop = nhom.MaLop,
                 tenLop = nhom.MaLopNavigation?.TenLop,
                 maLopHoc = nhom.MaLopNavigation?.MaLopHoc,
+                choPhepDangKyNhom = nhom.MaLopNavigation?.ChoPhepDangKyNhom ?? true, // Trạng thái chốt nhóm
                 soThanhVienToiDa = nhom.SoThanhVienToiDa,
                 soThanhVienHienTai = nhom.MaSinhViens.Count,
                 maNhomTruong = nhom.MaNhomTruong,
@@ -179,39 +190,55 @@ public class NhomController : ControllerBase
     }
 
     // =============================================
-    // THÊM SINH VIÊN VÀO NHÓM
+    // THÊM THÀNH VIÊN VÀO NHÓM
     // POST: api/nhom/1/themthanhvien
     // =============================================
     [HttpPost("{maNhom}/themthanhvien")]
     public async Task<IActionResult> ThemThanhVien(int maNhom, [FromBody] ThemThanhVienDto dto)
     {
-        // Bước 1: Tìm nhóm, kèm danh sách sinh viên hiện tại
+        // Bước 1: Tìm nhóm
         Nhom? nhom = await _db.Nhoms
             .Include(n => n.MaSinhViens)
+            .Include(n => n.MaLopNavigation) // Lấy thông tin lớp để kiểm tra chốt nhóm
             .FirstOrDefaultAsync(n => n.MaNhom == maNhom);
 
-        // Bước 2: Kiểm tra nhóm có tồn tại không
-        if (nhom == null)
+        if (nhom == null) return NotFound(new { thongBao = "Không tìm thấy nhóm" });
+
+        // Nếu giảng viên đã chốt nhóm thì không cho đăng ký
+        if (nhom.MaLopNavigation != null && nhom.MaLopNavigation.ChoPhepDangKyNhom == false)
         {
-            return NotFound(new { thongBao = "Không tìm thấy nhóm" });
+            return BadRequest(new { thongBao = "Giảng viên đã chốt danh sách nhóm, không thể thêm thành viên lúc này." });
         }
 
-        // Bước 3: Kiểm tra nhóm có đầy không
+        // Bước 2: Kiểm tra nhóm đã đầy chưa
         if (nhom.MaSinhViens.Count >= nhom.SoThanhVienToiDa)
         {
             return BadRequest(new { thongBao = "Nhóm đã đủ thành viên" });
         }
 
-        // Bước 4: Tìm sinh viên cần thêm
+        // Bước 3: Tìm sinh viên
         NguoiDung? sinhVien = await _db.NguoiDungs.FindAsync(dto.MaSinhVien);
-        if (sinhVien == null)
+        if (sinhVien == null) return NotFound(new { thongBao = "Không tìm thấy sinh viên" });
+
+        // Bước 4: Kiểm tra sinh viên có trong lớp học này không
+        bool thuocLop = await _db.LopHocs
+            .Include(l => l.MaSinhViens)
+            .AnyAsync(l => l.MaLop == nhom.MaLop && l.MaSinhViens.Any(sv => sv.MaNguoiDung == dto.MaSinhVien));
+        if (!thuocLop) return BadRequest(new { thongBao = "Sinh viên không thuộc lớp học này" });
+
+        // Bước 5: Kiểm tra sinh viên đã có nhóm trong lớp này chưa (1 SV/1 Lớp/1 Nhóm)
+        bool daCoNhomTrongLop = await _db.Nhoms
+            .Where(n => n.MaLop == nhom.MaLop)
+            .SelectMany(n => n.MaSinhViens)
+            .AnyAsync(sv => sv.MaNguoiDung == dto.MaSinhVien);
+            
+        if (daCoNhomTrongLop)
         {
-            return NotFound(new { thongBao = "Không tìm thấy sinh viên" });
+            return BadRequest(new { thongBao = "Sinh viên đã tham gia một nhóm khác trong lớp này. Vui lòng rời nhóm hiện tại trước!" });
         }
 
-        // Bước 5: Thêm sinh viên vào nhóm
+        // Bước 6: Thêm vào nhóm
         nhom.MaSinhViens.Add(sinhVien);
-
         // Bước 6: Lưu lại
         await _db.SaveChangesAsync();
 
@@ -252,6 +279,12 @@ public class NhomController : ControllerBase
             return NotFound(new { thongBao = "Sinh viên không có trong nhóm" });
         }
 
+        // Kiểm tra xem sinh viên có phải là nhóm trưởng không
+        if (nhom.MaNhomTruong == maSinhVien)
+        {
+            return BadRequest(new { thongBao = "Sinh viên này đang là trưởng nhóm, không thể xóa được. Vui lòng chỉ định nhóm trưởng khác hoặc gỡ chức trưởng nhóm trước khi xóa." });
+        }
+
         // Bước 5: Xóa khỏi nhóm
         nhom.MaSinhViens.Remove(canXoa);
 
@@ -262,6 +295,49 @@ public class NhomController : ControllerBase
     }
 
     // =============================================
+    // SINH VIÊN TỰ RỜI NHÓM
+    // DELETE: api/nhom/1/roinhom
+    // =============================================
+    [HttpDelete("{maNhom}/roinhom")]
+    [Authorize]
+    public async Task<IActionResult> RoiNhom(int maNhom)
+    {
+        var claimMaNguoiDung = User.FindFirstValue("maNguoiDung");
+        if (string.IsNullOrEmpty(claimMaNguoiDung)) return Unauthorized();
+        
+        int maNguoiDung = int.Parse(claimMaNguoiDung);
+
+        Nhom? nhom = await _db.Nhoms
+            .Include(n => n.MaSinhViens)
+            .Include(n => n.MaLopNavigation) // Thêm Include để lấy thông tin lớp
+            .FirstOrDefaultAsync(n => n.MaNhom == maNhom);
+
+        if (nhom == null) return NotFound(new { thongBao = "Không tìm thấy nhóm" });
+
+        // Kiểm tra xem lớp học đã chốt nhóm chưa
+        if (nhom.MaLopNavigation != null && nhom.MaLopNavigation.ChoPhepDangKyNhom == false)
+        {
+            return BadRequest(new { thongBao = "Giảng viên đã chốt danh sách nhóm, bạn không thể tự ý rời nhóm lúc này." });
+        }
+
+        NguoiDung? canXoa = nhom.MaSinhViens.FirstOrDefault(sv => sv.MaNguoiDung == maNguoiDung);
+        if (canXoa == null) return BadRequest(new { thongBao = "Bạn không thuộc nhóm này" });
+
+        // Xóa khỏi danh sách thành viên
+        nhom.MaSinhViens.Remove(canXoa);
+
+        // Nếu người rời đi là nhóm trưởng, thì bỏ nhóm trưởng
+        if (nhom.MaNhomTruong == maNguoiDung)
+        {
+            nhom.MaNhomTruong = null;
+        }
+
+        await _db.SaveChangesAsync();
+
+        return Ok(new { thongBao = "Đã rời nhóm thành công" });
+    }
+
+    // =============================================
     // ĐẶT NHÓM TRƯỞNG
     // PUT: api/nhom/1/nhomtruong
     // =============================================
@@ -269,12 +345,19 @@ public class NhomController : ControllerBase
     public async Task<IActionResult> DatNhomTruong(int maNhom, [FromBody] DatNhomTruongDto dto)
     {
         // Bước 1: Tìm nhóm
-        Nhom? nhom = await _db.Nhoms.FindAsync(maNhom);
+        Nhom? nhom = await _db.Nhoms
+            .Include(n => n.MaLopNavigation)
+            .FirstOrDefaultAsync(n => n.MaNhom == maNhom);
 
         // Bước 2: Kiểm tra có tồn tại không
         if (nhom == null)
         {
             return NotFound(new { thongBao = "Không tìm thấy nhóm" });
+        }
+
+        if (nhom.MaLopNavigation != null && nhom.MaLopNavigation.ChoPhepDangKyNhom == true)
+        {
+            return BadRequest(new { thongBao = "Giảng viên chưa chốt nhóm, không thể chỉ định nhóm trưởng lúc này." });
         }
 
         // Bước 3: Cập nhật nhóm trưởng
@@ -283,7 +366,7 @@ public class NhomController : ControllerBase
         // Bước 4: Lưu lại
         await _db.SaveChangesAsync();
 
-        return Ok(new { thongBao = "Đặt nhóm trưởng thành công" });
+        return Ok(new { thongBao = dto.MaSinhVien == null ? "Đã gỡ chức nhóm trưởng" : "Đặt nhóm trưởng thành công" });
     }
 
 
@@ -421,7 +504,7 @@ public class ThemThanhVienDto
 
 public class DatNhomTruongDto
 {
-    public int MaSinhVien { get; set; }
+    public int? MaSinhVien { get; set; }
 }
 public class ThemDeTaiDto
 {

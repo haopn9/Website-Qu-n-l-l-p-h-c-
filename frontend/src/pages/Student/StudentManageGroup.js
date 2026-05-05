@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaTimes, FaChevronDown, FaChevronUp } from 'react-icons/fa';
 import './StudentManageGroup.css';
@@ -894,12 +894,68 @@ function TopicRegistrationModal({ group, topicBank, onClose, onRegister, onViewD
 // ============================================================
 const StudentManageGroup = () => {
   const navigate = useNavigate();
-  const isLeader = leaderGroups.length > 0;
-  const hasMultipleGroups = leaderGroups.length >= 2;
 
-  const [selectedMaNhom, setSelectedMaNhom] = useState(
-    isLeader ? leaderGroups[0].maNhom : null
-  );
+  const [loading, setLoading] = useState(true);
+  const [realLeaderGroups, setRealLeaderGroups] = useState([]);
+  const [selectedMaNhom, setSelectedMaNhom] = useState(null);
+
+  const fetchMyLeaderGroups = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('http://localhost:5186/api/nhom/cua-toi', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const lGroups = data.filter(g => g.laNhomTruong);
+        
+        // Map data thật vào cấu trúc tương thích với UI hiện tại
+        const mappedGroups = lGroups.map(g => ({
+          maNhom: g.maNhom, tenNhom: g.tenNhom,
+          maLop: g.maLop, maLopHoc: g.maLopHoc, tenLop: g.tenLop,
+          deTai: g.tenDeTai !== "Chưa có đề tài" ? g.tenDeTai : null,
+          members: (g.thanhVien || []).map(tv => ({
+            maNguoiDung: tv.maNguoiDung,
+            maSo: tv.maSo,
+            hoTen: tv.hoTen,
+            isMe: tv.maNguoiDung === JSON.parse(localStorage.getItem('userInfo'))?.maNguoiDung,
+            tasks: '0/0', msgs: 0, pct: 0,
+            barColor: '#378add', bg: tv.bg, color: tv.color, ky: tv.ky,
+            doneTasks: [], pendingTasks: []
+          })),
+          warnings: [],
+          kanban: [
+             { label: 'Chưa bắt đầu', labelColor: '#888', cls: 'notstart', tasks: [] },
+             { label: 'Đang thực hiện', labelColor: '#185fa5', cls: 'doing', tasks: [] },
+             { label: 'Chờ duyệt', labelColor: '#854f0b', cls: 'wait', tasks: [] },
+             { label: 'Làm lại task', labelColor: '#993556', cls: 'redo', tasks: [] },
+             { label: 'Trễ hạn', labelColor: '#a32d2d', cls: 'late', tasks: [] },
+             { label: 'Hoàn thành', labelColor: '#3b6d11', cls: 'done', tasks: [] }
+          ],
+          joinRequests: [],
+          systemNotifications: []
+        }));
+
+        setRealLeaderGroups(mappedGroups);
+        if (mappedGroups.length > 0) {
+          setSelectedMaNhom(mappedGroups[0].maNhom);
+        }
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchMyLeaderGroups();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const isLeader = realLeaderGroups.length > 0;
+  const hasMultipleGroups = realLeaderGroups.length >= 2;
+
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [expandedMember, setExpandedMember] = useState(null);
   const [detailTask, setDetailTask] = useState(null);
@@ -910,11 +966,13 @@ const StudentManageGroup = () => {
   const [topicDetail, setTopicDetail] = useState(null);
 
   // Lấy nhóm hiện đang chọn
-  const selectedGroup = leaderGroups.find(g => g.maNhom === selectedMaNhom) || leaderGroups[0];
+  const selectedGroup = realLeaderGroups.find(g => g.maNhom === selectedMaNhom) || realLeaderGroups[0];
   const selectedTopicBank = topicBankByClass[selectedGroup?.maLop];
   const selectedGroupTopic = registeredTopics[selectedGroup?.maNhom] || selectedGroup?.deTai;
   const selectedGroupTopicDetail = registeredTopicDetails[selectedGroup?.maNhom]
     || selectedTopicBank?.topics.find(topic => topic.tenDeTai === selectedGroup?.deTai || topic.nhomDangKy === selectedGroup?.tenNhom);
+
+  if (loading) return <div className="smg-container">Đang tải dữ liệu...</div>;
 
   // ========================
   // TRƯỜNG HỢP: Không phải nhóm trưởng
@@ -960,10 +1018,10 @@ const StudentManageGroup = () => {
           <label>Quản lý nhóm:</label>
           <select
             className="smg-group-select"
-            value={selectedMaNhom}
+            value={selectedMaNhom || ''}
             onChange={e => setSelectedMaNhom(Number(e.target.value))}
           >
-            {leaderGroups.map(g => (
+            {realLeaderGroups.map(g => (
               <option key={g.maNhom} value={g.maNhom}>
                 {g.tenNhom} — {g.tenLop}
               </option>

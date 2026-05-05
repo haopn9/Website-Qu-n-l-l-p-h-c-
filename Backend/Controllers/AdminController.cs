@@ -1,4 +1,4 @@
-﻿using Backend.Models;
+using Backend.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -64,7 +64,11 @@ public class AdminController : ControllerBase
         List<TinNhan> tatCaTinNhan = await _db.TinNhans.ToListAsync();
         int tongTinNhan = tatCaTinNhan.Count;
 
-        // Bước 7: Trả về kết quả
+        // Bước 7: Đếm khoa & lớp hành chính
+        int tongKhoa = await _db.Khoas.CountAsync();
+        int tongLopHanhChinh = await _db.LopSinhViens.CountAsync();
+
+        // Bước 8: Trả về kết quả
         return Ok(new
         {
             totalUsers = tongNguoiDung,
@@ -75,7 +79,93 @@ public class AdminController : ControllerBase
             activeGroups = nhomDangHoatDong,
             pendingTasks = dangThucHien,
             overdueTasks = treHan,
-            totalMessages = tongTinNhan
+            totalMessages = tongTinNhan,
+            totalDepartments = tongKhoa,
+            totalAdminClasses = tongLopHanhChinh
         });
+    }
+
+    // =============================================
+    // LẤY CÂY PHÂN CẤP: KHOA -> GIẢNG VIÊN -> LỚP -> NHÓM
+    // GET: api/admin/khoa-giangvien-lophoc-nhom
+    // =============================================
+    [HttpGet("khoa-giangvien-lophoc-nhom")]
+    public async Task<IActionResult> GetHierarchy()
+    {
+        var khoas = await _db.Khoas
+            .Include(k => k.NguoiDungs.Where(u => u.MaVaiTro == 2))
+                .ThenInclude(gv => gv.LopHocs)
+                    .ThenInclude(l => l.Nhoms)
+                        .ThenInclude(n => n.MaDeTaiNavigation)
+            .Include(k => k.NguoiDungs.Where(u => u.MaVaiTro == 2))
+                .ThenInclude(gv => gv.LopHocs)
+                    .ThenInclude(l => l.Nhoms)
+                        .ThenInclude(n => n.MaSinhViens)
+            .Select(k => new
+            {
+                k.MaKhoa,
+                k.TenKhoa,
+                GiangViens = k.NguoiDungs.Where(u => u.MaVaiTro == 2).Select(gv => new
+                {
+                    gv.MaNguoiDung,
+                    gv.HoTen,
+                    gv.MaSo,
+                    LopHocs = gv.LopHocs.Select(l => new
+                    {
+                        l.MaLop,
+                        l.MaLopHoc,
+                        l.TenLop,
+                        Nhoms = l.Nhoms.Select(n => new
+                        {
+                            n.MaNhom,
+                            n.TenNhom,
+                            TenDeTai = n.MaDeTaiNavigation != null ? n.MaDeTaiNavigation.TenDeTai : null,
+                            SoThanhVien = n.MaSinhViens.Count,
+                            n.SoThanhVienToiDa
+                        }).ToList()
+                    }).ToList()
+                }).ToList()
+            }).ToListAsync();
+
+        return Ok(khoas);
+    }
+
+    // =============================================
+    // QUẢN LÝ CẤU HÌNH HỆ THỐNG
+    // =============================================
+    
+    public class CauHinhUpdateDto
+    {
+        public Dictionary<string, string> Settings { get; set; } = new();
+    }
+
+    [HttpGet("cauhinh")]
+    public async Task<IActionResult> GetCauHinh()
+    {
+        var cauHinhs = await _db.CauHinhHeThongs.ToListAsync();
+        return Ok(cauHinhs);
+    }
+
+    [HttpPost("cauhinh")]
+    public async Task<IActionResult> UpdateCauHinh([FromBody] CauHinhUpdateDto dto)
+    {
+        foreach (var kvp in dto.Settings)
+        {
+            var setting = await _db.CauHinhHeThongs.FirstOrDefaultAsync(c => c.KhoaCauHinh == kvp.Key);
+            if (setting != null)
+            {
+                setting.GiaTriCauHinh = kvp.Value;
+            }
+            else
+            {
+                _db.CauHinhHeThongs.Add(new CauHinhHeThong
+                {
+                    KhoaCauHinh = kvp.Key,
+                    GiaTriCauHinh = kvp.Value
+                });
+            }
+        }
+        await _db.SaveChangesAsync();
+        return Ok(new { message = "Cập nhật cấu hình thành công" });
     }
 }

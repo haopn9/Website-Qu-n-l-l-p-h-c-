@@ -185,17 +185,30 @@ public class LopHocController : ControllerBase
     // GET: api/lophoc
     // =============================================
     [HttpGet]
-    public async Task<IActionResult> DanhSachLop()
+    public async Task<IActionResult> DanhSachLop([FromQuery] int? maHocKy)
     {
         var homNay = DateOnly.FromDateTime(DateTime.Now);
 
         // Bước 1: Lấy tất cả lớp học kèm thông tin giảng viên
-        List<LopHoc> tatCaLop = await _db.LopHocs
+        var query = _db.LopHocs
             .Include(l => l.MaGiangVienNavigation)
             .Include(l => l.MaHocKyNavigation)
             .Include(l => l.MaSinhViens)
+            .Include(l => l.DeTais)
             .Include(l => l.Nhoms)
-            .ToListAsync();
+                .ThenInclude(n => n.MaSinhViens)
+            .Include(l => l.Nhoms)
+                .ThenInclude(n => n.MaDeTaiNavigation)
+            .Include(l => l.Nhoms)
+                .ThenInclude(n => n.MaNhomTruongNavigation)
+            .AsQueryable();
+
+        if (maHocKy.HasValue && maHocKy.Value > 0)
+        {
+            query = query.Where(l => l.MaHocKy == maHocKy.Value);
+        }
+
+        List<LopHoc> tatCaLop = await query.ToListAsync();
 
         // Bước 2: Tạo danh sách kết quả
         List<object> ketQua = new List<object>();
@@ -578,7 +591,10 @@ public class LopHocController : ControllerBase
                     maSo = sv.MaSo,
                     hoTen = sv.HoTen,
                     email = sv.Email,
-                    lopSinhVien = sv.LopSinhVien
+                    lopSinhVien = sv.LopSinhVien,
+                    // Tìm nhom sinh viên đang thuộc trong lớp này
+                    tenNhom = lop.Nhoms.FirstOrDefault(n => n.MaSinhViens.Any(s => s.MaNguoiDung == sv.MaNguoiDung))?.TenNhom ?? "",
+                    laNhomTruong = lop.Nhoms.Any(n => n.MaNhomTruong == sv.MaNguoiDung)
                 })
                 .ToList(),
             danhSachNhom = lop.Nhoms
@@ -587,7 +603,19 @@ public class LopHocController : ControllerBase
                 {
                     maNhom = n.MaNhom,
                     tenNhom = n.TenNhom,
-                    soThanhVienToiDa = n.SoThanhVienToiDa
+                    soThanhVienHienTai = n.MaSinhViens.Count,
+                    soThanhVienToiDa = n.SoThanhVienToiDa,
+                    tenDeTai = n.MaDeTaiNavigation?.TenDeTai ?? "",
+                    maDeTai = n.MaDeTai,
+                    maNhomTruong = n.MaNhomTruong,
+                    tenNhomTruong = n.MaNhomTruongNavigation?.HoTen ?? "",
+                    thanhViens = n.MaSinhViens.Select(sv => new
+                    {
+                        maNguoiDung = sv.MaNguoiDung,
+                        maSo = sv.MaSo,
+                        hoTen = sv.HoTen,
+                        laNhomTruong = n.MaNhomTruong == sv.MaNguoiDung
+                    }).ToList()
                 })
                 .ToList(),
             danhSachDeTai = lop.DeTais
@@ -603,6 +631,34 @@ public class LopHocController : ControllerBase
                 })
                 .ToList()
         };
+    }
+    // =============================================
+    // CHỐT DANH SÁCH NHÓM
+    // PUT: api/lophoc/5/chot-nhom
+    // =============================================
+    [HttpPut("{maLop}/chot-nhom")]
+    [Authorize]
+    public async Task<IActionResult> ChotNhom(int maLop, [FromBody] ChotNhomDto dto)
+    {
+        var claimMaNguoiDung = User.FindFirstValue("maNguoiDung");
+        var claimMaVaiTro = User.FindFirstValue("maVaiTro");
+        if (string.IsNullOrEmpty(claimMaNguoiDung)) return Unauthorized();
+
+        int maNguoiDung = int.Parse(claimMaNguoiDung);
+        int maVaiTro = int.Parse(claimMaVaiTro ?? "0");
+
+        LopHoc? lop = await _db.LopHocs.FindAsync(maLop);
+        if (lop == null) return NotFound(new { thongBao = "Không tìm thấy lớp học" });
+
+        if (maVaiTro != 2 || lop.MaGiangVien != maNguoiDung)
+        {
+            return BadRequest(new { thongBao = "Chỉ giảng viên phụ trách mới được chốt nhóm cho lớp này" });
+        }
+
+        lop.ChoPhepDangKyNhom = !dto.TrangThaiChot; // Nếu chốt (true) thì ChoPhepDangKyNhom = false
+        await _db.SaveChangesAsync();
+
+        return Ok(new { thongBao = dto.TrangThaiChot ? "Đã chốt danh sách nhóm" : "Đã mở đăng ký nhóm" });
     }
 }
 
@@ -630,4 +686,9 @@ public class CapNhatLopDto
     public DateOnly? NgayBatDau { get; set; }
     public DateOnly? NgayKetThuc { get; set; }
     public string? ThoiGianHoc { get; set; }
+}
+
+public class ChotNhomDto
+{
+    public bool TrangThaiChot { get; set; }
 }

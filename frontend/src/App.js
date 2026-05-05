@@ -26,6 +26,7 @@ import StudentManageGroup from './pages/Student/StudentManageGroup'; // trang đ
 import Dashboard from './pages/Admin/Dashboard';
 import UserManagement from './pages/Admin/UserManagement';
 import ClassManagement from './pages/Admin/ClassManagement';
+import DepartmentManagement from './pages/Admin/DepartmentManagement';
 import SystemSettings from './pages/Admin/SystemSettings';
 
 // Import trang giảng viên
@@ -61,7 +62,8 @@ function App() {
           <Route index element={<Dashboard />} />
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="users" element={<UserManagement />} />
-          <Route path="classes" element={<ClassManagement />} />
+          <Route path="departments" element={<DepartmentManagement />} />
+          <Route path="course-classes" element={<ClassManagement />} />
           <Route path="settings" element={<SystemSettings />} />
           <Route path="profile" element={<UserProfile role="admin" />} />
         </Route>

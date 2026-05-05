@@ -1,17 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import '../Student/StudentDashboard.css';
+import thongKeService from '../../services/thongKeService';
 
 // ============================================================
-// DỮ LIỆU MẪU — góc nhìn của giảng viên
+// DỮ LIỆU MẪU DỰ PHÒNG (Sẽ được thay thế bởi API)
 // ============================================================
 const today = 'Chủ Nhật, 04/05/2026';
 const semester = 'Học kỳ 2 – 2025-2026';
 
-const mockStats = [
-  { label: 'Lớp đang dạy',        value: 3,  sub: 'học kỳ này',             color: '#e6f1fb', icon: '📚' },
-  { label: 'Tổng nhóm quản lý',   value: 12, sub: '9 nhóm đã có trưởng',    color: '#eaf3de', icon: '👥' },
-  { label: 'Nhiệm vụ trễ hạn',    value: 4,  sub: 'cần xử lý của các nhóm', color: '#fcebeb', icon: '⚠️' },
-  { label: 'Yêu cầu chuyển nhóm', value: 2,  sub: 'đang chờ duyệt',         color: '#faeeda', icon: '🔄' },
+const initialStats = [
+  { label: 'Lớp đang dạy',        value: 0,  sub: 'đang tải...',             color: '#e6f1fb', icon: '📚' },
+  { label: 'Tổng nhóm quản lý',   value: 0,  sub: 'đang tải...',    color: '#eaf3de', icon: '👥' },
+  { label: 'Nhiệm vụ trễ hạn',    value: 0,  sub: 'đang tải...', color: '#fcebeb', icon: '⚠️' },
+  { label: 'Yêu cầu chuyển nhóm', value: 0,  sub: 'đang tải...',         color: '#faeeda', icon: '🔄' },
 ];
 
 // Thông tin tổng quan từng lớp
@@ -63,15 +64,10 @@ const mockTransferRequests = [
   { sv: 'Trương Bảo Ngọc',  maSV: 'SV015', tuNhom: 'Nhóm 3 · LT Web', sangNhom: 'Nhóm 4 · LT Web', lyDo: 'Không phù hợp với đề tài hiện tại', thoiGian: '5g trước' },
 ];
 
-// Hoạt động gần đây
-const mockActivity = [
-  { dot: '#c0dd97', text: 'Trần Thị B (Nhóm 1 · LT Web) hoàn thành "Thiết kế ERD"',         time: '5p'  },
-  { dot: '#f7c1c1', text: 'Hệ thống: "Thiết kế Login" của Nhóm 3 đã quá hạn',                time: '1g'  },
-  { dot: '#b5d4f4', text: 'Phùng Thanh Tùng gửi yêu cầu chuyển nhóm (Nhóm 1 → Nhóm 2)',     time: '2g'  },
-  { dot: '#fac775', text: 'Nhóm 2 · CSDL cập nhật tiến độ task "Thiết kế giao diện" lên 70%', time: '3g'  },
-  { dot: '#c0dd97', text: 'Lê Minh Tuấn (Nhóm 1 · CSDL) nộp báo cáo chương 1',              time: '4g'  },
-  { dot: '#f7c1c1', text: 'Hệ thống: "Phân tích giao thức" của Nhóm 2 · MMT sắp trễ hạn',   time: '5g'  },
-];
+// Hoạt động gần đây (Mock data dự phòng)
+const initialActivity = [];
+const initialClasses = [];
+const initialTransferRequests = [];
 
 // ============================================================
 // HELPER COMPONENTS
@@ -235,10 +231,38 @@ function ActivityCard({ feeds }) {
 export default function TeacherDashboard() {
   const [userInfo] = useState(() => {
     const stored = localStorage.getItem('userInfo');
-    return stored ? JSON.parse(stored) : { hoTen: 'Minh Khang' };
+    return stored ? JSON.parse(stored) : { hoTen: 'Giảng viên' };
   });
 
+  const [data, setData] = useState({
+    stats: initialStats,
+    classes: initialClasses,
+    transferRequests: initialTransferRequests,
+    activity: initialActivity
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const result = await thongKeService.getThongKeGiangVien();
+        if (result) {
+          setData(result);
+        }
+      } catch (error) {
+        console.error("Lỗi khi gọi API thống kê giảng viên:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
   const tenGV = userInfo.hoTen || 'Giảng viên';
+
+  if (loading) {
+    return <div style={{ padding: 20, textAlign: 'center' }}>Đang tải dữ liệu dashboard...</div>;
+  }
 
   return (
     <div className="sd-wrap">
@@ -252,7 +276,7 @@ export default function TeacherDashboard() {
 
       {/* THỐNG KÊ NHANH */}
       <div className="sd-stats">
-        {mockStats.map((s, i) => (
+        {data.stats.map((s, i) => (
           <div key={i} className="sd-stat">
             <div className="sd-stat-icon" style={{ background: s.color }}>{s.icon}</div>
             <div>
@@ -266,13 +290,13 @@ export default function TeacherDashboard() {
 
       {/* HÀNG 1: Tổng quan lớp (full width) */}
       <div style={{ marginBottom: 16 }}>
-        <ClassOverviewCard classes={mockClasses} />
+        <ClassOverviewCard classes={data.classes} />
       </div>
 
       {/* HÀNG 2: 2 cột — Yêu cầu chuyển nhóm | Hoạt động gần đây */}
       <div className="sd-two-col">
-        <TransferRequestsCard requests={mockTransferRequests} />
-        <ActivityCard feeds={mockActivity} />
+        <TransferRequestsCard requests={data.transferRequests} />
+        <ActivityCard feeds={data.activity} />
       </div>
     </div>
   );

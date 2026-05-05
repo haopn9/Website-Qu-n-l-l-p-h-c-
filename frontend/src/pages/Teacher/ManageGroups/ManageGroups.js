@@ -50,6 +50,7 @@ const ManageGroups = () => {
         maxMembers: n.soThanhVienToiDa,
         classId: n.maLop,
         className: n.tenLop,
+        choPhepDangKyNhom: n.choPhepDangKyNhom,
         leaderId: n.maNhomTruong,
         leaderName: n.nhomTruong !== 'Chưa có' ? n.nhomTruong : null,
         members: (n.thanhVien || []).map((member) => ({
@@ -150,20 +151,22 @@ const ManageGroups = () => {
   };
 
   const handleAssignLeader = async () => {
-    if (!selectedLeaderId || !selectedGroup) return;
+    if (!selectedGroup) return;
 
     try {
       const res = await fetch(`http://localhost:5186/api/nhom/${selectedGroup.groupId}/nhomtruong`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ maSinhVien: parseInt(selectedLeaderId, 10) })
+        body: JSON.stringify({ maSinhVien: selectedLeaderId ? parseInt(selectedLeaderId, 10) : null })
       });
       if (res.ok) {
         await fetchData();
         setIsAssignLeaderModalOpen(false);
-        alert('Đã chỉ định nhóm trưởng!');
+        const data = await res.json();
+        alert(data.thongBao || 'Thao tác thành công!');
       } else {
-        alert('Lỗi cập nhật nhóm trưởng!');
+        const errorData = await res.json();
+        alert(errorData.thongBao || 'Lỗi cập nhật nhóm trưởng!');
       }
     } catch (err) {
       console.error(err);
@@ -206,7 +209,8 @@ const ManageGroups = () => {
         await fetchData();
         alert('Đã xóa thành viên!');
       } else {
-        alert('Lỗi khi xóa thành viên!');
+        const errorData = await res.json();
+        alert(errorData.thongBao || 'Lỗi khi xóa thành viên!');
       }
     } catch (err) {
       console.error(err);
@@ -223,6 +227,32 @@ const ManageGroups = () => {
         alert('Xóa nhóm thành công!');
       } else {
         alert('Lỗi khi xóa nhóm!');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Không thể kết nối API!');
+    }
+  };
+
+  const handleToggleLockGroup = async (classId, currentStatus) => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`http://localhost:5186/api/lophoc/${classId}/chot-nhom`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ trangThaiChot: currentStatus !== false })
+      });
+
+      if (res.ok) {
+        await fetchData();
+        const data = await res.json();
+        alert(data.thongBao);
+      } else {
+        const errorData = await res.json();
+        alert(errorData.thongBao || 'Lỗi cập nhật trạng thái lớp học!');
       }
     } catch (err) {
       console.error(err);
@@ -336,7 +366,12 @@ const ManageGroups = () => {
                     <div className="member-list-mini">
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                         <h4 style={{ margin: 0 }}>Danh sách thành viên</h4>
-                        <button className="btn-sm primary" onClick={() => openAddMember(group)} style={{ padding: '3px 8px', borderRadius: '50%' }} title="Thêm sinh viên">
+                        <button 
+                          className={`btn-sm primary ${group.choPhepDangKyNhom === false ? 'disabled' : ''}`} 
+                          onClick={() => group.choPhepDangKyNhom === false ? alert('Giảng viên đã chốt danh sách, không thể thêm thành viên!') : openAddMember(group)} 
+                          style={{ padding: '3px 8px', borderRadius: '50%', opacity: group.choPhepDangKyNhom === false ? 0.5 : 1, cursor: group.choPhepDangKyNhom === false ? 'not-allowed' : 'pointer' }} 
+                          title={group.choPhepDangKyNhom === false ? "Đã chốt nhóm" : "Thêm sinh viên"}
+                        >
                           <FaPlus />
                         </button>
                       </div>
@@ -353,7 +388,12 @@ const ManageGroups = () => {
                               <span className={`member-role-tag ${member.role}`}>
                                 {member.role === 'leader' ? 'Trưởng nhóm' : 'Thành viên'}
                               </span>
-                              <button className="btn-sm danger" style={{ padding: '3px 8px', fontSize: 11 }} onClick={() => handleRemoveMember(group.groupId, member.userId)}>
+                              <button 
+                                className={`btn-sm danger ${group.choPhepDangKyNhom === false ? 'disabled' : ''}`} 
+                                style={{ padding: '3px 8px', fontSize: 11, opacity: group.choPhepDangKyNhom === false ? 0.5 : 1, cursor: group.choPhepDangKyNhom === false ? 'not-allowed' : 'pointer' }} 
+                                onClick={() => group.choPhepDangKyNhom === false ? alert('Giảng viên đã chốt danh sách, không thể xóa thành viên!') : handleRemoveMember(group.groupId, member.userId)}
+                                title={group.choPhepDangKyNhom === false ? "Đã chốt nhóm" : "Xóa thành viên"}
+                              >
                                 <FaUserMinus />
                               </button>
                             </div>
@@ -364,8 +404,17 @@ const ManageGroups = () => {
                   </div>
 
                   <div className="group-card-actions">
-                    <button className="btn-sm primary" onClick={() => alert('Đã chốt danh sách nhóm!')}>Chốt danh sách nhóm</button>
-                    <button className="btn-sm warning" onClick={() => openAssignLeader(group)}>
+                    <button 
+                      className={`btn-sm ${group.choPhepDangKyNhom === false ? 'success' : 'primary'}`} 
+                      onClick={() => handleToggleLockGroup(group.classId, group.choPhepDangKyNhom)}
+                    >
+                      {group.choPhepDangKyNhom === false ? 'Mở chốt nhóm' : 'Chốt ds nhóm'}
+                    </button>
+                    <button 
+                      className={`btn-sm warning ${group.choPhepDangKyNhom !== false ? 'disabled' : ''}`} 
+                      onClick={() => group.choPhepDangKyNhom !== false ? alert('Vui lòng chốt nhóm trước khi chỉ định nhóm trưởng!') : openAssignLeader(group)}
+                      style={{ opacity: group.choPhepDangKyNhom !== false ? 0.5 : 1, cursor: group.choPhepDangKyNhom !== false ? 'not-allowed' : 'pointer' }}
+                    >
                       <FaCrown /> Chỉ định trưởng
                     </button>
                     <button className="btn-sm danger" onClick={() => handleDeleteGroup(group.groupId)}>Xóa nhóm</button>

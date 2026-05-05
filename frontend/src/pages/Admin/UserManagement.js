@@ -37,12 +37,8 @@ const UserManagement = () => {
 
   const [editUser, setEditUser] = useState(null);
 
-  // Danh sách khoa từ bảng Khoa
-  const khoaList = [
-    { MaKhoa: 1, TenKhoa: 'Công nghệ thông tin' },
-    { MaKhoa: 2, TenKhoa: 'Kỹ thuật máy tính' },
-    { MaKhoa: 3, TenKhoa: 'Hệ thống thông tin' },
-  ];
+  // Danh sách khoa từ bảng Khoa (Fetch động)
+  const [khoaList, setKhoaList] = useState([]);
 
   // Danh sách vai trò từ bảng VaiTro
   const vaiTroList = [
@@ -190,9 +186,23 @@ const UserManagement = () => {
     }
   };
 
+  const fetchKhoas = async () => {
+    try {
+      const res = await fetch('http://localhost:5186/api/khoa');
+      if (res.ok) {
+        const data = await res.json();
+        setKhoaList(data.map(k => ({ MaKhoa: k.maKhoa, TenKhoa: k.tenKhoa })));
+      }
+    } catch (err) {
+      setKhoaList([]);
+      console.error('Error fetching Khoa:', err);
+    }
+  };
+
   useEffect(() => {
     fetchUsers();
     fetchLopSinhViens();
+    fetchKhoas();
   }, []);
 
   // Lọc người dùng

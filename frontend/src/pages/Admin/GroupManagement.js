@@ -1,74 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import {
-  FaPlus, FaSearch, FaEdit, FaTrash, FaTimes, FaUsers, FaTasks,
-  FaComments, FaUserPlus, FaUserCog, FaEye, FaBook, FaCalendarAlt, FaSave
-} from 'react-icons/fa';
+import { FaBuilding, FaChalkboardTeacher, FaBook, FaUsers, FaChevronDown, FaChevronRight } from 'react-icons/fa';
 import './styles/GroupManagement.css';
 
 const GroupManagement = () => {
-  const [groups, setGroups] = useState([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedClass, setSelectedClass] = useState('all');
-  const [selectedStatus, setSelectedStatus] = useState('all');
-  const [selectedGroup, setSelectedGroup] = useState(null);
-  const [showGroupDetail, setShowGroupDetail] = useState(false);
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [showTopicModal, setShowTopicModal] = useState(false);
+  const [hierarchy, setHierarchy] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [classList, setClassList] = useState([]);
-  const [studentList, setStudentList] = useState([]);
+  const [expandedKhoas, setExpandedKhoas] = useState({});
+  const [expandedGVs, setExpandedGVs] = useState({});
+  const [expandedLops, setExpandedLops] = useState({});
 
-  const [newGroup, setNewGroup] = useState({
-    tenNhom: '',
-    maLop: '',
-    maNhomTruong: '',
-    soThanhVienToiDa: 5
-  });
+  useEffect(() => {
+    fetchHierarchy();
+  }, []);
 
-  const [newTopic, setNewTopic] = useState({
-    tenDeTai: '',
-    moTa: '',
-    sanPhamKyVong: '',
-    ngayBatDau: '',
-    ngayKetThuc: ''
-  });
-
-  const fetchData = async () => {
+  const fetchHierarchy = async () => {
     try {
-      setLoading(true);
-      const [groupsRes, classesRes, usersRes] = await Promise.all([
-        fetch('http://localhost:5186/api/nhom'),
-        fetch('http://localhost:5186/api/lophoc'),
-        fetch('http://localhost:5186/api/nguoidung')
-      ]);
-
-      if (classesRes.ok) {
-        const classes = await classesRes.json();
-        setClassList(classes.map((c) => ({ MaLop: c.maLop, TenLop: c.tenLop })));
-      }
-
-      if (usersRes.ok) {
-        const users = await usersRes.json();
-        setStudentList(
-          users
-            .filter((u) => u.maVaiTro === 3 && u.dangHoatDong)
-            .map((u) => ({ MaNguoiDung: u.maNguoiDung, HoTen: u.hoTen }))
-        );
-      }
-
-      if (groupsRes.ok) {
-        const grps = await groupsRes.json();
-        setGroups(grps.map((g) => ({
-          ...g,
-          id: g.maNhom,
-          tenNhomTruong: g.nhomTruong || 'Chưa có',
-          soThanhVien: g.soThanhVienHienTai || 0,
-          soLuongTask: g.soLuongTask || 0,
-          soLuongHoanThanh: g.soLuongHoanThanh || 0,
-          soLuongTinNhan: g.soLuongTinNhan || 0,
-          thanhVien: g.thanhVien || [],
-          trangThai: g.trangThai || 'active'
-        })));
+      const res = await fetch('http://localhost:5186/api/admin/khoa-giangvien-lophoc-nhom');
+      if (res.ok) {
+        const data = await res.json();
+        setHierarchy(data);
       }
     } catch (err) {
       console.error(err);
@@ -77,421 +27,81 @@ const GroupManagement = () => {
     }
   };
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const filteredGroups = groups.filter((group) => {
-    const matchesSearch =
-      group.tenNhom.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      group.tenNhomTruong.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (group.tenDeTai && group.tenDeTai.toLowerCase().includes(searchTerm.toLowerCase()));
-    const matchesClass = selectedClass === 'all' || group.maLop === parseInt(selectedClass, 10);
-    const matchesStatus = selectedStatus === 'all' || group.trangThai === selectedStatus;
-    return matchesSearch && matchesClass && matchesStatus;
-  });
-
-  const deleteGroup = async (id) => {
-    if (!window.confirm('Bạn có chắc muốn xóa nhóm này?')) return;
-
-    try {
-      const response = await fetch(`http://localhost:5186/api/nhom/${id}`, { method: 'DELETE' });
-      if (response.ok) {
-        setGroups(groups.filter((g) => g.id !== id));
-        alert('Xóa thành công');
-      } else {
-        alert('Lỗi xóa nhóm');
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const viewGroupDetail = (group) => {
-    setSelectedGroup(group);
-    setShowGroupDetail(true);
-  };
-
-  const handleAddGroup = async () => {
-    if (!newGroup.tenNhom || !newGroup.maLop || !newGroup.maNhomTruong) {
-      alert('Vui lòng nhập đầy đủ thông tin!');
-      return;
-    }
-
-    try {
-      const response = await fetch('http://localhost:5186/api/nhom', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          tenNhom: newGroup.tenNhom,
-          maLop: parseInt(newGroup.maLop, 10),
-          soThanhVienToiDa: parseInt(newGroup.soThanhVienToiDa || 5, 10)
-        })
-      });
-
-      if (!response.ok) {
-        alert('Lỗi tạo nhóm');
-        return;
-      }
-
-      const data = await response.json();
-      await fetch(`http://localhost:5186/api/nhom/${data.maNhom}/nhomtruong`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ maSinhVien: parseInt(newGroup.maNhomTruong, 10) })
-      });
-
-      alert('Tạo nhóm thành công!');
-      fetchData();
-      setNewGroup({ tenNhom: '', maLop: '', maNhomTruong: '', soThanhVienToiDa: 5 });
-      setShowAddModal(false);
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const handleAddTopic = async () => {
-    if (!newTopic.tenDeTai) {
-      alert('Vui lòng nhập tên đề tài!');
-      return;
-    }
-
-    try {
-      const response = await fetch(`http://localhost:5186/api/nhom/${selectedGroup.id}/detai`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          tenDeTai: newTopic.tenDeTai,
-          moTa: newTopic.moTa,
-          sanPhamKyVong: newTopic.sanPhamKyVong,
-          ngayBatDau: newTopic.ngayBatDau || null,
-          ngayKetThuc: newTopic.ngayKetThuc || null
-        })
-      });
-
-      if (response.ok) {
-        alert('Đã thêm đề tài cho nhóm!');
-        fetchData();
-        setNewTopic({ tenDeTai: '', moTa: '', sanPhamKyVong: '', ngayBatDau: '', ngayKetThuc: '' });
-        setShowTopicModal(false);
-      } else {
-        alert('Lỗi thêm đề tài');
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const openTopicModal = (group) => {
-    setSelectedGroup(group);
-    setNewTopic({ tenDeTai: '', moTa: '', sanPhamKyVong: '', ngayBatDau: '', ngayKetThuc: '' });
-    setShowTopicModal(true);
-  };
-
-  const formatDate = (value) => {
-    if (!value) return 'Chưa cập nhật';
-    return new Date(value).toLocaleDateString('vi-VN');
-  };
+  const toggleKhoa = (id) => setExpandedKhoas(prev => ({ ...prev, [id]: !prev[id] }));
+  const toggleGV = (id) => setExpandedGVs(prev => ({ ...prev, [id]: !prev[id] }));
+  const toggleLop = (id) => setExpandedLops(prev => ({ ...prev, [id]: !prev[id] }));
 
   if (loading) {
-    return <div className="loading-state">Đang tải dữ liệu...</div>;
+    return <div className="loading-state" style={{ padding: '2rem' }}>Đang tải cấu trúc dữ liệu...</div>;
   }
 
   return (
     <div className="group-management">
-      <div className="group-header-gradient">
+      <div className="group-header-gradient" style={{ marginBottom: '20px' }}>
         <div className="header-content">
-          <h2>Quản lý nhóm học tập</h2>
-          <p>Quản lý danh sách nhóm, đề tài và theo dõi tiến độ làm việc nhóm</p>
+          <h2>Quản lý lớp & nhóm</h2>
+          <p>Xem danh sách phân cấp từ Khoa đến Nhóm học tập</p>
         </div>
       </div>
 
-      <div className="group-toolbar">
-        <button className="btn-create-group" onClick={() => setShowAddModal(true)}>
-          <FaPlus /> Tạo nhóm mới
-        </button>
-
-        <div className="group-filters">
-          <div className="search-wrapper">
-            <FaSearch className="search-icon" />
-            <input
-              type="text"
-              placeholder="Tìm kiếm nhóm, nhóm trưởng, đề tài..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-            {searchTerm && (
-              <button className="clear-search" onClick={() => setSearchTerm('')}>
-                <FaTimes />
-              </button>
-            )}
-          </div>
-
-          <select className="filter-select" value={selectedClass} onChange={(e) => setSelectedClass(e.target.value)}>
-            <option value="all">Tất cả lớp học</option>
-            {classList.map((lop) => (
-              <option key={lop.MaLop} value={lop.MaLop}>{lop.TenLop}</option>
-            ))}
-          </select>
-
-          <select className="filter-select" value={selectedStatus} onChange={(e) => setSelectedStatus(e.target.value)}>
-            <option value="all">Tất cả trạng thái</option>
-            <option value="active">Đang hoạt động</option>
-            <option value="inactive">Đã kết thúc</option>
-          </select>
-        </div>
-      </div>
-
-      <div className="groups-container">
-        {filteredGroups.map((group) => {
-          const progressPercent = group.soLuongTask ? Math.round((group.soLuongHoanThanh / group.soLuongTask) * 100) : 0;
-
-          return (
-            <div key={group.id} className="group-card">
-              <div className="group-card-header">
-                <div className="group-name">
-                  <h3>{group.tenNhom}</h3>
-                  <span className="class-badge">{group.tenLop}</span>
-                </div>
-                <span className={`status-badge ${group.trangThai}`}>
-                  {group.trangThai === 'inactive' ? 'Đã kết thúc' : 'Đang hoạt động'}
-                </span>
+      <div className="hierarchy-container" style={{ background: '#fff', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
+        {hierarchy.length === 0 ? (
+          <p>Không có dữ liệu.</p>
+        ) : (
+          hierarchy.map(khoa => (
+            <div key={khoa.maKhoa} className="hierarchy-level khoa-level" style={{ marginBottom: '15px' }}>
+              <div className="level-header" onClick={() => toggleKhoa(khoa.maKhoa)} style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', padding: '10px', background: '#f3f4f6', borderRadius: '8px', fontWeight: 'bold' }}>
+                {expandedKhoas[khoa.maKhoa] ? <FaChevronDown style={{ marginRight: '10px' }}/> : <FaChevronRight style={{ marginRight: '10px' }}/>}
+                <FaBuilding style={{ marginRight: '10px', color: '#3b82f6' }} />
+                <span>Khoa {khoa.tenKhoa}</span>
               </div>
+              
+              {expandedKhoas[khoa.maKhoa] && khoa.giangViens && (
+                <div className="level-content" style={{ paddingLeft: '30px', marginTop: '10px' }}>
+                  {khoa.giangViens.length === 0 && <p style={{ fontSize: '0.9rem', color: '#6b7280' }}>Chưa có giảng viên</p>}
+                  {khoa.giangViens.map(gv => (
+                    <div key={gv.maNguoiDung} className="hierarchy-level gv-level" style={{ marginBottom: '10px' }}>
+                      <div className="level-header" onClick={() => toggleGV(gv.maNguoiDung)} style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', padding: '8px', background: '#fff', border: '1px solid #e5e7eb', borderRadius: '6px' }}>
+                        {expandedGVs[gv.maNguoiDung] ? <FaChevronDown style={{ marginRight: '10px', fontSize: '0.8rem' }}/> : <FaChevronRight style={{ marginRight: '10px', fontSize: '0.8rem' }}/>}
+                        <FaChalkboardTeacher style={{ marginRight: '10px', color: '#10b981' }} />
+                        <span>{gv.hoTen} ({gv.maSo})</span>
+                      </div>
 
-              <div className="group-card-body">
-                <div className="group-leader">
-                  <FaUserCog className="icon-leader" />
-                  <span><strong>Nhóm trưởng:</strong> {group.tenNhomTruong}</span>
-                </div>
+                      {expandedGVs[gv.maNguoiDung] && gv.lopHocs && (
+                        <div className="level-content" style={{ paddingLeft: '30px', marginTop: '10px' }}>
+                          {gv.lopHocs.length === 0 && <p style={{ fontSize: '0.9rem', color: '#6b7280' }}>Chưa có lớp học</p>}
+                          {gv.lopHocs.map(lop => (
+                            <div key={lop.maLop} className="hierarchy-level lop-level" style={{ marginBottom: '10px' }}>
+                              <div className="level-header" onClick={() => toggleLop(lop.maLop)} style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', padding: '8px' }}>
+                                {expandedLops[lop.maLop] ? <FaChevronDown style={{ marginRight: '10px', fontSize: '0.8rem' }}/> : <FaChevronRight style={{ marginRight: '10px', fontSize: '0.8rem' }}/>}
+                                <FaBook style={{ marginRight: '10px', color: '#f59e0b' }} />
+                                <span>{lop.tenLop} ({lop.maLopHoc})</span>
+                              </div>
 
-                {group.tenDeTai ? (
-                  <div className="group-topic">
-                    <div className="topic-header">
-                      <FaBook className="topic-icon" />
-                      <span className="topic-title">{group.tenDeTai}</span>
+                              {expandedLops[lop.maLop] && lop.nhoms && (
+                                <div className="level-content" style={{ paddingLeft: '30px', marginTop: '10px', display: 'flex', flexWrap: 'wrap', gap: '15px' }}>
+                                  {lop.nhoms.length === 0 && <p style={{ fontSize: '0.9rem', color: '#6b7280' }}>Chưa có nhóm</p>}
+                                  {lop.nhoms.map(nhom => (
+                                    <div key={nhom.maNhom} className="nhom-card" style={{ border: '1px solid #e5e7eb', borderRadius: '8px', padding: '15px', width: '250px', background: '#f9fafb' }}>
+                                      <h5 style={{ margin: '0 0 10px 0', display: 'flex', alignItems: 'center', gap: '8px' }}><FaUsers color="#6366f1"/> {nhom.tenNhom}</h5>
+                                      <p style={{ margin: '0 0 5px 0', fontSize: '0.85rem' }}><strong>Đề tài:</strong> {nhom.tenDeTai || 'Chưa có'}</p>
+                                      <p style={{ margin: 0, fontSize: '0.85rem' }}><strong>Thành viên:</strong> {nhom.soThanhVien}/{nhom.soThanhVienToiDa}</p>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                    <div className="topic-date">
-                      <FaCalendarAlt /> {formatDate(group.ngayBatDauDeTai)} → {formatDate(group.ngayKetThucDeTai)}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="group-topic empty">
-                    <FaBook className="topic-icon" />
-                    <span>Chưa có đề tài</span>
-                    <button className="btn-add-topic" onClick={() => openTopicModal(group)}>
-                      <FaPlus /> Thêm đề tài
-                    </button>
-                  </div>
-                )}
-
-                <div className="group-stats">
-                  <div className="stat">
-                    <FaUsers />
-                    <span>{group.soThanhVien} thành viên</span>
-                  </div>
-                  <div className="stat">
-                    <FaTasks />
-                    <span>{group.soLuongHoanThanh}/{group.soLuongTask} việc</span>
-                  </div>
-                  <div className="stat">
-                    <FaComments />
-                    <span>{group.soLuongTinNhan} tin nhắn</span>
-                  </div>
-                </div>
-
-                <div className="progress-wrapper">
-                  <div className="progress-label">
-                    <span>Tiến độ nhóm</span>
-                    <span className="progress-value">{progressPercent}%</span>
-                  </div>
-                  <div className="progress-bar">
-                    <div className="progress-fill" style={{ width: `${progressPercent}%` }} />
-                  </div>
-                </div>
-              </div>
-
-              <div className="group-card-footer">
-                <button className="btn-action view" onClick={() => viewGroupDetail(group)}>
-                  <FaEye /> Chi tiết
-                </button>
-                <button className="btn-action edit">
-                  <FaUserPlus /> Thêm TV
-                </button>
-                <button className="btn-action edit">
-                  <FaEdit />
-                </button>
-                <button className="btn-action delete" onClick={() => deleteGroup(group.id)}>
-                  <FaTrash />
-                </button>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {filteredGroups.length === 0 && (
-        <div className="empty-state">
-          <FaUsers className="empty-icon" />
-          <h3>Không tìm thấy nhóm nào</h3>
-          <p>Hãy thử thay đổi bộ lọc hoặc tạo nhóm mới</p>
-        </div>
-      )}
-
-      {showAddModal && (
-        <div className="modal-overlay" onClick={() => setShowAddModal(false)}>
-          <div className="modal-container" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Tạo nhóm mới</h3>
-              <button className="modal-close" onClick={() => setShowAddModal(false)}>
-                <FaTimes />
-              </button>
-            </div>
-            <div className="modal-body">
-              <div className="form-group">
-                <label>Tên nhóm</label>
-                <input type="text" value={newGroup.tenNhom} onChange={(e) => setNewGroup({ ...newGroup, tenNhom: e.target.value })} />
-              </div>
-              <div className="form-group">
-                <label>Lớp học</label>
-                <select value={newGroup.maLop} onChange={(e) => setNewGroup({ ...newGroup, maLop: e.target.value })}>
-                  <option value="">Chọn lớp học</option>
-                  {classList.map((lop) => (
-                    <option key={lop.MaLop} value={lop.MaLop}>{lop.TenLop}</option>
                   ))}
-                </select>
-              </div>
-              <div className="form-group">
-                <label>Nhóm trưởng</label>
-                <select value={newGroup.maNhomTruong} onChange={(e) => setNewGroup({ ...newGroup, maNhomTruong: e.target.value })}>
-                  <option value="">Chọn nhóm trưởng</option>
-                  {studentList.map((sv) => (
-                    <option key={sv.MaNguoiDung} value={sv.MaNguoiDung}>{sv.HoTen}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="form-group">
-                <label>Số thành viên tối đa</label>
-                <input
-                  type="number"
-                  value={newGroup.soThanhVienToiDa}
-                  onChange={(e) => setNewGroup({ ...newGroup, soThanhVienToiDa: e.target.value })}
-                />
-              </div>
-            </div>
-            <div className="modal-footer">
-              <button className="btn-cancel" onClick={() => setShowAddModal(false)}>Hủy bỏ</button>
-              <button className="btn-save" onClick={handleAddGroup}>
-                <FaSave /> Tạo nhóm
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showTopicModal && selectedGroup && (
-        <div className="modal-overlay" onClick={() => setShowTopicModal(false)}>
-          <div className="modal-container" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Thêm đề tài cho {selectedGroup.tenNhom}</h3>
-              <button className="modal-close" onClick={() => setShowTopicModal(false)}>
-                <FaTimes />
-              </button>
-            </div>
-            <div className="modal-body">
-              <div className="form-group">
-                <label>Tên đề tài</label>
-                <input type="text" value={newTopic.tenDeTai} onChange={(e) => setNewTopic({ ...newTopic, tenDeTai: e.target.value })} />
-              </div>
-              <div className="form-group">
-                <label>Mô tả</label>
-                <textarea rows="3" value={newTopic.moTa} onChange={(e) => setNewTopic({ ...newTopic, moTa: e.target.value })} />
-              </div>
-              <div className="form-group">
-                <label>Sản phẩm kỳ vọng</label>
-                <textarea rows="2" value={newTopic.sanPhamKyVong} onChange={(e) => setNewTopic({ ...newTopic, sanPhamKyVong: e.target.value })} />
-              </div>
-              <div className="form-row">
-                <div className="form-group half">
-                  <label>Ngày bắt đầu</label>
-                  <input type="date" value={newTopic.ngayBatDau} onChange={(e) => setNewTopic({ ...newTopic, ngayBatDau: e.target.value })} />
-                </div>
-                <div className="form-group half">
-                  <label>Hạn hoàn thành</label>
-                  <input type="date" value={newTopic.ngayKetThuc} onChange={(e) => setNewTopic({ ...newTopic, ngayKetThuc: e.target.value })} />
-                </div>
-              </div>
-            </div>
-            <div className="modal-footer">
-              <button className="btn-cancel" onClick={() => setShowTopicModal(false)}>Hủy bỏ</button>
-              <button className="btn-save" onClick={handleAddTopic}>
-                <FaSave /> Thêm đề tài
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showGroupDetail && selectedGroup && (
-        <div className="modal-overlay" onClick={() => setShowGroupDetail(false)}>
-          <div className="modal-container large" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Chi tiết nhóm: {selectedGroup.tenNhom}</h3>
-              <button className="modal-close" onClick={() => setShowGroupDetail(false)}>
-                <FaTimes />
-              </button>
-            </div>
-            <div className="modal-body">
-              <div className="detail-section">
-                <h4>Thông tin chung</h4>
-                <div className="info-grid">
-                  <div className="info-item"><label>Lớp:</label><span>{selectedGroup.tenLop}</span></div>
-                  <div className="info-item"><label>Nhóm trưởng:</label><span>{selectedGroup.tenNhomTruong}</span></div>
-                  <div className="info-item"><label>Số thành viên:</label><span>{selectedGroup.soThanhVien}</span></div>
-                  <div className="info-item"><label>Trạng thái:</label><span>{selectedGroup.trangThai === 'inactive' ? 'Đã kết thúc' : 'Đang hoạt động'}</span></div>
-                </div>
-              </div>
-
-              {selectedGroup.tenDeTai && (
-                <div className="detail-section">
-                  <h4>Đề tài</h4>
-                  <div className="info-grid">
-                    <div className="info-item"><label>Tên đề tài:</label><span>{selectedGroup.tenDeTai}</span></div>
-                    <div className="info-item"><label>Mô tả:</label><span>{selectedGroup.moTaDeTai || 'Chưa cập nhật'}</span></div>
-                    <div className="info-item"><label>Sản phẩm:</label><span>{selectedGroup.sanPhamKyVong || 'Chưa cập nhật'}</span></div>
-                    <div className="info-item"><label>Thời gian:</label><span>{formatDate(selectedGroup.ngayBatDauDeTai)} → {formatDate(selectedGroup.ngayKetThucDeTai)}</span></div>
-                  </div>
                 </div>
               )}
-
-              <div className="detail-section">
-                <h4>Danh sách thành viên</h4>
-                <table className="member-table">
-                  <thead>
-                    <tr>
-                      <th>STT</th>
-                      <th>MSSV</th>
-                      <th>Họ tên</th>
-                      <th>Lớp</th>
-                      <th>Vai trò</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {selectedGroup.thanhVien.map((member, index) => (
-                      <tr key={member.maNguoiDung}>
-                        <td>{index + 1}</td>
-                        <td>{member.maSo}</td>
-                        <td>{member.hoTen}</td>
-                        <td>{member.lopSinhVien || 'Chưa cập nhật'}</td>
-                        <td>{member.vaiTroTrongNhom === 'leader' ? 'Nhóm trưởng' : 'Thành viên'}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
             </div>
-          </div>
-        </div>
-      )}
+          ))
+        )}
+      </div>
     </div>
   );
 };

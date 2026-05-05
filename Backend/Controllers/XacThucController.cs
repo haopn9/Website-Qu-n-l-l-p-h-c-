@@ -1,4 +1,4 @@
-﻿using Backend.Models;
+using Backend.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -54,6 +54,8 @@ public async Task<IActionResult> DangNhap([FromBody] DangNhapDto dto)
     danhSachClaim.Add(new Claim("maNguoiDung", nguoiDung.MaNguoiDung.ToString()));
     danhSachClaim.Add(new Claim("maVaiTro", nguoiDung.MaVaiTro.ToString()));
     danhSachClaim.Add(new Claim("hoTen", nguoiDung.HoTen));
+    // Thêm claim chuẩn để [Authorize(Roles="...")] hoạt động
+    danhSachClaim.Add(new Claim(ClaimTypes.Role, nguoiDung.MaVaiTro.ToString()));
 
     JwtSecurityToken tokenObject = new JwtSecurityToken(
         claims: danhSachClaim,

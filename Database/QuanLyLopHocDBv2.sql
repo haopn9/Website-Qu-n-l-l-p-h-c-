@@ -500,4 +500,4 @@ VALUES
 ('ADMIN999', 'admin_test', '123456', N'Tài khoản Admin Test', 'admin_test@stu.edu.vn', NULL, 1, NULL, 1),
 ('GV999', 'gv_test', '123456', N'Tài khoản Giảng viên Test', 'gv_test@stu.edu.vn', 1, 2, NULL, 1),
 ('SV999', 'sv_test', '123456', N'Tài khoản Sinh viên Test', 'sv_test@student.stu.edu.vn', 1, 3, 'D21_TH09', 1);
-select * from NguoiDung 
+

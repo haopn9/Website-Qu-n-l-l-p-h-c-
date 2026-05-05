@@ -124,6 +124,24 @@ function RoomItem({ room, isActive, onClick }) {
 // ============================================================
 // COMPONENT: Message bubble
 // ============================================================
+function renderTextWithLinks(text) {
+  if (!text) return null;
+  // RegEx to match http/https URLs safely
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  const parts = text.split(urlRegex);
+  
+  return parts.map((part, i) => {
+    if (part.match(urlRegex)) {
+      return (
+        <a key={i} href={part} target="_blank" rel="noopener noreferrer" style={{ color: '#0a66c2', textDecoration: 'underline', wordBreak: 'break-all' }}>
+          {part}
+        </a>
+      );
+    }
+    return <span key={i}>{part}</span>;
+  });
+}
+
 function MessageBubble({ msg }) {
   return (
     <div className={`msg-row ${msg.isMe ? 'me' : ''}`}>
@@ -145,7 +163,7 @@ function MessageBubble({ msg }) {
           )}
 
           {/* Nội dung text */}
-          {msg.content && <span>{msg.content}</span>}
+          {msg.content && <div>{renderTextWithLinks(msg.content)}</div>}
 
           {/* File đính kèm */}
           {msg.file && (

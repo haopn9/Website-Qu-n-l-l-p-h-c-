@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './StudentDashboard.css'; // Đã import file CSS
+import thongKeService from '../../services/thongKeService';
 
 // ============================================================
-// DỮ LIỆU MẪU (sau này thay bằng API call)
+// DỮ LIỆU MẪU DỰ PHÒNG (Khi API chưa có data hoặc loading)
 // ============================================================
-const mockData = {
+const initialData = {
   student: { name: 'Nguyễn Văn A', date: 'Chủ Nhật, 19/04/2026', semester: 'Học kỳ 2 2025-2026' },
   stats: [
     { label: 'Lớp đang học',       value: 3, sub: 'học kỳ này',          color: '#e6f1fb', icon: '📚' },
@@ -344,15 +345,38 @@ function GroupActivityCard({ groups }) {
 // MAIN COMPONENT
 // ============================================================
 export default function StudentDashboard() {
-  const { student, stats, myTasks, groupProgress, groupInfo, deadlines, groupActivity } = mockData;
+  const [data, setData] = useState(initialData);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const result = await thongKeService.getThongKeSinhVien();
+        if (result) {
+          setData(result);
+        }
+      } catch (error) {
+        console.error("Lỗi khi gọi API thống kê sinh viên:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  if (loading) {
+    return <div style={{ padding: 20, textAlign: 'center' }}>Đang tải dữ liệu...</div>;
+  }
+
+  const { student, stats, myTasks, groupProgress, groupInfo, deadlines, groupActivity } = data;
 
   return (
     <div className="sd-wrap">
       {/* HEADER */}
       <div className="sd-top">
         <div>
-          <h1>Xin chào, {student.name} 👋</h1>
-          <span>{student.date} &nbsp;·&nbsp; {student.semester}</span>
+          <h1>Xin chào, {student?.name || 'Sinh viên'} 👋</h1>
+          <span>{student?.date} &nbsp;·&nbsp; {student?.semester}</span>
         </div>
       </div>
 

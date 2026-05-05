@@ -54,10 +54,18 @@ const AdminLayout = () => {
           </li>
           <li>
             <Link
-              to="/admin/classes"
-              className={`menu-item ${location.pathname === '/admin/classes' ? 'active' : ''}`}
+              to="/admin/departments"
+              className={`menu-item ${location.pathname === '/admin/departments' ? 'active' : ''}`}
             >
-              <FaBookOpen className="menu-icon" /> <span>Quản lý lớp &amp; nhóm</span>
+              <FaBookOpen className="menu-icon" /> <span>Quản lý khoa & lớp sinh viên</span>
+            </Link>
+          </li>
+          <li>
+            <Link
+              to="/admin/course-classes"
+              className={`menu-item ${location.pathname === '/admin/course-classes' ? 'active' : ''}`}
+            >
+              <FaBookOpen className="menu-icon" /> <span>Quản lý lớp môn học & nhóm học tập</span>
             </Link>
           </li>
           <li>
@@ -65,7 +73,7 @@ const AdminLayout = () => {
               to="/admin/settings"
               className={`menu-item ${location.pathname === '/admin/settings' ? 'active' : ''}`}
             >
-              <FaCog className="menu-icon" /> <span>Cấu hình hệ thống</span>
+              <FaCog className="menu-icon" /> <span>Cấu hình hệ thống & học kỳ</span>
             </Link>
           </li>
           <li>
