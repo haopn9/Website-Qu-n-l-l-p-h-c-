@@ -1,4 +1,4 @@
-using Backend.Models;
+﻿using Backend.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -16,90 +16,106 @@ public class TinNhanController : ControllerBase
     }
 
     // =============================================
-    // LAY TIN NHAN THEO NHOM
+    // LẤY TIN NHẮN THEO NHÓM
     // GET: api/tinnhan?maNhom=1
     // =============================================
     [HttpGet]
     public async Task<IActionResult> DanhSachTinNhan(int maNhom)
     {
-        var tinNhans = await _db.TinNhans
-            .Where(t => t.MaNhom == maNhom)
+        // Bước 1: Lấy tất cả tin nhắn của nhóm
+        List<TinNhan> tatCaTinNhan = await _db.TinNhans
             .Include(t => t.MaNguoiGuiNavigation)
-                .ThenInclude(u => u.MaVaiTroNavigation)
-            .Include(t => t.MaNhomNavigation)
             .Include(t => t.TepDinhKems)
-            .OrderBy(t => t.ThoiGianGui)
             .ToListAsync();
 
-        var ketQua = tinNhans.Select(tn => new
+        // Bước 2: Lọc theo nhóm
+        List<TinNhan> tinNhanTheoNhom = new List<TinNhan>();
+        foreach (TinNhan tn in tatCaTinNhan)
         {
-            maTinNhan = tn.MaTinNhan,
-            maNhom = tn.MaNhom,
-            tenNhom = tn.MaNhomNavigation.TenNhom,
-            maNguoiGui = tn.MaNguoiGui,
-            nguoiGui = tn.MaNguoiGuiNavigation.HoTen,
-            vaiTroNguoiGui = tn.MaNguoiGuiNavigation.MaVaiTroNavigation.TenVaiTro,
-            noiDung = tn.NoiDung,
-            thoiGianGui = tn.ThoiGianGui,
-            maTinNhanCha = tn.MaTinNhanCha,
-            soLuongPhanHoi = tinNhans.Count(x => x.MaTinNhanCha == tn.MaTinNhan),
-            tepDinhKem = tn.TepDinhKems.Count
-        });
+            if (tn.MaNhom == maNhom)
+            {
+                tinNhanTheoNhom.Add(tn);
+            }
+        }
 
+        // Bước 3: Tạo danh sách kết quả
+        List<object> ketQua = new List<object>();
+        foreach (TinNhan tn in tinNhanTheoNhom)
+        {
+            string nguoiGui = "";
+            if (tn.MaNguoiGuiNavigation != null)
+            {
+                nguoiGui = tn.MaNguoiGuiNavigation.HoTen;
+            }
+
+            ketQua.Add(new
+            {
+                maTinNhan = tn.MaTinNhan,
+                maNhom = tn.MaNhom,
+                maNguoiGui = tn.MaNguoiGui,
+                nguoiGui = nguoiGui,
+                noiDung = tn.NoiDung,
+                thoiGianGui = tn.ThoiGianGui,
+                maTinNhanCha = tn.MaTinNhanCha,
+                soLuongPhanHoi = tinNhanTheoNhom.Count(x => x.MaTinNhanCha == tn.MaTinNhan),
+                tepDinhKem = tn.TepDinhKems.Count
+            });
+        }
+
+        // Bước 4: Trả về kết quả
         return Ok(ketQua);
     }
 
     // =============================================
-    // GUI TIN NHAN MOI
+    // GỬI TIN NHẮN MỚI
     // POST: api/tinnhan
     // =============================================
     [HttpPost]
     public async Task<IActionResult> GuiTinNhan([FromBody] GuiTinNhanDto dto)
     {
-        dto.NoiDung = dto.NoiDung.Trim();
-        if (string.IsNullOrWhiteSpace(dto.NoiDung))
-        {
-            return BadRequest(new { thongBao = "Noi dung tin nhan khong duoc de trong" });
-        }
+        // Bước 1: Tạo tin nhắn mới
+        TinNhan tinNhanMoi = new TinNhan();
+        tinNhanMoi.MaNhom = dto.MaNhom;
+        tinNhanMoi.MaNguoiGui = dto.MaNguoiGui;
+        tinNhanMoi.NoiDung = dto.NoiDung;
+        tinNhanMoi.MaTinNhanCha = dto.MaTinNhanCha;
 
-        var tinNhanMoi = new TinNhan
-        {
-            MaNhom = dto.MaNhom,
-            MaNguoiGui = dto.MaNguoiGui,
-            NoiDung = dto.NoiDung,
-            MaTinNhanCha = dto.MaTinNhanCha
-        };
-
+        // Bước 2: Thêm vào database
         _db.TinNhans.Add(tinNhanMoi);
+
+        // Bước 3: Lưu lại
         await _db.SaveChangesAsync();
 
-        return Ok(new
-        {
-            thongBao = "Gui tin nhan thanh cong",
-            maTinNhan = tinNhanMoi.MaTinNhan
-        });
+        return Ok(new { thongBao = "Gửi tin nhắn thành công", maTinNhan = tinNhanMoi.MaTinNhan });
     }
 
     // =============================================
-    // XOA TIN NHAN
+    // XÓA TIN NHẮN
     // DELETE: api/tinnhan/1
     // =============================================
     [HttpDelete("{id}")]
     public async Task<IActionResult> XoaTinNhan(int id)
     {
-        var tinNhan = await _db.TinNhans.FindAsync(id);
+        // Bước 1: Tìm tin nhắn
+        TinNhan? tinNhan = await _db.TinNhans.FindAsync(id);
+
+        // Bước 2: Kiểm tra có tồn tại không
         if (tinNhan == null)
         {
-            return NotFound(new { thongBao = "Khong tim thay tin nhan" });
+            return NotFound(new { thongBao = "Không tìm thấy tin nhắn" });
         }
 
+        // Bước 3: Xóa tin nhắn
         _db.TinNhans.Remove(tinNhan);
         await _db.SaveChangesAsync();
 
-        return Ok(new { thongBao = "Xoa tin nhan thanh cong" });
+        return Ok(new { thongBao = "Xóa tin nhắn thành công" });
     }
 }
 
+// =============================================
+// DTOs
+// =============================================
 public class GuiTinNhanDto
 {
     public int MaNhom { get; set; }

@@ -147,6 +147,19 @@
   animation: fadeIn 0.3s ease;
 }
 
+/* Thông báo lỗi trả về từ API (sai tài khoản/mật khẩu) */
+.error-api-text {
+  background-color: #fef2f2;
+  border-left: 4px solid #ef4444;
+  color: #dc2626;
+  font-size: 15px;
+  font-weight: 500;
+  padding: 10px 14px;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  animation: fadeIn 0.3s ease;
+}
+
 /* Nút Quay lại */
 .back-link {
   display: inline-flex;

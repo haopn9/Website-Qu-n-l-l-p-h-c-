@@ -67,6 +67,20 @@ const ManageGroups = () => {
     }
   };
 
+  // Hàm lấy danh sách sinh viên chưa có nhóm
+  const [availableStudents, setAvailableStudents] = useState([]);
+  const fetchAvailableStudents = async (maLop) => {
+    try {
+      const res = await fetch(`http://localhost:5186/api/lophoc/${maLop}/sinhvien-chua-co-nhom`);
+      if (res.ok) {
+        const data = await res.json();
+        setAvailableStudents(data);
+      }
+    } catch (err) {
+      console.error('Lỗi tải SV chưa có nhóm:', err);
+    }
+  };
+
   useEffect(() => {
     fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -108,13 +122,31 @@ const ManageGroups = () => {
     }
   };
 
-  const handleRandomAssign = () => {
+  const handleRandomAssign = async () => {
     if (!randomForm.classId) {
       alert('Vui lòng chọn lớp!');
       return;
     }
-    alert('Tính năng phân nhóm ngẫu nhiên cần backend xử lý tiếp.');
-    setIsRandomModalOpen(false);
+
+    try {
+      const res = await fetch('http://localhost:5186/api/nhom/phan-nhom-ngau-nhien', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ maLop: parseInt(randomForm.classId, 10) })
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        await fetchData();
+        setIsRandomModalOpen(false);
+        alert(data.thongBao);
+      } else {
+        alert(data.thongBao || 'Lỗi khi phân nhóm!');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Không thể kết nối API!');
+    }
   };
 
   const handleAssignLeader = async () => {
@@ -138,13 +170,47 @@ const ManageGroups = () => {
     }
   };
 
-  const handleAddMember = () => {
-    alert('Cần API lấy sinh viên chưa có nhóm để thêm vào nhóm.');
-    setIsAddMemberModalOpen(false);
+  const handleAddMember = async () => {
+    if (!selectedStudentId || !selectedGroup) return;
+
+    try {
+      const res = await fetch(`http://localhost:5186/api/nhom/${selectedGroup.groupId}/themthanhvien`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ maSinhVien: parseInt(selectedStudentId, 10) })
+      });
+
+      if (res.ok) {
+        await fetchData();
+        setIsAddMemberModalOpen(false);
+        alert('Đã thêm thành viên vào nhóm!');
+      } else {
+        const errorData = await res.json();
+        alert(errorData.thongBao || 'Lỗi khi thêm thành viên!');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Không thể kết nối API!');
+    }
   };
 
-  const handleRemoveMember = (groupId, userId) => {
-    alert(`UI đã sẵn chỗ xóa thành viên ${userId} khỏi nhóm ${groupId}. API bổ sung sau.`);
+  const handleRemoveMember = async (groupId, userId) => {
+    if (!window.confirm('Bạn có chắc muốn xóa sinh viên này khỏi nhóm?')) return;
+
+    try {
+      const res = await fetch(`http://localhost:5186/api/nhom/${groupId}/xoathanhvien/${userId}`, {
+        method: 'DELETE'
+      });
+
+      if (res.ok) {
+        await fetchData();
+        alert('Đã xóa thành viên!');
+      } else {
+        alert('Lỗi khi xóa thành viên!');
+      }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const handleDeleteGroup = async (groupId) => {
@@ -173,6 +239,8 @@ const ManageGroups = () => {
   const openAddMember = (group) => {
     setSelectedGroup(group);
     setSelectedStudentId('');
+    setAvailableStudents([]); // Reset list
+    fetchAvailableStudents(group.classId); // Gọi API lấy SV chưa có nhóm của lớp này
     setIsAddMemberModalOpen(true);
   };
 
@@ -464,7 +532,12 @@ const ManageGroups = () => {
               <div className="form-group">
                 <label>Chọn sinh viên:</label>
                 <select value={selectedStudentId} onChange={(e) => setSelectedStudentId(e.target.value)}>
-                  <option value="">-- Chọn sinh viên (API chưa hỗ trợ) --</option>
+                  <option value="">-- Chọn sinh viên --</option>
+                  {availableStudents.map(sv => (
+                    <option key={sv.maNguoiDung} value={sv.maNguoiDung}>
+                      {sv.hoTen} ({sv.maSo})
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>

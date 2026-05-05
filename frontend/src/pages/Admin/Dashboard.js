@@ -177,11 +177,7 @@ const Dashboard = () => {
         ))}
       </div>
 
-      <div className="view-all-container">
-        <Link to="/admin/classes" className="btn-view-all">
-          Xem tất cả lớp học
-        </Link>
-      </div>
+      
     </div>
   );
 };

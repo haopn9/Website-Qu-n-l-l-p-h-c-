@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './ManageClasses.css';
 import { FaPlus, FaSearch, FaChalkboardTeacher, FaUsers, FaBookOpen, FaCalendarAlt, FaEye, FaEdit, FaTrash, FaTimes, FaCopy } from 'react-icons/fa';
+import classService from '../../../services/classService';
 
 const ManageClasses = () => {
   const [classes, setClasses] = useState([]);
@@ -27,7 +28,11 @@ const ManageClasses = () => {
     endDate: ''
   });
 
-  const generateClassCode = () => Math.random().toString(36).substring(2, 8).toUpperCase();
+  const formatDateVN = (value) => {
+    if (!value) return '';
+    const [year, month, day] = value.substring(0, 10).split('-');
+    return day && month && year ? `${day}/${month}/${year}` : value;
+  };
 
   const mapClass = (item) => ({
     classId: item.maLop,
@@ -47,20 +52,13 @@ const ManageClasses = () => {
 
   const fetchData = async () => {
     try {
-      const [classRes, hocKyRes] = await Promise.all([
-        fetch('http://localhost:5186/api/lophoc'),
-        fetch('http://localhost:5186/api/lophoc/hocky')
+      const [classData, hkData] = await Promise.all([
+        classService.getMyClasses(),
+        classService.getSemesters()
       ]);
 
-      if (hocKyRes.ok) {
-        const hkData = await hocKyRes.json();
-        setHocKyList(hkData);
-      }
-
-      if (classRes.ok) {
-        const data = await classRes.json();
-        setClasses(data.filter((item) => item.maGiangVien === maGiangVien).map(mapClass));
-      }
+      setHocKyList(hkData);
+      setClasses((classData || []).filter((item) => item.maGiangVien === maGiangVien).map(mapClass));
     } catch (err) {
       console.error('Lỗi kết nối API:', err);
     }
@@ -81,67 +79,74 @@ const ManageClasses = () => {
     const maHocKy = selectedHK ? selectedHK.maHocKy : (hocKyList[0]?.maHocKy || 1);
 
     try {
-      const res = await fetch('http://localhost:5186/api/lophoc', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          tenLop: formData.className,
-          maLopHoc: formData.classCode,
-          maGiangVien,
-          maHocKy,
-          ngayBatDau: formData.startDate || null,
-          ngayKetThuc: formData.endDate || null
-        })
+      const result = await classService.createClass({
+        tenLop: formData.className,
+        maHocKy,
+        ngayBatDau: formData.startDate || null,
+        ngayKetThuc: formData.endDate || null
       });
 
-      if (res.ok) {
-        await fetchData();
-        setIsCreateModalOpen(false);
-        setFormData({
-          className: '',
-          classCode: generateClassCode(),
-          semester: hocKyList[0]?.tenHocKy || '',
-          startDate: '',
-          endDate: ''
-        });
-        alert('Tạo lớp học thành công!');
-      } else {
-        const errorData = await res.json();
-        alert(errorData.thongBao || 'Có lỗi từ server khi tạo lớp!');
-      }
+      await fetchData();
+      setIsCreateModalOpen(false);
+      setFormData({
+        className: '',
+        classCode: '',
+        semester: hocKyList[0]?.tenHocKy || '',
+        startDate: '',
+        endDate: ''
+      });
+      alert(`Tạo lớp học thành công! Mã lớp: ${result.maLopHoc}`);
     } catch (err) {
       console.error('Lỗi:', err);
-      alert('Không thể kết nối đến API Backend!');
+      alert(err.message || 'Không thể kết nối đến API Backend!');
     }
   };
 
-  const handleEditClass = (e) => {
+  const handleEditClass = async (e) => {
     e.preventDefault();
-    setClasses(classes.map((c) => (c.classId === selectedClass.classId ? { ...c, ...formData } : c)));
-    setIsEditModalOpen(false);
-    alert('Cập nhật giao diện lớp học thành công!');
+    const selectedHK = hocKyList.find((hk) => hk.tenHocKy === formData.semester);
+    const maHocKy = selectedHK ? selectedHK.maHocKy : selectedClass.maHocKy;
+
+    try {
+      await classService.updateClass(selectedClass.classId, {
+        tenLop: formData.className,
+        maHocKy,
+        ngayBatDau: formData.startDate || null,
+        ngayKetThuc: formData.endDate || null
+      });
+
+      await fetchData();
+      setIsEditModalOpen(false);
+      alert('Cập nhật lớp học thành công!');
+    } catch (err) {
+      console.error('Lỗi cập nhật lớp:', err);
+      alert(err.message || 'Không thể cập nhật lớp học!');
+    }
   };
 
   const handleDeleteClass = async (classId) => {
     if (!window.confirm('Bạn có chắc muốn xóa lớp học này?')) return;
 
     try {
-      const res = await fetch(`http://localhost:5186/api/lophoc/${classId}`, { method: 'DELETE' });
-      if (res.ok) {
-        setClasses(classes.filter((c) => c.classId !== classId));
-        alert('Xóa lớp học thành công!');
-      } else {
-        alert('Có lỗi khi xóa lớp học!');
-      }
+      await classService.deleteClass(classId);
+      setClasses(classes.filter((c) => c.classId !== classId));
+      alert('Xóa lớp học thành công!');
     } catch (err) {
       console.error('Lỗi xóa lớp:', err);
-      alert('Không thể kết nối API!');
+      alert(err.message || 'Không thể kết nối API!');
     }
   };
 
-  const handleViewDetail = (cls) => {
-    setSelectedClass(cls);
-    setIsDetailModalOpen(true);
+  const handleViewDetail = async (cls) => {
+    try {
+      // Lấy chi tiết mới nhất để danh sách sinh viên vừa tham gia hiển thị ngay trong modal.
+      const detail = await classService.getClassById(cls.classId);
+      setSelectedClass(mapClass(detail));
+      setIsDetailModalOpen(true);
+    } catch (err) {
+      console.error('Lỗi lấy chi tiết lớp:', err);
+      alert(err.message || 'Không thể tải chi tiết lớp học!');
+    }
   };
 
   const handleOpenEdit = (cls) => {
@@ -161,8 +166,21 @@ const ManageClasses = () => {
     alert(`Đã sao chép mã lớp: ${code}`);
   };
 
-  const handleRemoveStudent = (studentId) => {
-    alert(`UI đã sẵn chỗ xóa sinh viên #${studentId}. API thao tác danh sách sinh viên sẽ nối sau.`);
+  const handleRemoveStudent = async (student) => {
+    if (!selectedClass) return;
+    if (!window.confirm(`Bạn có chắc muốn xóa sinh viên ${student.hoTen} khỏi lớp này?`)) return;
+
+    try {
+      await classService.removeStudentFromClass(selectedClass.classId, student.maNguoiDung);
+      const detail = await classService.getClassById(selectedClass.classId);
+      const updatedClass = mapClass(detail);
+      setSelectedClass(updatedClass);
+      setClasses(classes.map((cls) => (cls.classId === updatedClass.classId ? updatedClass : cls)));
+      alert('Đã xóa sinh viên khỏi lớp học!');
+    } catch (err) {
+      console.error('Lỗi xóa sinh viên khỏi lớp:', err);
+      alert(err.message || 'Không thể xóa sinh viên khỏi lớp!');
+    }
   };
 
   const handleFileChange = (e) => {
@@ -214,7 +232,7 @@ const ManageClasses = () => {
         </div>
         <button className="btn-primary" onClick={() => {
           setIsCreateModalOpen(true);
-          setFormData({ ...formData, classCode: generateClassCode(), semester: hocKyList[0]?.tenHocKy || '' });
+          setFormData({ ...formData, classCode: '', semester: hocKyList[0]?.tenHocKy || '' });
         }}>
           <FaPlus /> Tạo lớp mới
         </button>
@@ -308,7 +326,7 @@ const ManageClasses = () => {
                 <div className="form-grid">
                   <div className="form-group">
                     <label>Mã lớp học *</label>
-                    <input type="text" name="classCode" value={formData.classCode} readOnly style={{ backgroundColor: '#f1f5f9', cursor: 'not-allowed' }} required />
+                    <input type="text" name="classCode" value="Hệ thống tự sinh sau khi tạo lớp" readOnly style={{ backgroundColor: '#f1f5f9', cursor: 'not-allowed' }} />
                   </div>
                   <div className="form-group">
                     <label>Tên môn học *</label>
@@ -353,7 +371,7 @@ const ManageClasses = () => {
                 <div className="form-grid">
                   <div className="form-group">
                     <label>Mã lớp học</label>
-                    <input type="text" name="classCode" value={formData.classCode} onChange={handleFormChange} required />
+                    <input type="text" name="classCode" value={formData.classCode} readOnly style={{ backgroundColor: '#f1f5f9', cursor: 'not-allowed' }} />
                   </div>
                   <div className="form-group">
                     <label>Tên môn học</label>
@@ -398,7 +416,7 @@ const ManageClasses = () => {
                 </div>
                 <div className="class-info">
                   <h4>{selectedClass.className}</h4>
-                  <p>{selectedClass.semester} | {selectedClass.startDate?.substring?.(0, 10) || ''} → {selectedClass.endDate?.substring?.(0, 10) || ''}</p>
+                  <p>{selectedClass.semester} | {formatDateVN(selectedClass.startDate)} → {formatDateVN(selectedClass.endDate)}</p>
                 </div>
               </div>
 
@@ -434,7 +452,7 @@ const ManageClasses = () => {
                         <td>{sv.lopSinhVien || 'Chưa cập nhật'}</td>
                         <td>{sv.tenNhom || 'Chưa có nhóm'}</td>
                         <td>
-                          <button className="btn-sm danger" onClick={() => handleRemoveStudent(sv.maNguoiDung)}>Xóa</button>
+                          <button className="btn-sm danger" onClick={() => handleRemoveStudent(sv)}>Xóa</button>
                         </td>
                       </tr>
                     ))}

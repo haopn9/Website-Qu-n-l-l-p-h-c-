@@ -41,6 +41,16 @@ CREATE TABLE Khoa (
     KyHieuKhoa VARCHAR(20)  UNIQUE NULL                      -- Ký hiệu viết tắt (ví dụ: CNTT, KTMT)
 );
 
+-- Bảng danh mục lớp hành chính của sinh viên
+-- Tách riêng với LopHoc vì LopHoc là lớp học phần do giảng viên tạo
+CREATE TABLE LopSinhVien (
+    MaLopSinhVien  VARCHAR(50)  PRIMARY KEY,                 -- Mã lớp hành chính (ví dụ: D23_TH01)
+    TenLopSinhVien VARCHAR(50)  NOT NULL UNIQUE,             -- Tên lớp hành chính, hiện trùng với mã lớp
+    MaKhoa         INT          NULL,                        -- Khoa quản lý lớp hành chính (FK)
+    DangHoatDong   BIT          DEFAULT 1,                   -- Trạng thái dùng cho dropdown chọn lớp
+    FOREIGN KEY (MaKhoa) REFERENCES Khoa(MaKhoa)
+);
+
 -- Bảng Học kỳ / Niên khóa
 CREATE TABLE HocKy (
     MaHocKy    INT           IDENTITY(1,1) PRIMARY KEY,      -- Mã học kỳ (tự tăng)
@@ -314,7 +324,29 @@ INSERT INTO Khoa (TenKhoa, KyHieuKhoa) VALUES
     (N'Kỹ thuật máy tính',  'KTMT'),
     (N'Hệ thống thông tin', 'HTTT');
 
--- 4. Học kỳ hiện tại
+-- 4. Lớp hành chính sinh viên
+INSERT INTO LopSinhVien (MaLopSinhVien, TenLopSinhVien, MaKhoa, DangHoatDong) VALUES
+    ('D20_TH01', 'D20_TH01', 1, 1),
+    ('D20_TH02', 'D20_TH02', 1, 1),
+    ('D21_TH01', 'D21_TH01', 1, 1),
+    ('D21_TH02', 'D21_TH02', 1, 1),
+    ('D21_TH03', 'D21_TH03', 1, 1),
+    ('D21_TH04', 'D21_TH04', 1, 1),
+    ('D21_TH05', 'D21_TH05', 1, 1),
+    ('D21_TH06', 'D21_TH06', 1, 1),
+    ('D21_TH09', 'D21_TH09', 1, 1),
+    ('D22_TH01', 'D22_TH01', 1, 1),
+    ('D22_TH02', 'D22_TH02', 1, 1),
+    ('D22_TH03', 'D22_TH03', 1, 1),
+    ('D22_TH04', 'D22_TH04', 1, 1),
+    ('D22_TH05', 'D22_TH05', 1, 1),
+    ('D23_TH01', 'D23_TH01', 1, 1),
+    ('D23_TH02', 'D23_TH02', 1, 1),
+    ('D23_TH03', 'D23_TH03', 1, 1),
+    ('D23_TH04', 'D23_TH04', 1, 1),
+    ('D23_TH05', 'D23_TH05', 1, 1);
+
+-- 5. Học kỳ hiện tại
 INSERT INTO HocKy (TenHocKy, NgayBatDau, NgayKetThuc, LaHienTai) VALUES
     (N'Học kỳ 2 2025-2026', '2026-01-01', '2026-06-30', 1);
 
@@ -453,10 +485,11 @@ VALUES
 ('DH52201776','dh52201776','hashed_TempPass',N'Nguyễn Long Vũ',        'DH52201776@student.stu.edu.vn',1,3,'D22_TH04',1),
 ('DH52302337','dh52302337','hashed_TempPass',N'Chu Phú Quốc Vương',    'DH52302337@student.stu.edu.vn',1,3,'D23_TH02',1);
 
+
 GO
 
 PRINT N'=== Khởi tạo Database QuanLyLopHocDB thành công! ===';
-PRINT N'Đã tạo: 10 bảng chính, 1 Admin, 3 Giảng viên, 100 Sinh viên';
+PRINT N'Đã tạo: 11 bảng chính, 1 Admin, 3 Giảng viên, 100 Sinh viên';
 PRINT N'Lưu ý: Cột MatKhauHash cần được backend hash thực tế bằng BCrypt trước khi lưu!';
 
 -- ============================================================
@@ -467,4 +500,4 @@ VALUES
 ('ADMIN999', 'admin_test', '123456', N'Tài khoản Admin Test', 'admin_test@stu.edu.vn', NULL, 1, NULL, 1),
 ('GV999', 'gv_test', '123456', N'Tài khoản Giảng viên Test', 'gv_test@stu.edu.vn', 1, 2, NULL, 1),
 ('SV999', 'sv_test', '123456', N'Tài khoản Sinh viên Test', 'sv_test@student.stu.edu.vn', 1, 3, 'D21_TH09', 1);
-
+select * from NguoiDung 

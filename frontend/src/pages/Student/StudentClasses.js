@@ -194,10 +194,35 @@ const StudentClasses = () => {
     return allGroups;
   };
 
+  const notifyRemovedClasses = (classData) => {
+    const storageKey = `studentClassSnapshot_${currentUser.maNguoiDung || 'current'}`;
+    const currentSnapshot = (classData || []).map((cls) => ({
+      maLop: cls.maLop,
+      tenLop: cls.tenLop
+    }));
+
+    try {
+      const previousSnapshot = JSON.parse(localStorage.getItem(storageKey) || '[]');
+      const removedClasses = previousSnapshot.filter((oldClass) =>
+        !currentSnapshot.some((currentClass) => currentClass.maLop === oldClass.maLop)
+      );
+
+      if (removedClasses.length > 0) {
+        const tenLopBiXoa = removedClasses.map((cls) => cls.tenLop).join(', ');
+        alert(`Bạn bị giáo viên kick khỏi lớp: ${tenLopBiXoa}`);
+      }
+
+      localStorage.setItem(storageKey, JSON.stringify(currentSnapshot));
+    } catch (err) {
+      localStorage.setItem(storageKey, JSON.stringify(currentSnapshot));
+    }
+  };
+
   const fetchData = async () => {
     try {
       setLoading(true);
-      const classData = await classService.getAllClasses();
+      const classData = await classService.getMyClasses();
+      notifyRemovedClasses(classData || []);
       setClasses(classData || []);
 
       const hocKySet = [...new Set((classData || []).map((c) => c.tenHocKy).filter(Boolean))];

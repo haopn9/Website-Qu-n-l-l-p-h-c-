@@ -160,13 +160,18 @@ const LoginPage = () => {
               </div>
             </div>
 
+            {/* THÔNG BÁO LỖI TỪ API */}
+            {error && (
+              <div className="error-api-text">{error}</div>
+            )}
+
             {/* NÚT ĐĂNG NHẬP */}
             <button
               type="submit"
-              className={`login-button ${isButtonDisabled ? 'btn-disabled' : ''}`}
-              disabled={isButtonDisabled}
+              className={`login-button ${isButtonDisabled || loading ? 'btn-disabled' : ''}`}
+              disabled={isButtonDisabled || loading}
             >
-              Đăng Nhập
+              {loading ? 'Đang đăng nhập...' : 'Đăng Nhập'}
             </button>
           </form>
         </div>

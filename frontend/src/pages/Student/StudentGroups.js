@@ -137,11 +137,29 @@ function JoinModal({ groups, onClose }) {
 
   const targetGroup = groups.find(g => g.maNhom === selectedGroupId);
 
-  const handleSend = (e) => {
+  const handleSend = async (e) => {
     e.preventDefault();
     if (!selectedGroupId) return;
-    alert(`Bạn đã tham gia ${targetGroup.tenNhom} lớp ${targetGroup.tenLop} thành công!`);
-    onClose();
+    
+    try {
+      const res = await fetch(`http://localhost:5186/api/nhom/${selectedGroupId}/themthanhvien`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ maSinhVien: JSON.parse(localStorage.getItem('userInfo'))?.maNguoiDung })
+      });
+
+      if (res.ok) {
+        alert(`Bạn đã tham gia ${targetGroup.tenNhom} thành công!`);
+        onClose();
+        window.location.reload(); // Tải lại để cập nhật danh sách nhóm
+      } else {
+        const errorData = await res.json();
+        alert(errorData.thongBao || 'Lỗi khi tham gia nhóm');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Không thể kết nối API!');
+    }
   };
 
   const uniqueClasses = Array.from(new Set(groups.map(g => g.maLop))).map(id => groups.find(g => g.maLop === id));
@@ -200,10 +218,62 @@ const StudentGroups = () => {
   const incomingMaNhom = location.state?.maNhom || null;
 
   const [activeTab, setActiveTab] = useState('nhomCuaToi');
-  const [selectedMaNhom, setSelectedMaNhom] = useState(incomingMaNhom || mockGroups[0]?.maNhom);
+  const [myGroups, setMyGroups] = useState([]);
+  const [selectedMaNhom, setSelectedMaNhom] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [showTransfer, setShowTransfer] = useState(false);
   const [showJoin, setShowJoin] = useState(false);
   const [selectedHocKy, setSelectedHocKy] = useState(semesters[0]);
+
+  // Lấy danh sách nhóm của tôi
+  const fetchMyGroups = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('http://localhost:5186/api/nhom/cua-toi', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setMyGroups(data);
+        if (data.length > 0 && !selectedMaNhom) {
+          setSelectedMaNhom(incomingMaNhom || data[0].maNhom);
+        }
+      }
+    } catch (err) {
+      console.error('Lỗi tải nhóm của tôi:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Lấy danh sách các nhóm khả dụng để đăng ký (dành cho modal)
+  const [availableGroups, setAvailableGroups] = useState([]);
+  const fetchAvailableGroups = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      // 1. Lấy danh sách lớp đang học
+      const lopRes = await fetch('http://localhost:5186/api/lophoc/cua-toi', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (lopRes.ok) {
+        const lops = await lopRes.json();
+        // 2. Với mỗi lớp, lấy danh sách nhóm
+        const nhomPromises = lops.map(l => 
+          fetch(`http://localhost:5186/api/nhom?maLop=${l.maLop}`).then(r => r.json())
+        );
+        const results = await Promise.all(nhomPromises);
+        setAvailableGroups(results.flat());
+      }
+    } catch (err) {
+      console.error('Lỗi tải nhóm khả dụng:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchMyGroups();
+    fetchAvailableGroups();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (incomingMaNhom) {
@@ -212,9 +282,10 @@ const StudentGroups = () => {
     }
   }, [incomingMaNhom]);
 
-  const selectedGroup = mockGroups.find(g => g.maNhom === selectedMaNhom) || mockGroups[0];
+  const selectedGroup = myGroups.find(g => g.maNhom === selectedMaNhom) || myGroups[0];
   const filteredHistory = mockHistory.filter(h => h.hocKy === selectedHocKy);
 
+  if (loading) return <div className="sg-container">Đang tải dữ liệu...</div>;
   return (
     <div className="sg-container">
       <div className="sg-top">
@@ -248,8 +319,8 @@ const StudentGroups = () => {
         <>
           <div className="group-selector-wrapper">
             <span className="group-selector-label">Xem thông tin của:</span>
-            <select className="group-select" value={selectedMaNhom} onChange={e => setSelectedMaNhom(Number(e.target.value))}>
-              {mockGroups.map(g => (
+            <select className="group-select" value={selectedMaNhom || ''} onChange={e => setSelectedMaNhom(Number(e.target.value))}>
+              {myGroups.map(g => (
                 <option key={g.maNhom} value={g.maNhom}>
                   {g.tenNhom} — {g.tenLop} ({g.laNhomTruong ? 'Nhóm trưởng' : 'Thành viên'})
                 </option>
@@ -264,12 +335,12 @@ const StudentGroups = () => {
               <div className="sg-card-sub">Cập nhật lần cuối: {selectedGroup.capNhat}</div>
               <div className="sg-info-row"><span>Lớp</span><span>{selectedGroup.tenLop} ({selectedGroup.maLopHoc})</span></div>
               <div className="sg-info-row"><span>Giảng viên</span><span>{selectedGroup.tenGV}</span></div>
-              <div className="sg-info-row"><span>Đề tài</span><span>{selectedGroup.deTai}</span></div>
-              <div className="sg-info-row"><span>Thành viên</span><span>{selectedGroup.soThanhVien} / {selectedGroup.soToiDa} người</span></div>
-              <div className="sg-info-row"><span>Ngày lập nhóm</span><span>{selectedGroup.ngayLap}</span></div>
+              <div className="sg-info-row"><span>Đề tài</span><span>{selectedGroup.tenDeTai}</span></div>
+              <div className="sg-info-row"><span>Thành viên</span><span>{selectedGroup.soThanhVienHienTai} / {selectedGroup.soThanhVienToiDa} người</span></div>
+              <div className="sg-info-row"><span>Nhóm trưởng</span><span>{selectedGroup.tenNhomTruong}</span></div>
               <div className="sg-progress-wrap">
-                <div className="sg-progress-label"><span>Tiến độ tổng thể</span><strong>{selectedGroup.tienDo}%</strong></div>
-                <div className="sg-pbar"><div className="sg-pfill" style={{ width: `${selectedGroup.tienDo}%` }} /></div>
+                <div className="sg-progress-label"><span>Tiến độ tổng thể (Mock)</span><strong>{selectedGroup.tienDo || 0}%</strong></div>
+                <div className="sg-pbar"><div className="sg-pfill" style={{ width: `${selectedGroup.tienDo || 0}%` }} /></div>
               </div>
             </div>
 
@@ -355,8 +426,8 @@ const StudentGroups = () => {
         </>
       )}
 
-      {showTransfer && <TransferModal groups={mockGroups} onClose={() => setShowTransfer(false)} />}
-      {showJoin && <JoinModal groups={mockGroups} onClose={() => setShowJoin(false)} />}
+      {showTransfer && <TransferModal groups={myGroups.length > 0 ? myGroups : mockGroups} onClose={() => setShowTransfer(false)} />}
+      {showJoin && <JoinModal groups={availableGroups} onClose={() => setShowJoin(false)} />}
     </div>
   );
 };

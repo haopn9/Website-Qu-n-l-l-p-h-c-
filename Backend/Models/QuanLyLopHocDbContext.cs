@@ -29,6 +29,8 @@ public partial class QuanLyLopHocDbContext : DbContext
 
     public virtual DbSet<LopHoc> LopHocs { get; set; }
 
+    public virtual DbSet<LopSinhVien> LopSinhViens { get; set; }
+
     public virtual DbSet<NguoiDung> NguoiDungs { get; set; }
 
     public virtual DbSet<NhiemVu> NhiemVus { get; set; }
@@ -205,6 +207,27 @@ public partial class QuanLyLopHocDbContext : DbContext
                         j.HasKey("MaLop", "MaSinhVien").HasName("PK__SinhVien__72A17C043D1C5210");
                         j.ToTable("SinhVienLop");
                     });
+        });
+
+        modelBuilder.Entity<LopSinhVien>(entity =>
+        {
+            entity.HasKey(e => e.MaLopSinhVien).HasName("PK__LopSinhV__7F72585D5C2F7F8C");
+
+            entity.ToTable("LopSinhVien");
+
+            entity.HasIndex(e => e.TenLopSinhVien, "UQ__LopSinhV__D9B1A9B45E6B6D9B").IsUnique();
+
+            entity.Property(e => e.DangHoatDong).HasDefaultValue(true);
+            entity.Property(e => e.MaLopSinhVien)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.TenLopSinhVien)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+
+            entity.HasOne(d => d.MaKhoaNavigation).WithMany(p => p.LopSinhViens)
+                .HasForeignKey(d => d.MaKhoa)
+                .HasConstraintName("FK__LopSinhVi__MaKho__3B75D760");
         });
 
         modelBuilder.Entity<NguoiDung>(entity =>

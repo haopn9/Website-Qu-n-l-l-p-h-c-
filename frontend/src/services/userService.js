@@ -5,16 +5,20 @@ const userService = {
     return apiClient.get('/api/nguoidung');
   },
 
+  getAllLopSinhViens() {
+    return apiClient.get('/api/lopsinhvien');
+  },
+
   createUser(payload) {
     return apiClient.post('/api/nguoidung', payload);
   },
 
-  toggleUserStatus(id) {
-    return apiClient.put(`/api/nguoidung/${id}/trangthai`, {});
+  updateUser(id, payload) {
+    return apiClient.put(`/api/nguoidung/${id}`, payload);
   },
 
-  deleteUser(id) {
-    return apiClient.delete(`/api/nguoidung/${id}`);
+  toggleUserStatus(id) {
+    return apiClient.put(`/api/nguoidung/${id}/trangthai`, {});
   }
 };
 

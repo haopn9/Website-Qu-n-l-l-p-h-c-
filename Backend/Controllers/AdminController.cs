@@ -22,8 +22,6 @@ public class AdminController : ControllerBase
     [HttpGet("thongke")]
     public async Task<IActionResult> ThongKe()
     {
-        DateOnly homNay = DateOnly.FromDateTime(DateTime.Today);
-
         // Bước 1: Lấy tất cả người dùng
         List<NguoiDung> tatCaNguoiDung = await _db.NguoiDungs.ToListAsync();
 
@@ -42,16 +40,14 @@ public class AdminController : ControllerBase
         int tongLopHoc = tatCaLopHoc.Count;
 
         // Bước 4: Đếm nhóm
-        List<Nhom> tatCaNhom = await _db.Nhoms.ToListAsync();
+        List<Nhom> tatCaNhom = await _db.Nhoms
+            .Include(n => n.MaSinhViens)
+            .ToListAsync();
         int tongNhom = tatCaNhom.Count;
-        int soNhomDangHoatDong = 0;
-        foreach (Nhom nhom in tatCaNhom)
+        int nhomDangHoatDong = 0;
+        foreach (var nhom in tatCaNhom)
         {
-            LopHoc? lop = tatCaLopHoc.FirstOrDefault(l => l.MaLop == nhom.MaLop);
-            if (lop == null || lop.NgayKetThuc == null || lop.NgayKetThuc >= homNay)
-            {
-                soNhomDangHoatDong++;
-            }
+            if (nhom.MaSinhViens.Count > 0) nhomDangHoatDong++;
         }
 
         // Bước 5: Đếm nhiệm vụ
@@ -64,6 +60,9 @@ public class AdminController : ControllerBase
             if (nv.TrangThai == "Trễ hạn") treHan++;
         }
 
+        // Bước 6: Đếm tin nhắn
+        List<TinNhan> tatCaTinNhan = await _db.TinNhans.ToListAsync();
+        int tongTinNhan = tatCaTinNhan.Count;
 
         // Bước 7: Trả về kết quả
         return Ok(new
@@ -73,10 +72,10 @@ public class AdminController : ControllerBase
             totalStudents = soSinhVien,
             totalClasses = tongLopHoc,
             totalGroups = tongNhom,
-            activeGroups = soNhomDangHoatDong,
+            activeGroups = nhomDangHoatDong,
             pendingTasks = dangThucHien,
             overdueTasks = treHan,
-            
+            totalMessages = tongTinNhan
         });
     }
 }

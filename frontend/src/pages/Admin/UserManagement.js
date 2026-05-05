@@ -1,30 +1,41 @@
 // UserManagement.js
 import React, { useState, useEffect } from 'react';
-import { FaPlus, FaSearch, FaEdit, FaTimes, FaLock, FaKey } from 'react-icons/fa';
+import { FaPlus, FaSearch, FaEdit, FaTimes, FaLock, FaUnlock, FaKey } from 'react-icons/fa';
 import './styles/UserManagement.css';
 import userService from '../../services/userService';
 
 const UserManagement = () => {
   const [users, setUsers] = useState([]);
+  const [lopSinhVienList, setLopSinhVienList] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRole, setSelectedRole] = useState('all');
+
+  // Modal states
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
+
   const [importState, setImportState] = useState(1);
   const [importFile, setImportFile] = useState(null);
   const [importData, setImportData] = useState([]);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+
   const [newUser, setNewUser] = useState({
     maSo: '',
     tenDangNhap: '',
     hoTen: '',
     email: '',
     matKhau: '',
+    gioiTinh: 'Nam',
+    ngaySinh: '',
     maKhoa: '1',
     maVaiTro: '3',
     lopSinhVien: ''
   });
+
+  const [editUser, setEditUser] = useState(null);
 
   // Danh sách khoa từ bảng Khoa
   const khoaList = [
@@ -40,17 +51,6 @@ const UserManagement = () => {
     { MaVaiTro: 3, TenVaiTro: 'Sinh viên' },
   ];
 
-  const lopSinhVienList = [
-    'D20_TH01',
-    'D21_TH01',
-    'D21_TH02',
-    'D22_TH01',
-    'D22_TH02',
-    'D23_TH01',
-    'D23_TH02',
-    'D23_TH03',
-  ];
-
   const resetNewUser = () => {
     setNewUser({
       maSo: '',
@@ -58,6 +58,8 @@ const UserManagement = () => {
       hoTen: '',
       email: '',
       matKhau: '',
+      gioiTinh: 'Nam',
+      ngaySinh: '',
       maKhoa: '1',
       maVaiTro: '3',
       lopSinhVien: ''
@@ -75,6 +77,14 @@ const UserManagement = () => {
 
   const passwordExists = (password) =>
     users.some(user => user.matKhau === password || user.matKhauHash === password);
+
+  const normalizeUniqueValue = (value) => (value || '').trim().toLowerCase();
+
+  const hasDuplicateUserField = (fieldName, fieldValue, ignoredUserId = null) =>
+    users.some(user =>
+      user.maNguoiDung !== ignoredUserId &&
+      normalizeUniqueValue(user[fieldName]) === normalizeUniqueValue(fieldValue)
+    );
 
   const passwordContainsUserName = (password, userName) => {
     const normalizedUserName = normalizeText(userName);
@@ -130,8 +140,9 @@ const UserManagement = () => {
     setNewUser({ ...newUser, matKhau: generatedPassword });
   };
 
-  const handleRoleChange = (value) => {
-    const nextUser = { ...newUser, maVaiTro: value };
+  const handleRoleChange = (value, isEdit = false) => {
+    const targetUser = isEdit ? editUser : newUser;
+    const nextUser = { ...targetUser, maVaiTro: value };
 
     if (value === '1') {
       nextUser.maKhoa = '';
@@ -147,7 +158,11 @@ const UserManagement = () => {
       nextUser.maKhoa = nextUser.maKhoa || '1';
     }
 
-    setNewUser(nextUser);
+    if (isEdit) {
+      setEditUser(nextUser);
+    } else {
+      setNewUser(nextUser);
+    }
   };
 
   const fetchUsers = async () => {
@@ -164,8 +179,20 @@ const UserManagement = () => {
     }
   };
 
+  const fetchLopSinhViens = async () => {
+    try {
+      // Danh sách lớp hành chính lấy từ bảng LopSinhVien để không phải hardcode ở frontend.
+      const data = await userService.getAllLopSinhViens();
+      setLopSinhVienList(data);
+    } catch (err) {
+      setLopSinhVienList([]);
+      console.error('Error fetching LopSinhVien:', err);
+    }
+  };
+
   useEffect(() => {
     fetchUsers();
+    fetchLopSinhViens();
   }, []);
 
   // Lọc người dùng
@@ -177,20 +204,19 @@ const UserManagement = () => {
     return matchesSearch && matchesRole;
   });
 
-
-  const deleteUser = async (userId) => {
-    if (window.confirm('Bạn có chắc muốn khóa (xóa mềm) người dùng này?')) {
+  const toggleStatus = async (userId, currentStatus) => {
+    const actionText = currentStatus ? 'khóa' : 'mở khóa';
+    if (window.confirm(`Bạn có chắc muốn ${actionText} người dùng này?`)) {
       try {
-        await userService.deleteUser(userId);
-        // Xóa mềm -> Đổi trạng thái thành false
+        await userService.toggleUserStatus(userId);
         setUsers(users.map(user =>
           user.maNguoiDung === userId
-            ? { ...user, dangHoatDong: false }
+            ? { ...user, dangHoatDong: !currentStatus }
             : user
         ));
         setError('');
       } catch (err) {
-        setError('Lỗi khóa người dùng: ' + (err.message || 'Lỗi server'));
+        alert('Lỗi khóa người dùng: ' + (err.message || 'Lỗi server'));
         console.error('Error deleting user:', err);
       }
     }
@@ -208,7 +234,6 @@ const UserManagement = () => {
       alert('Vui lòng chọn file Excel!');
       return;
     }
-    // Giả lập đọc 5 dòng đầu hợp lệ
     const mockPreviewData = [
       { maSo: 'SV001', hoTen: 'Nguyễn Văn A', email: 'nva@stu.edu.vn' },
       { maSo: 'SV002', hoTen: 'Trần Thị B', email: 'ttb@stu.edu.vn' },
@@ -219,7 +244,6 @@ const UserManagement = () => {
   };
 
   const handleImport = async () => {
-    // API call import here (TODO)
     alert('Import thành công (Giả lập Backend gửi mail qua Gmail SMTP cho sinh viên)');
     setShowImportModal(false);
     setImportState(1);
@@ -235,12 +259,33 @@ const UserManagement = () => {
   };
 
   const handleAddUser = async () => {
-    if (!newUser.maSo || !newUser.tenDangNhap || !newUser.hoTen || !newUser.email || !newUser.matKhau) {
-      alert('Vui lòng nhập đầy đủ thông tin!');
+    const maSo = newUser.maSo.trim();
+    const tenDangNhap = newUser.tenDangNhap.trim();
+    const hoTen = newUser.hoTen.trim();
+    const email = newUser.email.trim();
+    const matKhau = newUser.matKhau.trim();
+
+    if (!maSo || !tenDangNhap || !hoTen || !email || !matKhau) {
+      alert('Vui lòng nhập đầy đủ thông tin bắt buộc!');
       return;
     }
 
-    if (!isValidEmail(newUser.email)) {
+    if (hasDuplicateUserField('maSo', maSo)) {
+      alert('Mã số này đã tồn tại trong hệ thống!');
+      return;
+    }
+
+    if (hasDuplicateUserField('tenDangNhap', tenDangNhap)) {
+      alert('Tên đăng nhập này đã được sử dụng!');
+      return;
+    }
+
+    if (hasDuplicateUserField('email', email)) {
+      alert('Email này đã được sử dụng!');
+      return;
+    }
+
+    if (!isValidEmail(email)) {
       alert('Email không đúng định dạng. Vui lòng kiểm tra lại!');
       return;
     }
@@ -255,56 +300,125 @@ const UserManagement = () => {
       return;
     }
 
-    if (/\s/.test(newUser.matKhau)) {
+    if (/\s/.test(matKhau)) {
       alert('Mật khẩu không được chứa khoảng trắng!');
       return;
     }
 
-    if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*]).{8,12}$/.test(newUser.matKhau)) {
+    if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*]).{8,12}$/.test(matKhau)) {
       alert('Mật khẩu phải dài 8-12 ký tự, có chữ hoa, chữ thường, số và ký tự đặc biệt.');
       return;
     }
 
-    if ([newUser.tenDangNhap, newUser.hoTen, newUser.maSo].some(name => passwordContainsUserName(newUser.matKhau, name))) {
+    if ([tenDangNhap, hoTen, maSo].some(name => passwordContainsUserName(matKhau, name))) {
       alert('Mật khẩu không được chứa tên hoặc mã số của người dùng!');
       return;
     }
 
-    if (passwordExists(newUser.matKhau)) {
+    if (passwordExists(matKhau)) {
       alert('Mật khẩu không được trùng với mật khẩu của tài khoản khác!');
       return;
     }
 
     try {
-      const response = await fetch('http://localhost:5186/api/nguoidung', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          maSo: newUser.maSo,
-          tenDangNhap: newUser.tenDangNhap,
-          matKhau: newUser.matKhau,
-          hoTen: newUser.hoTen,
-          email: newUser.email,
-          maKhoa: newUser.maKhoa ? parseInt(newUser.maKhoa) : 0,
-          maVaiTro: parseInt(newUser.maVaiTro),
-          lopSinhVien: newUser.maVaiTro === '3' ? newUser.lopSinhVien : null
-        })
+      await userService.createUser({
+        maSo,
+        tenDangNhap,
+        matKhau,
+        hoTen,
+        email,
+        gioiTinh: newUser.gioiTinh === 'Nam' ? true : false,
+        ngaySinh: newUser.ngaySinh ? newUser.ngaySinh : null,
+        maKhoa: newUser.maKhoa ? parseInt(newUser.maKhoa) : 0,
+        maVaiTro: parseInt(newUser.maVaiTro),
+        lopSinhVien: newUser.maVaiTro === '3' ? newUser.lopSinhVien : null
       });
 
-      if (response.ok) {
-        alert('Thêm người dùng thành công!');
-        fetchUsers(); // Lấy lại danh sách mới
-        resetNewUser();
-        setShowAddModal(false);
-      } else {
-        const errorData = await response.json();
-        alert('Lỗi: ' + (errorData.thongBao || 'Không thể thêm người dùng'));
-      }
-    } catch (error) {
-      console.error('Lỗi gọi API thêm người dùng:', error);
-      alert('Lỗi kết nối máy chủ');
+      alert('Thêm người dùng thành công!');
+      fetchUsers();
+      resetNewUser();
+      setShowAddModal(false);
+    } catch (err) {
+      const errorMsg = err.response?.data?.thongBao || err.message || 'Không thể thêm người dùng';
+      alert('Lỗi: ' + errorMsg);
+      console.error('Lỗi gọi API thêm người dùng:', err);
+    }
+  };
+
+  const handleEditClick = (user) => {
+    setEditUser({
+      ...user,
+      maVaiTro: user.maVaiTro.toString(),
+      maKhoa: user.maKhoa ? user.maKhoa.toString() : '1',
+      gioiTinh: user.gioiTinh === true ? 'Nam' : user.gioiTinh === false ? 'Nữ' : 'Nam',
+      ngaySinh: user.ngaySinh || '',
+      lopSinhVien: user.lopSinhVien || ''
+    });
+    setShowEditModal(true);
+  };
+
+  const handleUpdateUser = async () => {
+    const maSo = editUser.maSo.trim();
+    const tenDangNhap = editUser.tenDangNhap.trim();
+    const hoTen = editUser.hoTen.trim();
+    const email = editUser.email.trim();
+
+    if (!maSo || !tenDangNhap || !hoTen || !email) {
+      alert('Vui lòng nhập đầy đủ thông tin bắt buộc!');
+      return;
+    }
+
+    if (hasDuplicateUserField('maSo', maSo, editUser.maNguoiDung)) {
+      alert('Mã số này đã tồn tại trong hệ thống!');
+      return;
+    }
+
+    if (hasDuplicateUserField('tenDangNhap', tenDangNhap, editUser.maNguoiDung)) {
+      alert('Tên đăng nhập này đã được sử dụng!');
+      return;
+    }
+
+    if (hasDuplicateUserField('email', email, editUser.maNguoiDung)) {
+      alert('Email này đã được sử dụng!');
+      return;
+    }
+
+    if (!isValidEmail(email)) {
+      alert('Email không đúng định dạng. Vui lòng kiểm tra lại!');
+      return;
+    }
+
+    if ((editUser.maVaiTro === '2' || editUser.maVaiTro === '3') && !editUser.maKhoa) {
+      alert('Vui lòng chọn khoa cho tài khoản giảng viên hoặc sinh viên!');
+      return;
+    }
+
+    if (editUser.maVaiTro === '3' && !editUser.lopSinhVien) {
+      alert('Vui lòng chọn lớp sinh viên!');
+      return;
+    }
+
+    try {
+      // Gửi đúng body mà PUT /api/nguoidung/{id} đang nhận ở backend.
+      await userService.updateUser(editUser.maNguoiDung, {
+        maSo,
+        tenDangNhap,
+        hoTen,
+        email,
+        gioiTinh: editUser.gioiTinh === 'Nam' ? true : false,
+        ngaySinh: editUser.ngaySinh ? editUser.ngaySinh : null,
+        maKhoa: editUser.maKhoa ? parseInt(editUser.maKhoa) : 0,
+        maVaiTro: parseInt(editUser.maVaiTro),
+        lopSinhVien: editUser.maVaiTro === '3' ? editUser.lopSinhVien : null
+      });
+
+      alert('Cập nhật người dùng thành công!');
+      fetchUsers();
+      setShowEditModal(false);
+    } catch (err) {
+      const errorMsg = err.response?.data?.thongBao || err.message || 'Không thể cập nhật người dùng';
+      alert('Lỗi: ' + errorMsg);
+      console.error('Lỗi gọi API cập nhật người dùng:', err);
     }
   };
 
@@ -372,6 +486,8 @@ const UserManagement = () => {
                 <th>Tên đăng nhập</th>
                 <th>Họ tên</th>
                 <th>Email</th>
+                <th>Giới tính</th>
+                <th>Ngày sinh</th>
                 <th>Vai trò</th>
                 <th>Trạng thái</th>
                 <th>Thao tác</th>
@@ -384,6 +500,8 @@ const UserManagement = () => {
                   <td>{user.tenDangNhap}</td>
                   <td>{user.hoTen}</td>
                   <td>{user.email}</td>
+                  <td>{user.gioiTinh === true ? 'Nam' : user.gioiTinh === false ? 'Nữ' : '-'}</td>
+                  <td>{user.ngaySinh || '-'}</td>
                   <td>
                     <span className={`role-badge-modern ${user.maVaiTro === 1 ? 'admin' : user.maVaiTro === 2 ? 'teacher' : 'student'}`}>
                       {user.tenVaiTro}
@@ -395,21 +513,31 @@ const UserManagement = () => {
                     </span>
                   </td>
                   <td className="action-cells">
-                    <button className="action-btn edit" title="Sửa">
+                    <button className="action-btn edit" title="Sửa" onClick={() => handleEditClick(user)}>
                       <FaEdit />
                     </button>
-                    <button className="action-btn delete" title="Khóa/Xóa mềm" onClick={() => deleteUser(user.maNguoiDung)}>
-                      <FaLock />
+                    <button
+                      className={`action-btn ${user.dangHoatDong ? 'delete' : 'unlock'}`}
+                      style={!user.dangHoatDong ? { background: '#dcfce7', color: '#16a34a' } : {}}
+                      title={user.dangHoatDong ? "Khóa tài khoản" : "Mở khóa tài khoản"}
+                      onClick={() => toggleStatus(user.maNguoiDung, user.dangHoatDong)}
+                    >
+                      {user.dangHoatDong ? <FaLock /> : <FaUnlock />}
                     </button>
                   </td>
                 </tr>
               ))}
+              {filteredUsers.length === 0 && (
+                <tr>
+                  <td colSpan="9" style={{ textAlign: 'center', padding: '30px' }}>Không tìm thấy người dùng nào</td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
 
         <div className="table-footer">
-          <span>Hiển thị {filteredUsers.length} / {users.length} người dùng (từ bảng NguoiDung)</span>
+          <span>Hiển thị {filteredUsers.length} / {users.length} người dùng</span>
         </div>
       </div>
 
@@ -418,7 +546,7 @@ const UserManagement = () => {
         <div className="modal-overlay" onClick={() => setShowAddModal(false)}>
           <div className="modal-container" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h3>Thêm người dùng mới vào bảng NguoiDung</h3>
+              <h3>Thêm người dùng mới</h3>
               <button className="modal-close" onClick={() => setShowAddModal(false)}>
                 <FaTimes />
               </button>
@@ -451,6 +579,28 @@ const UserManagement = () => {
                   onChange={(e) => setNewUser({ ...newUser, hoTen: e.target.value })}
                 />
               </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                <div className="form-group">
+                  <label>Giới tính</label>
+                  <select
+                    value={newUser.gioiTinh}
+                    onChange={(e) => setNewUser({ ...newUser, gioiTinh: e.target.value })}
+                  >
+                    <option value="Nam">Nam</option>
+                    <option value="Nữ">Nữ</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Ngày sinh</label>
+                  <input
+                    type="date"
+                    value={newUser.ngaySinh}
+                    onChange={(e) => setNewUser({ ...newUser, ngaySinh: e.target.value })}
+                  />
+                </div>
+              </div>
+
               <div className="form-group">
                 <label>Email <span className="required">*</span></label>
                 <input
@@ -474,16 +624,17 @@ const UserManagement = () => {
                     onChange={(e) => setNewUser({ ...newUser, matKhau: e.target.value })}
                   />
                   <button type="button" className="btn-random-password" onClick={handleGeneratePassword}>
-                    <FaKey /> Mật khẩu ngẫu nhiên
+                    <FaKey /> Ngẫu nhiên
                   </button>
                 </div>
-                <span className="field-hint">8-12 ký tự, có chữ hoa, chữ thường, số, ký tự đặc biệt và không có khoảng trắng.</span>
+                <span className="field-hint">8-12 ký tự, có chữ hoa, chữ thường, số, ký tự đặc biệt.</span>
               </div>
+
               <div className="form-group">
-                <label>Vai trò (tham chiếu bảng VaiTro) <span className="required">*</span></label>
+                <label>Vai trò <span className="required">*</span></label>
                 <select
                   value={newUser.maVaiTro}
-                  onChange={(e) => handleRoleChange(e.target.value)}
+                  onChange={(e) => handleRoleChange(e.target.value, false)}
                 >
                   {vaiTroList.map(role => (
                     <option key={role.MaVaiTro} value={role.MaVaiTro}>{role.TenVaiTro}</option>
@@ -491,7 +642,7 @@ const UserManagement = () => {
                 </select>
               </div>
               <div className="form-group">
-                <label>Khoa (tham chiếu bảng Khoa)</label>
+                <label>Khoa</label>
                 <select
                   value={newUser.maKhoa}
                   disabled={newUser.maVaiTro === '1'}
@@ -512,18 +663,136 @@ const UserManagement = () => {
                 >
                   <option value="">Không thuộc lớp sinh viên</option>
                   {lopSinhVienList.map(lop => (
-                    <option key={lop} value={lop}>{lop}</option>
+                    <option key={lop.maLopSinhVien} value={lop.maLopSinhVien}>{lop.tenLopSinhVien}</option>
                   ))}
                 </select>
               </div>
             </div>
             <div className="modal-footer">
               <button className="btn-cancel" onClick={() => setShowAddModal(false)}>Hủy</button>
-              <button className="btn-save" onClick={handleAddUser}>Thêm vào NguoiDung</button>
+              <button className="btn-save" onClick={handleAddUser}>Thêm mới</button>
             </div>
           </div>
         </div>
       )}
+
+      {/* Modal sửa người dùng */}
+      {showEditModal && editUser && (
+        <div className="modal-overlay" onClick={() => setShowEditModal(false)}>
+          <div className="modal-container" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Cập nhật thông tin: {editUser.maSo}</h3>
+              <button className="modal-close" onClick={() => setShowEditModal(false)}>
+                <FaTimes />
+              </button>
+            </div>
+            <div className="modal-body">
+              <div className="form-group">
+                <label>Mã số <span className="required">*</span></label>
+                <input
+                  type="text"
+                  placeholder="VD: DH52200320 hoặc GV001"
+                  value={editUser.maSo}
+                  onChange={(e) => setEditUser({ ...editUser, maSo: e.target.value })}
+                />
+              </div>
+              <div className="form-group">
+                <label>Tên đăng nhập <span className="required">*</span></label>
+                <input
+                  type="text"
+                  placeholder="Username"
+                  value={editUser.tenDangNhap}
+                  onChange={(e) => setEditUser({ ...editUser, tenDangNhap: e.target.value })}
+                />
+              </div>
+              <div className="form-group">
+                <label>Họ và tên <span className="required">*</span></label>
+                <input
+                  type="text"
+                  placeholder="Nhập họ và tên"
+                  value={editUser.hoTen}
+                  onChange={(e) => setEditUser({ ...editUser, hoTen: e.target.value })}
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                <div className="form-group">
+                  <label>Giới tính</label>
+                  <select
+                    value={editUser.gioiTinh}
+                    onChange={(e) => setEditUser({ ...editUser, gioiTinh: e.target.value })}
+                  >
+                    <option value="Nam">Nam</option>
+                    <option value="Nữ">Nữ</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Ngày sinh</label>
+                  <input
+                    type="date"
+                    value={editUser.ngaySinh}
+                    onChange={(e) => setEditUser({ ...editUser, ngaySinh: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label>Email <span className="required">*</span></label>
+                <input
+                  type="email"
+                  placeholder="example@stu.edu.vn"
+                  className={editUser.email && !isValidEmail(editUser.email) ? 'input-error' : ''}
+                  value={editUser.email}
+                  onChange={(e) => setEditUser({ ...editUser, email: e.target.value })}
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Vai trò <span className="required">*</span></label>
+                <select
+                  value={editUser.maVaiTro}
+                  onChange={(e) => handleRoleChange(e.target.value, true)}
+                >
+                  {vaiTroList.map(role => (
+                    <option key={role.MaVaiTro} value={role.MaVaiTro}>{role.TenVaiTro}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Khoa</label>
+                <select
+                  value={editUser.maKhoa}
+                  disabled={editUser.maVaiTro === '1'}
+                  onChange={(e) => setEditUser({ ...editUser, maKhoa: e.target.value })}
+                >
+                  <option value="">Không thuộc khoa</option>
+                  {khoaList.map(khoa => (
+                    <option key={khoa.MaKhoa} value={khoa.MaKhoa}>{khoa.TenKhoa}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Lớp sinh viên</label>
+                <select
+                  value={editUser.lopSinhVien}
+                  disabled={editUser.maVaiTro !== '3'}
+                  onChange={(e) => setEditUser({ ...editUser, lopSinhVien: e.target.value })}
+                >
+                  <option value="">Không thuộc lớp sinh viên</option>
+                  {lopSinhVienList.map(lop => (
+                    <option key={lop.maLopSinhVien} value={lop.maLopSinhVien}>{lop.tenLopSinhVien}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn-cancel" onClick={() => setShowEditModal(false)}>Hủy</button>
+              <button className="btn-save" onClick={handleUpdateUser}>Lưu thay đổi</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Modal Import Excel */}
       {showImportModal && (
         <div className="modal-overlay" onClick={closeImportModal}>
@@ -611,3 +880,4 @@ const UserManagement = () => {
 };
 
 export default UserManagement;
+

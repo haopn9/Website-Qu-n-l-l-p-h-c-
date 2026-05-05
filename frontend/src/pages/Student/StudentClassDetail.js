@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   FaArrowLeft,
@@ -10,6 +10,7 @@ import {
   FaUsers,
 } from 'react-icons/fa';
 import './StudentClassDetail.css';
+import classService from '../../services/classService';
 
 const mockClassData = {
   1: {
@@ -104,6 +105,45 @@ const tabs = [
   { key: 'groups', label: 'Nhóm', icon: <FaLayerGroup /> },
   { key: 'topics', label: 'Đề tài', icon: <FaClipboardList /> },
 ];
+
+const formatDateVN = (value) => {
+  if (!value) return '';
+  const [year, month, day] = value.substring(0, 10).split('-');
+  return day && month && year ? `${day}/${month}/${year}` : value;
+};
+
+const mapApiClassDetail = (data) => ({
+  maLop: data.maLop,
+  maLopHoc: data.maLopHoc,
+  tenLop: data.tenLop,
+  monHoc: data.tenLop,
+  tenGV: data.tenGiangVien,
+  hocKyNamHoc: data.tenHocKy || `HK ${data.maHocKy}`,
+  ngayBatDau: formatDateVN(data.ngayBatDau),
+  ngayKetThuc: formatDateVN(data.ngayKetThuc),
+  mauSac: '#378add',
+  sinhVien: (data.danhSachSinhVien || []).map((sv) => ({
+    mssv: sv.maSo,
+    hoTen: sv.hoTen,
+    lop: sv.lopSinhVien || 'Chưa cập nhật'
+  })),
+  nhom: (data.danhSachNhom || []).map((nhom) => ({
+    tenNhom: nhom.tenNhom,
+    truongNhom: 'Chưa có',
+    soThanhVien: nhom.soThanhVienToiDa || 0,
+    deTai: 'Chưa đăng ký đề tài'
+  })),
+  deTai: (data.danhSachDeTai || []).map((deTai) => ({
+    tenDeTai: deTai.tenDeTai,
+    moTa: deTai.moTa || 'Chưa có mô tả',
+    sanPhamKyVong: deTai.sanPhamKyVong || 'Chưa cập nhật',
+    ngayBatDau: formatDateVN(deTai.ngayBatDau),
+    ngayKetThuc: formatDateVN(deTai.ngayKetThuc),
+    tepDinhKem: '',
+    nhomDangKy: 'Chưa có',
+    trangThai: 'Chưa đăng ký'
+  }))
+});
 
 function StatusBadge({ status }) {
   const statusClass = {
@@ -315,13 +355,37 @@ const StudentClassDetail = () => {
   const { maLop } = useParams();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('info');
-  const lopHoc = mockClassData[Number(maLop)];
+  const [lopHoc, setLopHoc] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  if (!lopHoc) {
+  useEffect(() => {
+    const fetchClassDetail = async () => {
+      try {
+        setLoading(true);
+        const data = await classService.getClassById(maLop);
+        setLopHoc(mapApiClassDetail(data));
+        setError('');
+      } catch (err) {
+        setError(err.message || 'Không thể tải chi tiết lớp học');
+        setLopHoc(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchClassDetail();
+  }, [maLop]);
+
+  if (loading) {
+    return <div className="loading-state">Đang tải chi tiết lớp học...</div>;
+  }
+
+  if (error || !lopHoc) {
     return (
       <div className="cd-wrap">
         <div className="cd-not-found">
-          <p>Không tìm thấy lớp học.</p>
+          <p>{error || 'Không tìm thấy lớp học.'}</p>
           <button className="cd-solid-btn" onClick={() => navigate('/student/classes')}>
             Quay lại lớp học
           </button>

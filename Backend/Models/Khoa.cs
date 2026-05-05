@@ -11,5 +11,7 @@ public partial class Khoa
 
     public string? KyHieuKhoa { get; set; }
 
+    public virtual ICollection<LopSinhVien> LopSinhViens { get; set; } = new List<LopSinhVien>();
+
     public virtual ICollection<NguoiDung> NguoiDungs { get; set; } = new List<NguoiDung>();
 }

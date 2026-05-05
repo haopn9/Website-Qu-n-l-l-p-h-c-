@@ -22,83 +22,69 @@ public class XacThucController : ControllerBase
     }
 
     // =============================================
-    // ĐĂNG NHẬP
-    // POST: api/xacthuc/dangnhap
-    // =============================================
-    [HttpPost("dangnhap")]
-    public async Task<IActionResult> DangNhap([FromBody] DangNhapDto dto)
+// ĐĂNG NHẬP
+// POST: api/xacthuc/dangnhap
+// =============================================
+[HttpPost("dangnhap")]
+public async Task<IActionResult> DangNhap([FromBody] DangNhapDto dto)
+{
+    // Bước 1: Tìm người dùng theo tên đăng nhập + đang hoạt động 
+    NguoiDung? nguoiDung = await _db.NguoiDungs
+        .Include(u => u.MaVaiTroNavigation)
+        .FirstOrDefaultAsync(u => u.TenDangNhap == dto.TenDangNhap && u.DangHoatDong == true);
+
+    // Bước 2: Kiểm tra có tìm thấy không
+    if (nguoiDung == null)
     {
-        dto.TenDangNhap = dto.TenDangNhap.Trim();
-        dto.MatKhau = dto.MatKhau.Trim();
-
-        // Bước 1: Lấy tất cả người dùng ra
-        List<NguoiDung> tatCaNguoiDung = await _db.NguoiDungs
-            .Include(u => u.MaVaiTroNavigation)
-            .Include(u => u.MaKhoaNavigation)
-            .ToListAsync();
-
-        // Bước 2: Tìm người dùng theo tên đăng nhập
-        NguoiDung? nguoiDung = null;
-        foreach (NguoiDung u in tatCaNguoiDung)
-        {
-            if (u.TenDangNhap == dto.TenDangNhap && u.DangHoatDong == true)
-            {
-                nguoiDung = u;
-            }
-        }
-
-        // Bước 3: Kiểm tra có tìm thấy không
-        if (nguoiDung == null)
-        {
-            return Unauthorized(new { thongBao = "Sai tài khoản hoặc mật khẩu" });
-        }
-
-        // Bước 4: Kiểm tra mật khẩu
-        if (nguoiDung.MatKhauHash != dto.MatKhau)
-        {
-            return Unauthorized(new { thongBao = "Sai tài khoản hoặc mật khẩu" });
-        }
-
-        // Bước 5: Tạo token
-        string secretKey = _config["AppSettings:Token"]!;
-        SymmetricSecurityKey key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
-        SigningCredentials credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-
-        List<Claim> danhSachClaim = new List<Claim>();
-        danhSachClaim.Add(new Claim("maNguoiDung", nguoiDung.MaNguoiDung.ToString()));
-        danhSachClaim.Add(new Claim("maVaiTro", nguoiDung.MaVaiTro.ToString()));
-        danhSachClaim.Add(new Claim("hoTen", nguoiDung.HoTen));
-
-        JwtSecurityToken tokenObject = new JwtSecurityToken(
-            claims: danhSachClaim,
-            expires: DateTime.Now.AddHours(24),
-            signingCredentials: credentials
-        );
-
-        string tokenString = new JwtSecurityTokenHandler().WriteToken(tokenObject);
-
-        // Bước 6: Lấy tên vai trò
-        string tenVaiTro = "";
-        if (nguoiDung.MaVaiTroNavigation != null)
-        {
-            tenVaiTro = nguoiDung.MaVaiTroNavigation.TenVaiTro;
-        }
-
-        // Bước 7: Trả về kết quả
-        return Ok(new
-        {
-            token = tokenString,
-            maNguoiDung = nguoiDung.MaNguoiDung,
-            maSo = nguoiDung.MaSo,
-            hoTen = nguoiDung.HoTen,
-            email = nguoiDung.Email,
-            maKhoa = nguoiDung.MaKhoa,
-            tenKhoa = nguoiDung.MaKhoaNavigation != null ? nguoiDung.MaKhoaNavigation.TenKhoa : null,
-            lopSinhVien = nguoiDung.LopSinhVien,
-            maVaiTro = nguoiDung.MaVaiTro,
-            tenVaiTro = tenVaiTro
-        });
+        return Unauthorized(new { thongBao = "Sai tài khoản hoặc mật khẩu" });
     }
+
+    // Bước 3: Kiểm tra mật khẩu 
+    if (nguoiDung.MatKhauHash != dto.MatKhau)
+    {
+        return Unauthorized(new { thongBao = "Sai tài khoản hoặc mật khẩu" });
+    }
+
+    // Bước 4: Tạo token
+    string secretKey = _config["AppSettings:Token"]!;
+    SymmetricSecurityKey key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
+    SigningCredentials credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+    List<Claim> danhSachClaim = new List<Claim>();
+    danhSachClaim.Add(new Claim("maNguoiDung", nguoiDung.MaNguoiDung.ToString()));
+    danhSachClaim.Add(new Claim("maVaiTro", nguoiDung.MaVaiTro.ToString()));
+    danhSachClaim.Add(new Claim("hoTen", nguoiDung.HoTen));
+
+    JwtSecurityToken tokenObject = new JwtSecurityToken(
+        claims: danhSachClaim,
+        expires: DateTime.Now.AddHours(24),
+        signingCredentials: credentials
+    );
+
+    string tokenString = new JwtSecurityTokenHandler().WriteToken(tokenObject);
+
+    // Bước 5: Lấy tên vai trò
+    string tenVaiTro = "";
+    if (nguoiDung.MaVaiTroNavigation != null)
+    {
+        tenVaiTro = nguoiDung.MaVaiTroNavigation.TenVaiTro;
+    }
+
+    // Bước 6: Trả về dữ liệu đủ cho layout/sidebar/profile dùng maSo/anhDaiDien
+    return Ok(new
+    {
+        token = tokenString,
+        maNguoiDung = nguoiDung.MaNguoiDung,
+        maSo = nguoiDung.MaSo,
+        tenDangNhap = nguoiDung.TenDangNhap,
+        hoTen = nguoiDung.HoTen,
+        anhDaiDien = nguoiDung.AnhDaiDien,
+        email = nguoiDung.Email,
+        lopSinhVien = nguoiDung.LopSinhVien,
+        maVaiTro = nguoiDung.MaVaiTro,
+        tenVaiTro = tenVaiTro
+    });
+}
 }
 
 // =============================================
