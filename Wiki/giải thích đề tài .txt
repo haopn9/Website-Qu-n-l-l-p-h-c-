@@ -1,0 +1,76 @@
+FLOW ĐỀ TÀI===========================================
+4. Tạo đề tài
+	4.1 giảng viên tạo ngân hàng đề tài gồm nhiều đề tài khác nhau
+	4.2 Phương thức giao đề tài theo 2 cách :
+		o	Chỉ định trực tiếp: Giảng viên gán một đề tài cụ thể cho một nhóm nhất định.
+		o	Đăng ký tự do: Giảng viên công bố danh sách đề tài và các nhóm trưởng sẽ thực hiện đăng ký theo nguyên tắc ưu tiên nhóm đăng ký sớm.
+GIẢI THÍCH CHI TIẾT VỀ FLOW===================================
+- giảng viên tạo ngân hàng đề tài gồm nhiều đề tài khác nhau
+	-> đề tài sẽ có 2 phương thức Chỉ định trực tiếp & Đăng ký tự do(mặc định)
+- nếu gv cho phép các nhóm Đăng ký tự do đề tài theo nguyên tắc ưu tiên nhóm đăng ký sớm.
+	-> nhóm đã chốt ds nhóm
+ 	-> nhóm trưởng sẽ đại diện nhóm đăng ký đề tài -> khi nhóm đã đăng ký thì không thể hủy đăng ký 
+- nếu gv chỉ định đề tài cho nhóm 
+	-> nhóm đã chốt ds nhóm
+	-> nhóm không quyền từ chối đề tài gv chỉ định
+	->nhóm trưởng không cần đại diện nhóm để đăng ký đề tài
+- còn phần nộp bài thì tui nghĩ nhóm demo trực tiếp cho gv xem 
+	-> website chỉ hỗ trợ gv xem đóng góp thành viên của nhóm từ đó chấm điểm đề tài nhóm
+GIẢI THÍCH VỀ TÍNH NĂNG =====================================
+1. tạo đề tài mới -> cho phép giảng viên tạo đề tài
+- tên đề tài 
+	-> bắt buộc không để trống 
+	-> giới hạn ký tự: 100 ký tự
+	-> thiết lập bộ đếm ký tự
+- Mô tả yêu cầu 
+	-> giới hạn ký tự : 255 ký tự
+	-> thiết lập bộ đếm ký tự
+-Sản phẩm kỳ vọng (Output)
+	-> giới hạn ký tự : 100 ký tự
+	-> thiết lập bộ đếm ký tự
+- lớp học
+ 	-> bắt buộc không để trống
+	-> chỉ hiện lớp môn học do gv tạo
+- Ngày bắt đầu & ngày kết thúc
+	-> định dạng "dd/mm/yyyy"
+	-> ngày kết thúc > ngày bắt đầu
+	-> ngày bắt đầu đề tài <= ngày bắt đầu lớp môn học do gv tạo
+	-> ngày kết thúc đề tài <= ngày kết thúc lớp môn học do gv tạo
+- tài liệu đính kèm 
+	-> tuân thủ theo dung lượng tệp tối đa & Định dạng tệp cho phép do admin thiết lập cho tài liệu đề tài
+	
+2 Phương thức giao đề tài
+- sau khi tạo đề tài thành công , phương thức "đăng ký tự do" là phương thức giao đề tài mặc định
+	-> 1 nhóm không thể đăng ký 2 hay nhiều đề tài khác nhau
+- nếu gv muốn chỉ định đề tài cho 1 nhóm , gv cập nhật thủ công phương thức giao đề tài -> chỉ định trực tiếp
+	-> không cho phép gv chỉ định 2 hay nhiều đề tài cho 1 nhóm 
+3. cập nhật thông tin đề tài
+	-> tuân thủ các rằng buộc giống tính năng "thêm đề tài"
+	-> cho phép gv cập nhật khi đề tài đã có nhóm hoặc đã chỉ định 1 nhóm
+4.Xóa đề tài 
+	-> gv xóa đề tài khi đề tài khi chưa có nhóm đăng ký hoặc gv chưa chỉ định nhóm
+GIẢI THÍCH VỀ VỀ UI========================================
+1. giảng viên - quản lý đề tài
+- khi giảng viên tạo 1 đề tài 
+	-> cập nhật thống kê
+	-> load được card đề tài
+	-> thêm phần UI phương thức giao đề tài hiện lên card đề tài
+2. sinh viên - lớp học của tôi
+	- khi sv vào xem chi tiết lớp học -> tab đề tài -> hiện ds đề tài -> cho phép sv xem chi tiết đề tài 
+	- tài liệu đính kèm cho phép sv tải về xem 
+3. sinh viên - nhóm học tập - nhóm của tôi
+	- dưới dòng text " xem thông tin [nhóm]" thêm dòng text "đề tài của nhóm : [tên đề tài] - button "xem chi tiết""
+	- cho phép sv xem chi tiết đề tài
+	- tài liệu đính kèm cho phép sv tải về xem 
+4. sinh viên (nhóm trưởng)- điều phối nhóm
+	- nhóm trưởng đại diện nhóm đăng ký đề tài / 1 lớp môn học
+	- chỉ hiện danh sách đề tài ở phương thức đăng ký tự do
+	- không hiện danh sách đề tài ở phương thức chỉ định nhóm
+	- nhóm trưởng đăng ký đề tài -> không thể hủy đăng ký đề tài 
+	- nhóm trưởng đăng ký đề tài lẫn nữa -> hiện thông báo "nhóm bạn đã đăng ký đề tài "
+5 . cập nhật thống kê về đề tài
+=========================================================================
+
+
+
+	

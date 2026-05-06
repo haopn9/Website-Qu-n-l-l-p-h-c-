@@ -250,7 +250,11 @@ public class LopHocController : ControllerBase
             .Include(l => l.MaHocKyNavigation)
             .Include(l => l.MaSinhViens)
             .Include(l => l.Nhoms)
+                .ThenInclude(n => n.MaSinhViens)
+            .Include(l => l.Nhoms)
+                .ThenInclude(n => n.MaDeTaiNavigation)
             .Include(l => l.DeTais)
+                .ThenInclude(dt => dt.Nhoms)
             .FirstOrDefaultAsync(l => l.MaLop == id);
 
         if (lop == null)
@@ -626,8 +630,11 @@ public class LopHocController : ControllerBase
                     tenDeTai = dt.TenDeTai,
                     moTa = dt.MoTa,
                     sanPhamKyVong = dt.SanPhamKyVong,
-                    ngayBatDau = dt.NgayBatDau,
-                    ngayKetThuc = dt.NgayKetThuc
+                    ngayBatDau = dt.NgayBatDau?.ToString("yyyy-MM-dd"),
+                    ngayKetThuc = dt.NgayKetThuc?.ToString("yyyy-MM-dd"),
+                    phuongThucGiao = dt.PhuongThucGiao ?? "Đăng ký tự do",
+                    daCoNhom = dt.Nhoms.Any(),
+                    tenNhom = dt.Nhoms.FirstOrDefault()?.TenNhom ?? ""
                 })
                 .ToList()
         };

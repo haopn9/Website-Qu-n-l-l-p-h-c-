@@ -171,15 +171,27 @@ public class NhomController : ControllerBase
     // POST: api/nhom
     // =============================================
     [HttpPost]
+    [Authorize]
     public async Task<IActionResult> TaoNhom([FromBody] TaoNhomDto dto)
     {
+        var claimMaNguoiDung = User.FindFirstValue("maNguoiDung");
+        if (string.IsNullOrEmpty(claimMaNguoiDung)) return Unauthorized();
+        int maNguoiDung = int.Parse(claimMaNguoiDung);
+
         // Bước 1: Tạo object nhóm mới
         Nhom nhomMoi = new Nhom();
         nhomMoi.TenNhom = dto.TenNhom;
         nhomMoi.MaLop = dto.MaLop;
         nhomMoi.SoThanhVienToiDa = dto.SoThanhVienToiDa;
+        nhomMoi.MaNhomTruong = maNguoiDung; // Người tạo là nhóm trưởng
 
-        // Bước 2: Thêm vào database
+        // Bước 2: Thêm người tạo vào danh sách thành viên
+        var creator = await _db.NguoiDungs.FindAsync(maNguoiDung);
+        if (creator != null)
+        {
+            nhomMoi.MaSinhViens.Add(creator);
+        }
+
         _db.Nhoms.Add(nhomMoi);
 
         // Bước 3: Lưu lại
@@ -355,10 +367,7 @@ public class NhomController : ControllerBase
             return NotFound(new { thongBao = "Không tìm thấy nhóm" });
         }
 
-        if (nhom.MaLopNavigation != null && nhom.MaLopNavigation.ChoPhepDangKyNhom == true)
-        {
-            return BadRequest(new { thongBao = "Giảng viên chưa chốt nhóm, không thể chỉ định nhóm trưởng lúc này." });
-        }
+        // Cho phép đặt nhóm trưởng bất cứ lúc nào để sv có thể vào điều phối task
 
         // Bước 3: Cập nhật nhóm trưởng
         nhom.MaNhomTruong = dto.MaSinhVien;

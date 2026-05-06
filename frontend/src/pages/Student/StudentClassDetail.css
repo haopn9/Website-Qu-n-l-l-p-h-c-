@@ -582,3 +582,30 @@
     flex-direction: column;
   }
 }
+
+.cd-register-hint {
+  font-size: 13px;
+  color: #c2410c;
+  background: #fff7ed;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-weight: 600;
+  border: 1px solid #ffedd5;
+}
+
+.cd-modal-cancel {
+  border: 1px solid #d9e0ec;
+  border-radius: 8px;
+  background: #fff;
+  color: #667085;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 9px 18px;
+  margin-right: 12px;
+}
+
+.cd-modal-cancel:hover {
+  background: #f8faff;
+  color: #152259;
+}

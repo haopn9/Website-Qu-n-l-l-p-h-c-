@@ -11,6 +11,8 @@ import {
 } from 'react-icons/fa';
 import './StudentClassDetail.css';
 import classService from '../../services/classService';
+import deTaiService from '../../services/deTaiService';
+import authService from '../../services/authService';
 
 const mockClassData = {
   1: {
@@ -128,20 +130,26 @@ const mapApiClassDetail = (data) => ({
     lop: sv.lopSinhVien || 'Chưa cập nhật'
   })),
   nhom: (data.danhSachNhom || []).map((nhom) => ({
+    maNhom: nhom.maNhom,
     tenNhom: nhom.tenNhom,
-    truongNhom: 'Chưa có',
-    soThanhVien: nhom.soThanhVienToiDa || 0,
-    deTai: 'Chưa đăng ký đề tài'
+    truongNhom: nhom.tenNhomTruong || 'Chưa có',
+    maNhomTruong: nhom.maNhomTruong,
+    soThanhVien: nhom.soThanhVienHienTai || 0,
+    soThanhVienToiDa: nhom.soThanhVienToiDa || 0,
+    deTai: nhom.tenDeTai || 'Chưa đăng ký đề tài'
   })),
   deTai: (data.danhSachDeTai || []).map((deTai) => ({
+    maDeTai: deTai.maDeTai,
     tenDeTai: deTai.tenDeTai,
     moTa: deTai.moTa || 'Chưa có mô tả',
     sanPhamKyVong: deTai.sanPhamKyVong || 'Chưa cập nhật',
     ngayBatDau: formatDateVN(deTai.ngayBatDau),
     ngayKetThuc: formatDateVN(deTai.ngayKetThuc),
-    tepDinhKem: '',
-    nhomDangKy: 'Chưa có',
-    trangThai: 'Chưa đăng ký'
+    tepDinhKem: deTai.tepDinhKem,
+    nhomDangKy: deTai.daCoNhom ? deTai.tenNhom : 'Chưa có',
+    trangThai: deTai.daCoNhom ? 'Đã đăng ký' : 'Chưa đăng ký',
+    daCoNhom: deTai.daCoNhom, // Cờ quan trọng
+    phuongThucGiao: deTai.phuongThucGiao || 'Đăng ký tự do'
   }))
 });
 
@@ -278,7 +286,38 @@ function GroupsTab({ groups }) {
   );
 }
 
-function TopicDetailModal({ topic, onClose }) {
+function TopicDetailModal({ topic, maLop, groups, onRegistered, onClose }) {
+  const user = authService.getCurrentUser();
+  const [loading, setLoading] = useState(false);
+
+  // Tìm xem SV hiện tại có phải là nhóm trưởng của bất kỳ nhóm nào trong lớp này không
+  const myGroup = groups.find(g => g.maNhomTruong === user?.maNguoiDung);
+  const isLeader = !!myGroup;
+
+  // Điều kiện hiện nút: Đề tài tự do VÀ chưa có nhóm nào nhận
+  const isFreeTopic = topic.phuongThucGiao === 'Đăng ký tự do';
+  const isAvailable = !topic.daCoNhom;
+  const canRegister = isFreeTopic && isAvailable;
+
+  const handleRegister = async () => {
+    if (!window.confirm(`Bạn có chắc muốn đăng ký đề tài: ${topic.tenDeTai}?`)) return;
+    
+    setLoading(true);
+    try {
+      await deTaiService.dangKyDeTai({
+        maDeTai: topic.maDeTai,
+        maLop: parseInt(maLop)
+      });
+      alert('Đăng ký đề tài thành công!');
+      onRegistered();
+      onClose();
+    } catch (error) {
+      alert('Lỗi đăng ký: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="cd-modal-overlay" onClick={onClose}>
       <div className="cd-modal" onClick={(event) => event.stopPropagation()}>
@@ -305,20 +344,30 @@ function TopicDetailModal({ topic, onClose }) {
             <span>Sản phẩm kỳ vọng</span>
             <p>{topic.sanPhamKyVong}</p>
           </div>
-          <div className="cd-detail-file">
-            <span>Tài liệu đính kèm</span>
-            <strong>{topic.tepDinhKem || 'Chưa có tài liệu đính kèm'}</strong>
-          </div>
         </div>
         <div className="cd-modal-footer">
-          <button className="cd-modal-primary" onClick={onClose}>Đã hiểu</button>
+          <button className="cd-modal-cancel" onClick={onClose}>Đóng</button>
+          
+          {canRegister && isLeader && (
+            <button 
+              className="cd-modal-primary" 
+              onClick={handleRegister}
+              disabled={loading}
+            >
+              {loading ? 'Đang đăng ký...' : 'Đăng ký đề tài cho nhóm'}
+            </button>
+          )}
+
+          {canRegister && !isLeader && (
+            <span className="cd-register-hint">Chỉ nhóm trưởng mới có quyền đăng ký đề tài này</span>
+          )}
         </div>
       </div>
     </div>
   );
 }
 
-function TopicsTab({ topics }) {
+function TopicsTab({ topics, groups, maLop, onRefresh }) {
   const [selectedTopic, setSelectedTopic] = useState(null);
 
   return (
@@ -326,7 +375,7 @@ function TopicsTab({ topics }) {
       <div className="cd-panel-title">Danh sách đề tài</div>
       <div className="cd-topic-list">
         {topics.map((topic) => (
-          <div className="cd-topic-item" key={topic.tenDeTai}>
+          <div className="cd-topic-item" key={topic.maDeTai}>
             <div className="cd-topic-main">
               <div>
                 <h3>{topic.tenDeTai}</h3>
@@ -345,7 +394,13 @@ function TopicsTab({ topics }) {
         ))}
       </div>
       {selectedTopic && (
-        <TopicDetailModal topic={selectedTopic} onClose={() => setSelectedTopic(null)} />
+        <TopicDetailModal 
+          topic={selectedTopic} 
+          maLop={maLop}
+          groups={groups}
+          onRegistered={onRefresh}
+          onClose={() => setSelectedTopic(null)} 
+        />
       )}
     </div>
   );
@@ -397,7 +452,17 @@ const StudentClassDetail = () => {
   const renderTabContent = () => {
     if (activeTab === 'students') return <StudentsTab students={lopHoc.sinhVien} />;
     if (activeTab === 'groups') return <GroupsTab groups={lopHoc.nhom} />;
-    if (activeTab === 'topics') return <TopicsTab topics={lopHoc.deTai} />;
+    if (activeTab === 'topics') return (
+      <TopicsTab 
+        topics={lopHoc.deTai} 
+        groups={lopHoc.nhom}
+        maLop={maLop} 
+        onRefresh={() => {
+          // Re-fetch data
+          classService.getClassById(maLop).then(data => setLopHoc(mapApiClassDetail(data)));
+        }} 
+      />
+    );
     return <InfoTab lopHoc={lopHoc} />;
   };
 

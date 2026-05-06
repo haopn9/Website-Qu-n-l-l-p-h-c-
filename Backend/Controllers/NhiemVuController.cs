@@ -1,9 +1,7 @@
 using Backend.Models;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.Linq;
-using System.Security.Claims;
 
 namespace Backend.Controllers;
 
@@ -28,24 +26,28 @@ public class NhiemVuController : ControllerBase
     {
         try
         {
-            var danhSachTask = await _db.NhiemVus
-                .Where(t => t.MaNhom == maNhom)
-                .Include(t => t.MaDeTaiNavigation)
+            List<NhiemVu> cacTasks = await _db.NhiemVus
                 .Include(t => t.MaNguoiDungs)
+                .Where(t => t.MaNhom == maNhom)
                 .ToListAsync();
 
-            var ketQua = danhSachTask.Select(t => new
+            var ketQua = cacTasks.Select(t => new
             {
                 maNhiemVu = t.MaNhiemVu,
                 tenNhiemVu = t.TenNhiemVu,
                 moTa = t.MoTa,
-                ngayBatDau = t.NgayBatDau?.ToString("yyyy-MM-dd"),
-                hanHoanThanh = t.HanHoanThanh?.ToString("yyyy-MM-dd"),
+                ngayBatDau = t.NgayBatDau,
+                hanHoanThanh = t.HanHoanThanh,
                 mucDoUuTien = t.MucDoUuTien,
-                trangThai = t.TrangThai,
+                trangThai = (t.TrangThai != "Hoàn thành" && t.HanHoanThanh.HasValue && t.HanHoanThanh.Value < DateTime.Now) ? "Trễ hạn" : t.TrangThai,
                 phanTramHoanThanh = t.PhanTramHoanThanh,
                 maDeTai = t.MaDeTai,
-                soThanhVienThamGia = t.MaNguoiDungs.Count
+                maNhom = t.MaNhom,
+                soThanhVienThamGia = t.MaNguoiDungs?.Count ?? 0,
+                maNguoiDungs = t.MaNguoiDungs?.Select(m => new { 
+                    maNguoiDung = m.MaNguoiDung, 
+                    hoTen = m.HoTen 
+                }).Cast<object>().ToList() ?? new List<object>()
             }).ToList();
 
             return Ok(ketQua);
@@ -57,7 +59,7 @@ public class NhiemVuController : ControllerBase
     }
 
     // =============================================
-    // CHI TIẾT TASK
+    // XEM CHI TIẾT TASK
     // GET: api/nhiemvu/{id}
     // =============================================
     [HttpGet("{id}")]
@@ -66,48 +68,17 @@ public class NhiemVuController : ControllerBase
         try
         {
             var task = await _db.NhiemVus
-                .Include(t => t.MaDeTaiNavigation)
-                .Include(t => t.MaNhomNavigation)
                 .Include(t => t.MaNguoiDungs)
                 .Include(t => t.LichSuNhiemVus)
+                .Include(t => t.TepDinhKems)
                 .FirstOrDefaultAsync(t => t.MaNhiemVu == id);
 
             if (task == null)
             {
-                return NotFound(new { message = "Không tìm thấy task" });
+                return NotFound(new { message = "Không tìm thấy nhiệm vụ" });
             }
 
-            var ketQua = new
-            {
-                maNhiemVu = task.MaNhiemVu,
-                tenNhiemVu = task.TenNhiemVu,
-                moTa = task.MoTa,
-                ngayBatDau = task.NgayBatDau?.ToString("yyyy-MM-dd"),
-                hanHoanThanh = task.HanHoanThanh?.ToString("yyyy-MM-dd"),
-                mucDoUuTien = task.MucDoUuTien,
-                trangThai = task.TrangThai,
-                phanTramHoanThanh = task.PhanTramHoanThanh,
-                maDeTai = task.MaDeTai,
-                maNhom = task.MaNhom,
-                thanhVienThamGia = task.MaNguoiDungs.Select(sv => new
-                {
-                    maNguoiDung = sv.MaNguoiDung,
-                    hoTen = sv.HoTen,
-                    email = sv.Email
-                }),
-                lichSuCapNhat = task.LichSuNhiemVus.Select(ls => new
-                {
-                    maLichSu = ls.MaLichSu,
-                    maNguoiCapNhat = ls.MaNguoiCapNhat,
-                    tenNguoiCapNhat = ls.MaNguoiCapNhatNavigation.HoTen,
-                    ngayCapNhat = ls.NgayCapNhat?.ToString("yyyy-MM-dd HH:mm"),
-                    trangThaiMoi = ls.TrangThaiMoi,
-                    phanTramMoi = ls.PhanTramMoi,
-                    ghiChu = ls.GhiChu
-                })
-            };
-
-            return Ok(ketQua);
+            return Ok(task);
         }
         catch (Exception ex)
         {
@@ -116,7 +87,7 @@ public class NhiemVuController : ControllerBase
     }
 
     // =============================================
-    // TẠO TASK MỚI (Giảng viên/Admin)
+    // TẠO TASK MỚI
     // POST: api/nhiemvu
     // =============================================
     [HttpPost]
@@ -141,6 +112,7 @@ public class NhiemVuController : ControllerBase
                 return BadRequest(new { message = "Nhóm không tồn tại" });
             }
 
+            // Kiểm tra MaDeTai nếu có
             if (dto.MaDeTai.HasValue)
             {
                 var deTai = await _db.DeTais.FindAsync(dto.MaDeTai.Value);
@@ -159,10 +131,23 @@ public class NhiemVuController : ControllerBase
                 NgayBatDau = dto.NgayBatDau,
                 HanHoanThanh = dto.HanHoanThanh,
                 MucDoUuTien = dto.MucDoUuTien?.Trim(),
-                TrangThai = "Chưa bắt đầu",
+                TrangThai = string.IsNullOrEmpty(dto.TrangThai) ? (dto.MaNguoiDungs != null && dto.MaNguoiDungs.Count > 0 ? "Đang thực hiện" : "Chưa bắt đầu") : dto.TrangThai,
                 PhanTramHoanThanh = 0,
-                NgayTao = DateTime.Now
+                NgayTao = DateTime.Now,
+                MaNguoiDungs = new List<NguoiDung>()
             };
+
+            // Giao cho thành viên
+            if (dto.MaNguoiDungs != null && dto.MaNguoiDungs.Count > 0)
+            {
+                var thanhViens = await _db.NguoiDungs
+                    .Where(u => dto.MaNguoiDungs.Contains(u.MaNguoiDung))
+                    .ToListAsync();
+                foreach (var tv in thanhViens)
+                {
+                    nhiemVu.MaNguoiDungs.Add(tv);
+                }
+            }
 
             _db.NhiemVus.Add(nhiemVu);
             await _db.SaveChangesAsync();
@@ -369,6 +354,10 @@ public class NhiemVuController : ControllerBase
             var trangThaiCu = task.TrangThai;
             task.TrangThai = "Làm lại";
             task.PhanTramHoanThanh = 0;
+            if (dto.MoiHanHoanThanh.HasValue)
+            {
+                task.HanHoanThanh = dto.MoiHanHoanThanh.Value;
+            }
 
             await _db.SaveChangesAsync();
 
@@ -444,6 +433,29 @@ public class NhiemVuController : ControllerBase
             nhiemVu.TrangThai = dto.TrangThai?.Trim() ?? nhiemVu.TrangThai;
             nhiemVu.PhanTramHoanThanh = dto.PhanTramHoanThanh ?? nhiemVu.PhanTramHoanThanh;
 
+            // Nếu đang là "Chưa bắt đầu" mà gán thêm người thì chuyển sang "Đang thực hiện"
+            if (nhiemVu.TrangThai == "Chưa bắt đầu" && dto.MaNguoiDungs != null && dto.MaNguoiDungs.Count > 0)
+            {
+                nhiemVu.TrangThai = "Đang thực hiện";
+            }
+
+            // Cập nhật thành viên được giao
+            if (dto.MaNguoiDungs != null)
+            {
+                // Xóa phân công cũ
+                await _db.Entry(nhiemVu).Collection(t => t.MaNguoiDungs).LoadAsync();
+                nhiemVu.MaNguoiDungs.Clear();
+
+                // Thêm phân công mới
+                var thanhViens = await _db.NguoiDungs
+                    .Where(u => dto.MaNguoiDungs.Contains(u.MaNguoiDung))
+                    .ToListAsync();
+                foreach (var tv in thanhViens)
+                {
+                    nhiemVu.MaNguoiDungs.Add(tv);
+                }
+            }
+
             _db.NhiemVus.Update(nhiemVu);
             await _db.SaveChangesAsync();
 
@@ -454,8 +466,6 @@ public class NhiemVuController : ControllerBase
             return StatusCode(500, new { message = "Lỗi khi cập nhật nhiệm vụ: " + ex.Message });
         }
     }
-
-    // =============================================
     // XÓA TASK
     // DELETE: api/nhiemvu/{id}
     // =============================================
@@ -464,17 +474,13 @@ public class NhiemVuController : ControllerBase
     {
         try
         {
-            var nhiemVu = await _db.NhiemVus.FindAsync(id);
-            if (nhiemVu == null)
+            var task = await _db.NhiemVus.FindAsync(id);
+            if (task == null)
             {
-                return NotFound(new { message = "Nhiệm vụ không tồn tại" });
+                return NotFound(new { message = "Không tìm thấy nhiệm vụ" });
             }
 
-            // Xóa lịch sử liên quan
-            var lichSuList = await _db.LichSuNhiemVus.Where(ls => ls.MaNhiemVu == id).ToListAsync();
-            _db.LichSuNhiemVus.RemoveRange(lichSuList);
-
-            _db.NhiemVus.Remove(nhiemVu);
+            _db.NhiemVus.Remove(task);
             await _db.SaveChangesAsync();
 
             return Ok(new { message = "Xóa nhiệm vụ thành công" });
@@ -484,11 +490,25 @@ public class NhiemVuController : ControllerBase
             return StatusCode(500, new { message = "Lỗi khi xóa nhiệm vụ: " + ex.Message });
         }
     }
+
 }
 
 // =============================================
 // DTOs
 // =============================================
+public class NhiemVuCreateUpdateDto
+{
+    public int MaNhom { get; set; }
+    public int? MaDeTai { get; set; }
+    public string TenNhiemVu { get; set; } = "";
+    public string? MoTa { get; set; }
+    public DateTime? NgayBatDau { get; set; }
+    public DateTime? HanHoanThanh { get; set; }
+    public string? MucDoUuTien { get; set; }
+    public string? TrangThai { get; set; }
+    public int? PhanTramHoanThanh { get; set; }
+    public List<int>? MaNguoiDungs { get; set; }
+}
 
 public class NopTaskDto
 {
@@ -504,17 +524,5 @@ public class DuyetTaskDto
 public class LamLaiTaskDto
 {
     public string LyDo { get; set; } = "";
-}
-
-public class NhiemVuCreateUpdateDto
-{
-    public int MaNhom { get; set; }
-    public string TenNhiemVu { get; set; } = "";
-    public int? MaDeTai { get; set; }
-    public string? MoTa { get; set; }
-    public DateTime? NgayBatDau { get; set; }
-    public DateTime? HanHoanThanh { get; set; }
-    public string? MucDoUuTien { get; set; }
-    public string? TrangThai { get; set; }
-    public int? PhanTramHoanThanh { get; set; }
+    public DateTime? MoiHanHoanThanh { get; set; }
 }

@@ -49,6 +49,7 @@ app.UseSwagger();
 app.UseSwaggerUI();
 
 app.UseRouting();
+app.UseStaticFiles(); // Thêm dòng này để truy cập được file trong wwwroot
 app.UseCors("AllowReact");
 app.UseAuthentication();
 app.UseAuthorization();

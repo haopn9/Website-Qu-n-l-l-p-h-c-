@@ -76,6 +76,9 @@ public partial class QuanLyLopHocDbContext : DbContext
             entity.Property(e => e.NgayTao)
                 .HasDefaultValueSql("(getdate())")
                 .HasColumnType("datetime");
+            entity.Property(e => e.PhuongThucGiao)
+                .HasMaxLength(50)
+                .HasDefaultValueSql("(N'Đăng ký tự do')");
             entity.Property(e => e.TenDeTai).HasMaxLength(255);
 
             entity.HasOne(d => d.MaLopNavigation).WithMany(p => p.DeTais)

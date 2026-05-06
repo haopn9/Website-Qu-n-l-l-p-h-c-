@@ -1,138 +1,44 @@
 /* ============================================================
-   StudentManageGroup.css — Mở rộng
+   StudentManageGroup.css — Giao diện Điều phối nhóm cao cấp
    ============================================================ */
 
-/* WRAPPER */
 .smg-container {
   padding: 24px;
   background: #f4f7fe;
   min-height: 100vh;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-}
-
-/* ============================================================
-   TRẠNG THÁI CHẶN (không phải nhóm trưởng)
-   ============================================================ */
-.smg-blocked {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 70vh;
-  text-align: center;
-  gap: 10px;
-}
-
-.smg-blocked-icon {
-  font-size: 56px;
-  margin-bottom: 4px;
-}
-
-.smg-blocked-title {
-  font-size: 18px;
-  font-weight: 700;
   color: #152259;
 }
 
-.smg-blocked-sub {
-  font-size: 13px;
-  color: #999;
-  max-width: 340px;
-  line-height: 1.6;
-}
-
-.smg-blocked-btn {
-  margin-top: 12px;
-  background: #152259;
-  color: #fff;
-  border: none;
-  border-radius: 10px;
-  padding: 10px 22px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.smg-blocked-btn:hover {
-  background: #1e3280;
-}
-
-/* ============================================================
-   HEADER
-   ============================================================ */
-.smg-container .top {
+/* HEADER */
+.top {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 6px;
+  margin-bottom: 24px;
 }
 
-.smg-container .top h1 {
-  font-size: 20px;
-  font-weight: 700;
-  color: #152259;
+.top h1 {
+  font-size: 24px;
+  font-weight: 800;
+  margin: 0;
 }
 
-/* GROUP SELECTOR */
-.smg-group-selector {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 8px;
-}
-
-.smg-group-selector label {
-  font-size: 13px;
-  font-weight: 600;
-  color: #555;
-}
-
-.smg-group-select {
-  padding: 7px 14px;
-  border-radius: 10px;
-  border: 1.5px solid #dde3f0;
-  font-size: 13px;
-  font-weight: 600;
-  color: #152259;
-  background: #fff;
-  cursor: pointer;
-  outline: none;
-  min-width: 260px;
-  transition: border-color 0.2s;
-}
-
-.smg-group-select:focus {
-  border-color: #378add;
-}
-
-/* Badge nhóm trưởng */
-.leader-badge {
-  background: #faeeda;
-  color: #854f0b;
-  font-size: 11px;
-  font-weight: 700;
-  padding: 4px 12px;
-  border-radius: 20px;
-  margin-bottom: 20px;
-  display: inline-block;
-}
-
-/* Nút chính */
 .open-btn {
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
   background: #152259;
   color: #fff;
-  border: none;
-  border-radius: 10px;
-  padding: 9px 18px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.2s;
 }
 
 .open-btn:hover {
-  background: #1e3280;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(21, 34, 89, 0.2);
 }
 
 .topic-register-btn {
@@ -141,579 +47,123 @@
   border: 1px solid #378add;
 }
 
-.topic-register-btn:hover {
-  background: #e6f1fb;
-}
-
-.smg-topic-summary {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  background: #fff;
-  border: 0.5px solid #e8eaf0;
-  border-left: 4px solid #378add;
-  border-radius: 12px;
-  padding: 14px 16px;
-  margin-bottom: 18px;
-}
-
-.smg-topic-summary span {
-  display: block;
-  color: #94a3b8;
-  font-size: 11px;
-  font-weight: 700;
-  margin-bottom: 4px;
-  text-transform: uppercase;
-}
-
-.smg-topic-summary strong {
-  color: #152259;
-  font-size: 14px;
-}
-
-.smg-topic-link {
-  flex-shrink: 0;
-  background: #f4f7fe;
-  border: 1px solid #d8e4f5;
-  border-radius: 8px;
-  color: #185fa5;
-  cursor: pointer;
-  font-size: 12px;
-  font-weight: 700;
-  padding: 8px 12px;
-}
-
-.smg-topic-link:hover {
-  background: #e6f1fb;
-}
-
-/* ============================================================
-   LAYOUT LƯỚI
-   ============================================================ */
-.two-col {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  margin-bottom: 20px;
-}
-
-/* ============================================================
-   CARD CHUNG
-   ============================================================ */
-.card {
-  background: #fff;
-  border-radius: 16px;
-  border: 0.5px solid #e8eaf0;
-  padding: 20px;
-}
-
-.card-hdr {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-}
-
-.card-title {
-  font-size: 15px;
-  font-weight: 700;
-  color: #152259;
-}
-
-/* Badge nhỏ */
-.badge {
-  font-size: 10px;
-  font-weight: 700;
-  padding: 3px 9px;
-  border-radius: 20px;
-}
-
-/* ============================================================
-   ĐÓNG GÓP THÀNH VIÊN (expandable)
-   ============================================================ */
-.member-wrap {
-  border-bottom: 0.5px solid #f0f2f8;
-  transition: background 0.15s;
-}
-
-.member-wrap:last-child {
-  border-bottom: none;
-}
-
-.member-wrap:hover {
-  background: #f8faff;
-  border-radius: 10px;
-}
-
-.member-wrap.expanded {
-  background: #f8faff;
-  border-radius: 10px;
-  margin-bottom: 4px;
-}
-
-.member-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 6px;
-}
-
-.av {
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 11px;
-  font-weight: 700;
-  flex-shrink: 0;
-}
-
-.mname {
-  font-size: 13px;
-  font-weight: 600;
-  color: #152259;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  flex-wrap: wrap;
-}
-
-.badge-me {
-  font-size: 10px;
-  background: #eaf3de;
-  color: #3b6d11;
-  padding: 1px 6px;
-  border-radius: 10px;
-  font-weight: 600;
-}
-
-.msub {
-  font-size: 11px;
-  color: #aaa;
-  margin-top: 2px;
-}
-
-.member-pct {
-  font-size: 14px;
-  font-weight: 700;
-  color: #152259;
-  margin-left: 10px;
-  flex-shrink: 0;
-}
-
-.member-toggle {
-  color: #bbb;
-  font-size: 11px;
-  margin-left: 4px;
-  flex-shrink: 0;
-  transition: color 0.15s;
-}
-
-.member-row:hover .member-toggle {
-  color: #378add;
-}
-
-.pbar {
-  background: #f0f2f8;
-  border-radius: 6px;
-  height: 5px;
-  overflow: hidden;
-  margin-top: 5px;
-}
-
-.pfill {
-  height: 100%;
-  border-radius: 6px;
-}
-
-/* --- Chi tiết task của thành viên (expand) --- */
-.member-tasks-detail {
-  padding: 4px 12px 12px 50px;
-  animation: mtd-slideDown 0.2s ease;
-}
-
-@keyframes mtd-slideDown {
-  from { opacity: 0; max-height: 0; }
-  to   { opacity: 1; max-height: 400px; }
-}
-
-.mtd-section {
-  margin-bottom: 8px;
-}
-
-.mtd-section:last-child {
-  margin-bottom: 0;
-}
-
-.mtd-label {
-  font-size: 11px;
-  font-weight: 700;
-  margin-bottom: 4px;
-}
-
-.mtd-label.done    { color: #3b6d11; }
-.mtd-label.pending { color: #854f0b; }
-
-.mtd-item {
-  font-size: 12px;
-  padding: 4px 10px;
-  margin-bottom: 3px;
-  border-radius: 6px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.mtd-item::before {
-  content: '';
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.mtd-item.done {
-  background: #f3f9ec;
-  color: #3b6d11;
-}
-
-.mtd-item.done::before {
-  background: #639922;
-}
-
-.mtd-item.pending {
-  background: #fef7ec;
-  color: #854f0b;
-}
-
-.mtd-item.pending::before {
-  background: #ef9f27;
-}
-
-.mtd-empty {
-  font-size: 12px;
-  color: #bbb;
-  font-style: italic;
-}
-
-/* ============================================================
-   CẢNH BÁO
-   ============================================================ */
-.warn-card {
-  border-radius: 12px;
-  border: 0.5px solid #f7c1c1;
-  padding: 14px 16px;
-  margin-bottom: 10px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-}
-
-.warn-card:last-child {
-  margin-bottom: 0;
-}
-
-.warn-card.red {
-  background: #fcebeb;
-  border-color: #f7c1c1;
-}
-
-.warn-card.amber {
-  background: #faeeda;
-  border-color: #fac775;
-}
-
-.warn-top-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 2px;
-}
-
-.warn-text {
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.warn-text.red   { color: #a32d2d; }
-.warn-text.amber { color: #854f0b; }
-
-.warn-status-badge {
-  font-size: 9px;
-  font-weight: 700;
-  padding: 2px 8px;
-  border-radius: 10px;
-  white-space: nowrap;
-}
-
-.warn-sub {
-  font-size: 11px;
-  margin-top: 2px;
-}
-
-.warn-sub.red   { color: #c55; }
-.warn-sub.amber { color: #a06010; }
-
-.warn-actions {
-  display: flex;
-  gap: 6px;
-  flex-shrink: 0;
-}
-
-.act {
-  font-size: 11px;
-  font-weight: 700;
-  padding: 6px 12px;
-  border-radius: 8px;
-  border: none;
-  cursor: pointer;
-  transition: opacity 0.15s;
-}
-
-.act:hover {
-  opacity: 0.85;
-}
-
-.act.approve  { background: #639922; color: #fff; }
-.act.redo     { background: #fff; color: #854f0b; border: 1px solid #ef9f27; }
-.act.extend   { background: #e24b4a; color: #fff; }
-.act.remind   { background: #152259; color: #fff; }
-
-/* ============================================================
-   KANBAN
-   ============================================================ */
-.kanban-title {
-  font-size: 15px;
-  font-weight: 700;
-  color: #152259;
-  margin-bottom: 14px;
-}
-
-.kanban {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 10px;
-  margin-bottom: 20px;
-}
-
-.col {
-  background: #f4f7fe;
-  border-radius: 12px;
-  padding: 12px;
-}
-
-.col-hdr {
-  font-size: 11px;
-  font-weight: 700;
-  color: #888;
-  margin-bottom: 10px;
-  text-align: center;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-}
-
-.tk {
-  background: #fff;
-  border-radius: 10px;
-  border: 0.5px solid #e8eaf0;
-  border-left: 3px solid #dde3f0;
-  padding: 10px 12px;
-  margin-bottom: 8px;
-}
-
-.tk:last-child { margin-bottom: 0; }
-
-.tk.notstart { border-left-color: #dde3f0; }
-.tk.doing    { border-left-color: #378add; }
-.tk.wait     { border-left-color: #ef9f27; }
-.tk.late     { border-left-color: #e24b4a; }
-.tk.done     { border-left-color: #639922; }
-.tk.redo     { border-left-color: #d4537e; }
-
-.tk-name {
-  font-size: 12px;
-  font-weight: 600;
-  color: #152259;
-  margin-bottom: 5px;
-  line-height: 1.4;
-}
-
-.tk-meta {
-  font-size: 10px;
-  color: #aaa;
-}
-
-.tk-av {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 8px;
-  font-weight: 700;
-  margin-top: 7px;
-}
-
-.action-row {
-  display: flex;
-  gap: 6px;
-  margin-top: 8px;
-}
-
-.action-row .act {
-  font-size: 10px;
-  padding: 4px 10px;
-  border-radius: 7px;
-}
-
-/* ============================================================
-   MODAL TẠO NHIỆM VỤ
-   ============================================================ */
+/* MODAL CHUNG */
 .smg-modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.45);
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
-  animation: smg-fadeIn 0.2s ease;
-}
-
-@keyframes smg-fadeIn {
-  from { opacity: 0; }
-  to   { opacity: 1; }
 }
 
 .smg-modal-content {
   background: #fff;
-  border-radius: 18px;
-  width: 560px;
-  max-height: 88vh;
-  overflow-y: auto;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.18);
-  animation: smg-slideUp 0.25s ease;
-}
-
-@keyframes smg-slideUp {
-  from { transform: translateY(30px); opacity: 0; }
-  to   { transform: translateY(0);    opacity: 1; }
+  width: 600px;
+  border-radius: 20px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
 }
 
 .smg-modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px 24px 0;
+  padding: 24px 24px 8px;
 }
 
 .smg-modal-header h3 {
-  font-size: 17px;
-  font-weight: 700;
-  color: #152259;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.smg-modal-header h3 .smg-modal-icon {
-  font-size: 20px;
+  font-size: 18px;
+  font-weight: 800;
+  margin: 0;
 }
 
 .smg-modal-sub {
-  font-size: 12px;
-  color: #999;
-  padding: 4px 24px 0;
-  margin-bottom: 0;
+  padding: 0 24px 12px;
+  font-size: 13px;
+  color: #64748b;
+  margin: 0;
 }
 
 .smg-close-btn {
-  background: none;
+  background: #f1f5f9;
   border: none;
-  font-size: 16px;
-  color: #aaa;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
-  padding: 4px;
-  border-radius: 6px;
-  transition: background 0.15s;
-}
-
-.smg-close-btn:hover {
-  background: #f0f2f8;
-  color: #555;
+  color: #64748b;
 }
 
 .smg-modal-body {
-  padding: 18px 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+  padding: 12px 24px;
+  overflow-y: auto;
+  flex: 1;
 }
 
 .smg-form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
+  margin-bottom: 16px;
 }
 
 .smg-form-group label {
+  display: block;
   font-size: 13px;
-  font-weight: 600;
-  color: #333;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 6px;
 }
 
-.smg-form-group label .smg-required {
-  color: #e24b4a;
+.smg-required {
+  color: #ef4444;
+  margin-left: 2px;
 }
 
-.smg-form-group label .smg-hint {
+.smg-hint {
   font-weight: 400;
-  color: #aaa;
-  font-size: 11px;
+  color: #94a3b8;
+  font-size: 12px;
 }
 
 .smg-input {
-  padding: 9px 13px;
-  border: 1.5px solid #dde3f0;
+  width: 100%;
+  padding: 10px 14px;
+  border: 1.5px solid #e2e8f0;
   border-radius: 10px;
-  font-size: 13px;
-  color: #152259;
-  outline: none;
-  transition: border-color 0.2s;
+  font-size: 14px;
   font-family: inherit;
+  transition: all 0.2s;
+  box-sizing: border-box;
 }
 
 .smg-input:focus {
-  border-color: #378add;
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
-.smg-input::placeholder {
-  color: #bbb;
-}
-
-textarea.smg-input {
-  resize: vertical;
-  min-height: 60px;
-}
-
-/* Date row */
 .smg-date-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  gap: 16px;
 }
 
-/* Assignees checkbox list */
+/* DANH SÁCH THÀNH VIÊN ĐỂ GIAO TASK */
 .smg-assignee-list {
-  border: 1.5px solid #dde3f0;
-  border-radius: 10px;
-  padding: 8px 12px;
-  max-height: 160px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  padding: 12px;
+  background: #f8fafc;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  max-height: 150px;
   overflow-y: auto;
 }
 
@@ -721,169 +171,486 @@ textarea.smg-input {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 7px 0;
-  border-bottom: 0.5px solid #f5f6fa;
+  padding: 8px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
   cursor: pointer;
 }
 
-.smg-assignee-item:last-child {
-  border-bottom: none;
-}
-
-.smg-assignee-item input[type="checkbox"] {
-  accent-color: #152259;
-  width: 15px;
-  height: 15px;
-  cursor: pointer;
+.smg-assignee-item input {
+  margin: 0;
 }
 
 .smg-assignee-av {
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
+  font-size: 10px;
+  font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 10px;
-  font-weight: 700;
-  flex-shrink: 0;
 }
 
 .smg-assignee-name {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
-  color: #152259;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.smg-assignee-me {
-  font-size: 10px;
-  background: #eaf3de;
-  color: #3b6d11;
-  padding: 1px 6px;
-  border-radius: 10px;
-  font-weight: 600;
-  margin-left: 4px;
-}
-
-/* Upload zone */
+/* UPLOAD ZONE */
 .smg-upload-zone {
-  border: 2px dashed #dde3f0;
+  border: 2px dashed #cbd5e1;
   border-radius: 12px;
-  padding: 18px;
+  padding: 20px;
   text-align: center;
   cursor: pointer;
-  transition: border-color 0.2s, background 0.2s;
+  transition: all 0.2s;
 }
 
-.smg-upload-zone:hover,
-.smg-upload-zone.dragover {
-  border-color: #378add;
-  background: #f0f6ff;
-}
-
-.smg-upload-zone input[type="file"] {
-  display: none;
+.smg-upload-zone:hover, .smg-upload-zone.dragover {
+  border-color: #3b82f6;
+  background: #f0f7ff;
 }
 
 .smg-upload-icon {
   font-size: 24px;
-  margin-bottom: 4px;
+  margin-bottom: 8px;
 }
 
 .smg-upload-text {
   font-size: 12px;
-  color: #888;
-  line-height: 1.6;
+  color: #64748b;
 }
 
 .smg-upload-text strong {
-  color: #378add;
+  color: #3b82f6;
 }
 
 .smg-file-list {
-  margin-top: 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+  margin-top: 12px;
 }
 
 .smg-file-item {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 8px;
-  background: #f8f9fc;
-  padding: 6px 10px;
+  padding: 8px 12px;
+  background: #f1f5f9;
   border-radius: 8px;
-  font-size: 12px;
+  margin-bottom: 6px;
 }
 
 .smg-file-name {
-  flex: 1;
-  color: #152259;
-  font-weight: 500;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.smg-file-size {
-  color: #aaa;
-  font-size: 11px;
-  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 600;
 }
 
 .smg-file-remove {
   background: none;
   border: none;
-  color: #ccc;
+  color: #ef4444;
   cursor: pointer;
+}
+
+/* LAYOUT CHÍNH */
+.smg-layout {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+/* PANEL CHUNG */
+.smg-panel {
+  background: #fff;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 8px 24px rgba(21, 34, 89, 0.04);
+  border: 1px solid #eef0f7;
+}
+
+.smg-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.smg-panel-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: #152259;
+}
+
+.smg-panel-badge {
+  padding: 4px 12px;
+  border-radius: 20px;
   font-size: 12px;
-  padding: 2px;
-  transition: color 0.15s;
+  font-weight: 700;
+  background: #f0f2f8;
+  color: #667085;
 }
 
-.smg-file-remove:hover {
-  color: #e24b4a;
+.smg-panel-badge.amber {
+  background: #fff7ed;
+  color: #c2410c;
 }
 
-/* Footer */
+/* THÀNH VIÊN */
+.member-list {
+  display: grid;
+  gap: 12px;
+}
+
+.member-wrap {
+  border-radius: 12px;
+  border: 1px solid #f0f2f8;
+  transition: all 0.2s;
+}
+
+.member-wrap:hover {
+  border-color: #378add;
+  background: #f8fbff;
+}
+
+.member-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+}
+
+.av {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.mname {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.badge-me {
+  margin-left: 6px;
+  font-size: 10px;
+  background: #e1f5ee;
+  color: #0f6e56;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.msub {
+  font-size: 12px;
+  color: #94a3b8;
+  margin-top: 2px;
+}
+
+.pbar {
+  margin-top: 6px;
+  height: 6px;
+  background: #f1f5f9;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.pfill {
+  height: 100%;
+  border-radius: 10px;
+}
+
+.member-pct {
+  font-weight: 800;
+  font-size: 14px;
+  width: 45px;
+  text-align: right;
+}
+
+.member-toggle {
+  color: #94a3b8;
+}
+
+/* ĐỀ TÀI ACTIVE CARD */
+.topic-active-card {
+  background: #f8fbff;
+  border: 1px solid #dbeafe;
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.tac-name {
+  font-size: 16px;
+  font-weight: 800;
+  color: #1e40af;
+  margin-bottom: 8px;
+}
+
+.tac-view-btn {
+  background: none;
+  border: 1px solid #3b82f6;
+  color: #3b82f6;
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.status-tag {
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.status-tag.registered {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.topic-empty-state {
+  text-align: center;
+  padding: 30px;
+  background: #f8fafc;
+  border: 2px dashed #e2e8f0;
+  border-radius: 12px;
+}
+
+.tes-icon {
+  font-size: 32px;
+  margin-bottom: 12px;
+}
+
+.tes-text {
+  font-size: 14px;
+  color: #64748b;
+  margin-bottom: 16px;
+}
+
+.tes-btn {
+  background: #378add;
+  color: #fff;
+  border: none;
+  padding: 8px 18px;
+  border-radius: 8px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* KANBAN */
+.kanban-section {
+  margin-top: 24px;
+}
+
+.kanban-board {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.kanban-col {
+  background: #f1f5f9;
+  border-radius: 14px;
+  padding: 12px;
+  min-height: 400px;
+}
+
+.k-header {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 8px 12px;
+}
+
+.k-label {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.k-count {
+  font-size: 11px;
+  font-weight: 800;
+  color: #94a3b8;
+}
+
+.tk {
+  background: #fff;
+  border-radius: 10px;
+  padding: 12px;
+  margin-bottom: 10px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+  border-left: 4px solid #ddd;
+}
+
+.tk.doing { border-left-color: #3b82f6; }
+.tk.wait { border-left-color: #f59e0b; }
+.tk.late { border-left-color: #ef4444; }
+.tk.done { border-left-color: #10b981; }
+
+.tk-name {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.tk-meta {
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+/* MODAL & TOPIC LIST */
+.smg-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.smg-modal-content {
+  background: #fff;
+  width: 600px;
+  border-radius: 20px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.smg-modal-header {
+  display: flex;
+  justify-content: space-between;
+  padding: 24px 24px 12px;
+}
+
+.smg-modal-body {
+  padding: 0 24px 24px;
+}
+
+.topic-radio-list {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.topic-radio-item {
+  border: 2px solid #f1f5f9;
+  border-radius: 12px;
+  padding: 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.topic-radio-item:hover {
+  border-color: #3b82f6;
+  background: #f8fbff;
+}
+
+.topic-radio-item.active {
+  border-color: #3b82f6;
+  background: #eff6ff;
+}
+
+.topic-radio-header {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.topic-radio-check {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #cbd5e1;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.active .topic-radio-check {
+  border-color: #3b82f6;
+}
+
+.topic-dot {
+  width: 10px;
+  height: 10px;
+  background: #3b82f6;
+  border-radius: 50%;
+  transform: scale(0);
+  transition: transform 0.2s;
+}
+
+.active .topic-dot {
+  transform: scale(1);
+}
+
+.topic-radio-name {
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.topic-radio-status {
+  font-size: 11px;
+  margin-top: 4px;
+}
+
+.status-tag.available { background: #dcfce7; color: #166534; }
+.status-tag.registered { background: #fee2e2; color: #991b1b; }
+.status-tag.assigned { background: #fef9c3; color: #854f0b; }
+
+.topic-view-btn {
+  font-size: 11px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
 .smg-modal-footer {
+  padding: 16px 24px 24px;
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
-  padding: 0 24px 20px;
+  gap: 12px;
+  border-top: 1px solid #f1f5f9;
 }
 
 .smg-btn-cancel {
   background: #fff;
-  color: #555;
-  border: 1.5px solid #dde3f0;
+  border: 1px solid #e2e8f0;
+  padding: 10px 20px;
   border-radius: 10px;
-  padding: 9px 20px;
-  font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
-  transition: background 0.15s;
-}
-
-.smg-btn-cancel:hover {
-  background: #f5f6fa;
 }
 
 .smg-btn-create {
   background: #152259;
   color: #fff;
   border: none;
+  padding: 10px 24px;
   border-radius: 10px;
-  padding: 9px 22px;
-  font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
-  transition: background 0.2s;
-}
-
-.smg-btn-create:hover {
-  background: #1e3280;
 }
 
 .smg-btn-create:disabled {
@@ -891,311 +658,269 @@ textarea.smg-input {
   cursor: not-allowed;
 }
 
-/* Topic registration */
-.topic-modal {
-  width: 720px;
-}
-
-.topic-flow-note,
-.topic-disabled-note,
 .topic-confirm-box {
-  border-radius: 10px;
-  padding: 12px 14px;
-  font-size: 12px;
-  line-height: 1.5;
-}
-
-.topic-flow-note {
-  background: #f4f7fe;
-  color: #475569;
-  border-left: 3px solid #378add;
-}
-
-.topic-flow-note strong,
-.topic-flow-note span {
-  display: block;
-}
-
-.topic-flow-note strong {
-  color: #152259;
-  margin-bottom: 3px;
-}
-
-.topic-disabled-note {
-  background: #faeeda;
-  color: #854f0b;
-  font-weight: 700;
-}
-
-.topic-bank-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.topic-option {
-  display: flex;
-  gap: 12px;
-  border: 1.5px solid #e8eaf0;
+  margin-top: 20px;
+  padding: 16px;
+  background: #f0f9ff;
   border-radius: 12px;
-  padding: 14px;
-  background: #fff;
-  cursor: pointer;
-  transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+  border-left: 4px solid #0ea5e9;
 }
 
-.topic-option:hover {
-  border-color: #b5d4f4;
-  background: #f8fbff;
-}
-
-.topic-option.selected {
-  border-color: #378add;
-  box-shadow: 0 0 0 3px rgba(55, 138, 221, 0.1);
-}
-
-.topic-option.disabled {
-  cursor: not-allowed;
-  opacity: 0.72;
-  background: #f8fafc;
-}
-
-.topic-option input {
-  margin-top: 4px;
-  accent-color: #378add;
-}
-
-.topic-option-body {
-  flex: 1;
-  min-width: 0;
-}
-
-.topic-option-head {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  align-items: flex-start;
-  margin-bottom: 6px;
-}
-
-.topic-option-head strong {
-  color: #152259;
-  font-size: 14px;
-}
-
-.topic-option-body p {
-  margin: 0 0 10px;
-  color: #64748b;
-  font-size: 12px;
-  line-height: 1.5;
-}
-
-.topic-status {
-  flex-shrink: 0;
-  border-radius: 999px;
-  font-size: 10px;
-  font-weight: 800;
-  padding: 4px 9px;
-  white-space: nowrap;
-}
-
-.topic-status.available {
-  background: #e1f5ee;
-  color: #0f6e56;
-}
-
-.topic-status.registered {
-  background: #e6f1fb;
-  color: #185fa5;
-}
-
-.topic-status.assigned {
-  background: #faeeda;
-  color: #854f0b;
-}
-
-.topic-output {
-  background: #f8f9fc;
-  border-radius: 8px;
-  padding: 9px 10px;
-}
-
-.topic-output span,
 .topic-confirm-box span {
   display: block;
-  color: #94a3b8;
-  font-size: 10px;
-  font-weight: 800;
-  margin-bottom: 3px;
-  text-transform: uppercase;
+  font-size: 11px;
+  color: #0369a1;
+  font-weight: 700;
+  margin-bottom: 4px;
 }
 
-.topic-output strong,
 .topic-confirm-box strong {
-  color: #152259;
-  font-size: 12px;
+  font-size: 15px;
+  color: #0c4a6e;
 }
 
-.topic-registered-by {
-  color: #854f0b;
-  font-size: 11px;
-  font-weight: 700;
-  margin-top: 8px;
+.smg-blocked {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 80vh;
 }
 
-.topic-confirm-box {
-  background: #e6f1fb;
-  border-left: 3px solid #378add;
+.smg-blocked-icon {
+  font-size: 64px;
+  margin-bottom: 16px;
 }
 
-.topic-detail-btn {
-  margin-top: 10px;
-  background: #fff;
-  border: 1px solid #b5d4f4;
-  border-radius: 8px;
-  color: #185fa5;
-  cursor: pointer;
-  font-size: 12px;
-  font-weight: 700;
-  padding: 7px 11px;
-}
-
-.topic-detail-btn:hover {
-  background: #e6f1fb;
-}
-
-.topic-detail-modal {
-  width: 680px;
-}
-
-.topic-detail-title {
-  border-left: 4px solid #378add;
-  background: #f4f7fe;
-  border-radius: 10px;
-  padding: 14px 16px;
-}
-
-.topic-detail-title span,
-.topic-detail-section span,
-.topic-detail-file span,
-.topic-detail-item span {
-  display: block;
-  color: #94a3b8;
-  font-size: 11px;
+.smg-blocked-title {
+  font-size: 20px;
   font-weight: 800;
-  margin-bottom: 5px;
-  text-transform: uppercase;
+  margin-bottom: 8px;
 }
 
-.topic-detail-title strong {
-  color: #152259;
-  font-size: 17px;
+.smg-blocked-sub {
+  font-size: 14px;
+  color: #64748b;
+  max-width: 400px;
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.smg-blocked-btn {
+  background: #152259;
+  color: #fff;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* ĐẶC THU CHO TOPIC DETAIL MODAL */
+.topic-detail-title {
+  background: #f8fafc;
+  padding: 16px;
+  border-radius: 12px;
+  border-left: 4px solid #3b82f6;
+  margin-bottom: 16px;
+}
+
+.topic-detail-title span {
+  font-size: 11px;
+  color: #64748b;
+  font-weight: 700;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+  display: block;
 }
 
 .topic-detail-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
 }
 
-.topic-detail-item,
-.topic-detail-section,
-.topic-detail-file {
+.topic-detail-item {
   background: #fff;
-  border: 1px solid #e8eaf0;
+  border: 1px solid #f1f5f9;
+  padding: 12px;
   border-radius: 10px;
-  padding: 12px 14px;
 }
 
-.topic-detail-item strong,
-.topic-detail-file strong {
-  color: #152259;
-  font-size: 13px;
+.topic-detail-item span {
+  font-size: 10px;
+  color: #94a3b8;
+  font-weight: 700;
+  display: block;
+}
+
+.topic-detail-section {
+  margin-bottom: 16px;
+}
+
+.topic-detail-section span {
+  font-size: 12px;
+  font-weight: 800;
+  color: #1e293b;
+  margin-bottom: 8px;
+  display: block;
 }
 
 .topic-detail-section p {
-  color: #475569;
   font-size: 13px;
   line-height: 1.6;
-  margin: 0;
-}
-
-/* ============================================================
-   NO WARNINGS EMPTY STATE
-   ============================================================ */
-.smg-empty-warn {
-  text-align: center;
-  padding: 20px 0;
-  color: #aaa;
-  font-size: 13px;
-}
-
-.smg-empty-warn span {
-  display: block;
-  font-size: 28px;
-  margin-bottom: 6px;
-}
-
-/* ============================================================
-   CHI TIẾT TASK & GHI CHÚ
-   ============================================================ */
-.st-task-info-box {
-  background: #f4f7fe;
+  color: #475569;
+  background: #f8fafc;
+  padding: 12px;
   border-radius: 10px;
-  padding: 12px 16px;
-  margin-bottom: 18px;
 }
 
-.st-info-title {
-  font-size: 14px;
+@media (max-width: 1200px) {
+  .smg-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 900px) {
+  .kanban-board {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* GROUP SELECTOR DROPDOWN */
+.smg-group-selector {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  background: #fff;
+  padding: 8px 20px;
+  border-radius: 14px;
+  box-shadow: 0 4px 20px rgba(21, 34, 89, 0.08);
+  margin-bottom: 24px;
+  border: 1px solid #eef0f7;
+}
+
+.smg-group-selector label {
+  font-size: 13px;
   font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.smg-group-selector select {
+  border: none;
+  background: #f8fafc;
+  font-size: 15px;
+  font-weight: 800;
   color: #152259;
-  margin-bottom: 4px;
+  cursor: pointer;
+  outline: none;
+  padding: 6px 12px;
+  border-radius: 8px;
+  transition: all 0.2s;
 }
 
-.st-info-sub {
-  font-size: 11px;
-  color: #aaa;
+.smg-group-selector select:hover {
+  background: #f1f5f9;
+  color: #378add;
 }
 
-.st-detail-grid {
+/* MEMBER EXPANDED TASKS */
+.member-expanded-tasks {
+  background: #fff;
+  border: 1px solid #f0f2f8;
+  border-top: none;
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
+  padding: 16px;
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  margin-bottom: 18px;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 16px;
+  animation: slideDown 0.3s ease-out;
 }
 
-.st-detail-item {
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.met-col-title {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: #94a3b8;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.met-list {
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  background: #f8fafc;
-  padding: 10px 12px;
-  border-radius: 9px;
+  gap: 6px;
 }
 
-.st-detail-item:last-child {
-  grid-column: 1 / -1;
-}
-
-.st-detail-label {
-  font-size: 11px;
-  color: #94a3b8;
-  font-weight: 600;
-}
-
-.st-detail-item span:last-child {
+.met-item {
   font-size: 13px;
-  font-weight: 600;
-  color: #152259;
-}
-
-.st-detail-desc {
+  padding: 8px 12px;
   background: #f8fafc;
-  border-radius: 9px;
-  padding: 12px 14px;
-  font-size: 13px;
+  border-radius: 8px;
   color: #475569;
-  line-height: 1.6;
-  border-left: 3px solid #378add;
+  border-left: 3px solid #cbd5e1;
+}
+
+.met-item.done {
+  background: #f0fdf4;
+  color: #166534;
+  border-left-color: #22c55e;
+}
+
+.met-item.doing {
+  background: #f0f9ff;
+  color: #0369a1;
+  border-left-color: #0ea5e9;
+}
+
+/* Kanban Actions */
+.action-row {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.act {
+  flex: 1;
+  padding: 5px 0;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: #475569;
+  transition: all 0.2s;
+}
+
+.act.approve {
+  background: #152259;
+  color: #fff;
+  border-color: #152259;
+}
+
+.act.redo {
+  color: #993556;
+  border-color: #993556;
+}
+
+.act.extend {
+  color: #d97706;
+  border-color: #d97706;
+}
+
+.act:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }

@@ -14,10 +14,16 @@ const buildHeaders = (extraHeaders = {}) => {
   return headers;
 };
 
-const request = async (path, options = {}) => {
+const request = async (path, options = {}, isFormData = false) => {
+  const headers = buildHeaders(options.headers);
+  if (isFormData) {
+    delete headers['Content-Type']; // Để trình duyệt tự set boundary cho FormData
+  }
+
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...options,
-    headers: buildHeaders(options.headers)
+    headers,
+    body: isFormData ? options.body : (options.body ? options.body : null)
   });
 
   const isJson = response.headers.get('content-type')?.includes('application/json');
@@ -33,8 +39,10 @@ const request = async (path, options = {}) => {
 
 const apiClient = {
   get: (path) => request(path, { method: 'GET' }),
-  post: (path, body) => request(path, { method: 'POST', body: JSON.stringify(body) }),
-  put: (path, body) => request(path, { method: 'PUT', body: JSON.stringify(body) }),
+  post: (path, body, isFormData = false) => 
+    request(path, { method: 'POST', body: isFormData ? body : JSON.stringify(body) }, isFormData),
+  put: (path, body, isFormData = false) => 
+    request(path, { method: 'PUT', body: isFormData ? body : JSON.stringify(body) }, isFormData),
   delete: (path) => request(path, { method: 'DELETE' })
 };
 

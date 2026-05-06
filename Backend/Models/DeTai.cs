@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace Backend.Models;
@@ -18,6 +18,8 @@ public partial class DeTai
     public DateTime? NgayBatDau { get; set; }
 
     public DateTime? NgayKetThuc { get; set; }
+    
+    public string PhuongThucGiao { get; set; } = null!;
 
     public DateTime? NgayTao { get; set; }
 

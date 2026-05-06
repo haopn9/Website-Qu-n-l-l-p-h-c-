@@ -1,6 +1,10 @@
-import React, { useState, useRef } from 'react';
-import { FaTimes } from 'react-icons/fa';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { FaTimes, FaInbox, FaUsers } from 'react-icons/fa';
 import './StudentTasks.css';
+import nhiemVuService from '../../services/nhiemVuService';
+import authService from '../../services/authService';
+import classService from '../../services/classService';
+import apiClient from '../../services/apiClient';
 
 // ============================================================
 // DỮ LIỆU MẪU — Tab "Của tôi"
@@ -108,6 +112,19 @@ function TaskDetailModal({ task, onClose }) {
             <div className="st-detail-item"><span className="st-detail-label">⏰ Hạn nộp</span><span>{task.deadline}</span></div>
             <div className="st-detail-item"><span className="st-detail-label">🎯 Mức độ ưu tiên</span><span>{task.priority || '—'}</span></div>
           </div>
+          <div className="st-form-group" style={{ marginTop: '16px' }}>
+            <label>👥 Thành viên thực hiện</label>
+            <div className="st-assignee-list" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '8px' }}>
+              {task.assignees && task.assignees.length > 0 ? (
+                task.assignees.map((a, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#f1f5f9', padding: '4px 10px', borderRadius: '20px', fontSize: '12px' }}>
+                    <div style={{ width: 20, height: 20, borderRadius: '50%', background: a.bg, color: a.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>{a.ky}</div>
+                    {a.name || 'Thành viên'}
+                  </div>
+                ))
+              ) : <span style={{ fontSize: '13px', color: '#64748b' }}>Chưa giao cho ai.</span>}
+            </div>
+          </div>
           {task.moTa && (
             <div className="st-form-group">
               <label>📝 Mô tả chi tiết từ nhóm trưởng</label>
@@ -131,9 +148,10 @@ function TaskDetailModal({ task, onClose }) {
 //   -> Backend: INSERT TepDinhKem, LichSuNhiemVu
 //   -> Backend: UPDATE NhiemVu SET TrangThai = 'Chờ duyệt'
 // ============================================================
-function SubmitTaskModal({ task, onClose }) {
+function SubmitTaskModal({ task, onClose, onRefresh }) {
   const [ghiChu, setGhiChu] = useState('');
   const [files, setFiles] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [dragover, setDragover] = useState(false);
   const fileInputRef = useRef(null);
 
@@ -145,14 +163,23 @@ function SubmitTaskModal({ task, onClose }) {
     return (bytes / 1048576).toFixed(1) + ' MB';
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // TODO: API call
-    // 1. Upload files -> INSERT TepDinhKem
-    // 2. INSERT LichSuNhiemVu (TrangThaiMoi = 'Chờ duyệt')
-    // 3. UPDATE NhiemVu SET TrangThai = 'Chờ duyệt'
-    alert(`✅ Nộp task "${task.name}" thành công!\n\n• Trạng thái: Đang thực hiện → Chờ duyệt\n• Ghi chú: ${ghiChu || '(không có)'}\n• File đính kèm: ${files.length} tệp`);
-    onClose();
+    setLoading(true);
+    try {
+      // Mock upload logic - thực tế cần API upload file riêng
+      await nhiemVuService.submitTask(task.id, {
+        phanTramHoanThanh: 100,
+        ghiChu: ghiChu
+      });
+      alert(`✅ Nộp task "${task.name}" thành công!`);
+      onRefresh();
+      onClose();
+    } catch (error) {
+      alert('Lỗi khi nộp task: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -243,7 +270,7 @@ function TaskCard({ task, showAssigneeName, onOpenSubmit, onOpenDetail }) {
             </React.Fragment>
           ))}
         </div>
-        {task.canSubmit && (
+        {task.canSubmit && onOpenSubmit && (
           <button className="act-btn" style={{ background: '#152259', color: '#fff' }} onClick={() => onOpenSubmit(task)}>Nộp task</button>
         )}
         {task.waitText && <span style={{ fontSize: '11px', color: '#ef9f27', fontWeight: '600' }}>{task.waitText}</span>}
@@ -258,6 +285,9 @@ function TaskCard({ task, showAssigneeName, onOpenSubmit, onOpenDetail }) {
 // ============================================================
 const StudentTasks = () => {
   const [activeTab, setActiveTab] = useState('mine');
+  const [groups, setGroups] = useState([]);
+  const [allTasks, setAllTasks] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [selectedGroup, setSelectedGroup] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterPriority, setFilterPriority] = useState('all');
@@ -265,23 +295,127 @@ const StudentTasks = () => {
   const [modalTask, setModalTask] = useState(null);
   const [detailTask, setDetailTask] = useState(null);
 
-  const filteredMyTasks = myTasks.filter(t => {
+  const currentUser = authService.getCurrentUser();
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      // 1. Lấy danh sách nhóm của tôi
+      const myGroups = await apiClient.get('/api/nhom/cua-toi');
+      setGroups(myGroups);
+
+        // 2. Lấy tất cả task từ tất cả nhóm này
+        let tasksAccumulator = [];
+        for (const g of myGroups) {
+          const tasks = await nhiemVuService.getTasksByGroup(g.maNhom);
+          // Map backend data to frontend format
+          const mappedTasks = tasks.map(t => {
+            const isLate = t.trangThai === 'Trễ hạn' || (t.trangThai !== 'Hoàn thành' && new Date(t.hanHoanThanh) < new Date());
+            
+            // Tìm thông tin chi tiết của task để lấy assignees (API get danh sách không trả về đủ info nested sâu)
+            // Tuy nhiên API hiện tại có t.soThanhVienThamGia.
+            // Để đơn giản, ta sẽ fetch chi tiết khi click vào task.
+            
+            return {
+              id: t.maNhiemVu,
+              maNhom: g.maNhom,
+              name: t.tenNhiemVu,
+              group: g.tenNhom,
+              class: g.tenLop,
+              status: mapStatus(t.trangThai, isLate),
+              statusLabel: isLate ? 'Trễ hạn' : t.trangThai,
+              ...getStatusStyles(mapStatus(t.trangThai, isLate)),
+              deadline: formatDate(t.hanHoanThanh),
+              startDate: formatDate(t.ngayBatDau),
+              lateText: isLate ? '⚠️ Đã trễ hạn' : null,
+              priority: t.mucDoUuTien ? `${getPriorityEmoji(t.mucDoUuTien)} ${t.mucDoUuTien}` : null,
+              moTa: t.moTa,
+              maNguoiDungs: (t.maNguoiDungs || []).map(u => u.maNguoiDung),
+              assignees: (t.maNguoiDungs || []).map(u => ({ 
+                name: u.hoTen, 
+                ky: u.hoTen ? u.hoTen.split(' ').pop().substring(0, 2).toUpperCase() : '?', 
+                bg: '#e6f1fb', color: '#185fa5' 
+              })), 
+              canSubmit: ['doing', 'redo', 'late'].includes(mapStatus(t.trangThai, isLate)),
+              raw: t,
+              waitText: t.trangThai === 'Chờ duyệt' ? 'Đang chờ nhóm trưởng duyệt...' : null,
+              doneText: t.trangThai === 'Hoàn thành' ? '✔ Đã hoàn thành' : null
+            };
+          });
+          tasksAccumulator = [...tasksAccumulator, ...mappedTasks];
+        }
+      setAllTasks(tasksAccumulator);
+    } catch (err) {
+      console.error("Lỗi fetch data:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const mapStatus = (backendStatus, isLate) => {
+    if (isLate) return 'late';
+    switch (backendStatus) {
+      case 'Chưa bắt đầu': return 'doing'; // Map về doing để hiện nút nộp nếu cần
+      case 'Đang thực hiện': return 'doing';
+      case 'Chờ duyệt': return 'wait';
+      case 'Làm lại': return 'redo';
+      case 'Hoàn thành': return 'done';
+      case 'Trễ hạn': return 'late';
+      default: return 'doing';
+    }
+  };
+
+  const getStatusStyles = (status) => {
+    const map = {
+      late: { badgeBg: '#fcebeb', badgeColor: '#a32d2d' },
+      wait: { badgeBg: '#faeeda', badgeColor: '#854f0b' },
+      redo: { badgeBg: '#fbeaf0', badgeColor: '#993556' },
+      doing: { badgeBg: '#e6f1fb', badgeColor: '#185fa5' },
+      done: { badgeBg: '#eaf3de', badgeColor: '#3b6d11' },
+    };
+    return map[status] || map.doing;
+  };
+
+  const getPriorityEmoji = (p) => {
+    if (p.includes('Cao')) return '🔥';
+    if (p.includes('Trung bình')) return '📋';
+    return '📌';
+  };
+
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '—';
+    const d = new Date(dateStr);
+    return `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getFullYear()}`;
+  };
+
+  const myTasksList = useMemo(() => {
+    if (!currentUser) return [];
+    return allTasks.filter(t => t.maNguoiDungs?.includes(currentUser.maNguoiDung));
+  }, [allTasks, currentUser]);
+
+  const filteredMyTasks = myTasksList.filter(t => {
     if (filterMyGroup !== 'all' && t.maNhom !== Number(filterMyGroup)) return false;
     if (filterStatus !== 'all' && t.status !== filterStatus) return false;
     if (filterPriority !== 'all') {
       const p = t.priority || '';
-      if (filterPriority === 'high' && !p.includes('cao')) return false;
-      if (filterPriority === 'medium' && !p.includes('trung bình')) return false;
-      if (filterPriority === 'low' && !p.includes('thấp')) return false;
+      if (filterPriority === 'high' && !p.includes('Cao')) return false;
+      if (filterPriority === 'medium' && !p.includes('Trung bình')) return false;
+      if (filterPriority === 'low' && !p.includes('Thấp')) return false;
     }
     return true;
   });
 
-  const filteredGroupTasks = groupTasks.filter(t => {
+  const filteredGroupTasks = allTasks.filter(t => {
     if (selectedGroup !== 'all' && t.maNhom !== Number(selectedGroup)) return false;
     if (filterStatus !== 'all' && t.status !== filterStatus) return false;
     return true;
   });
+
+  if (loading) return <div className="st-container">Đang tải nhiệm vụ...</div>;
 
   return (
     <div className="st-container">
@@ -333,11 +467,11 @@ const StudentTasks = () => {
         <div className="task-list">
           {filteredGroupTasks.length === 0
             ? <div className="empty-state"><span>👥</span>Không có nhiệm vụ nào trong nhóm được chọn.</div>
-            : filteredGroupTasks.map(t => <TaskCard key={t.id} task={t} showAssigneeName={true} onOpenSubmit={setModalTask} onOpenDetail={setDetailTask} />)}
+            : filteredGroupTasks.map(t => <TaskCard key={t.id} task={t} showAssigneeName={true} onOpenSubmit={null} onOpenDetail={setDetailTask} />)}
         </div>
       )}
 
-      {modalTask && <SubmitTaskModal task={modalTask} onClose={() => setModalTask(null)} />}
+      {modalTask && <SubmitTaskModal task={modalTask} onClose={() => setModalTask(null)} onRefresh={fetchData} />}
       {detailTask && <TaskDetailModal task={detailTask} onClose={() => setDetailTask(null)} />}
     </div>
   );

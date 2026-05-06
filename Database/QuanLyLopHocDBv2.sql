@@ -138,6 +138,7 @@ CREATE TABLE DeTai (
     MaLop            INT           NOT NULL,                  -- Lớp học sở hữu đề tài này (FK)
     NgayBatDau       DATETIME      NULL,                      -- Ngày bắt đầu thực hiện
     NgayKetThuc      DATETIME      NULL,                      -- Hạn nộp / ngày kết thúc
+    PhuongThucGiao   NVARCHAR(50)  DEFAULT N'Đăng ký tự do',  -- Phương thức giao: Đăng ký tự do / Chỉ định trực tiếp
     NgayTao          DATETIME      DEFAULT GETDATE(),         -- Thời điểm tạo đề tài
     FOREIGN KEY (MaLop) REFERENCES LopHoc(MaLop)
 );
