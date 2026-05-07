@@ -59,6 +59,7 @@ public class NhomController : ControllerBase
                 tenNhomTruong = nhom.MaNhomTruongNavigation?.HoTen ?? "Chưa có",
                 soThanhVienHienTai = nhom.MaSinhViens.Count,
                 soThanhVienToiDa = nhom.SoThanhVienToiDa,
+                maDeTai = nhom.MaDeTai,
                 tenDeTai = nhom.MaDeTaiNavigation?.TenDeTai ?? "Chưa có đề tài",
                 choPhepDangKyNhom = nhom.MaLopNavigation?.ChoPhepDangKyNhom, // Lấy trạng thái chốt nhóm
                 thanhVien = nhom.MaSinhViens.Select(sv => new {
@@ -175,22 +176,56 @@ public class NhomController : ControllerBase
     public async Task<IActionResult> TaoNhom([FromBody] TaoNhomDto dto)
     {
         var claimMaNguoiDung = User.FindFirstValue("maNguoiDung");
+        var claimMaVaiTro = User.FindFirstValue("maVaiTro");
         if (string.IsNullOrEmpty(claimMaNguoiDung)) return Unauthorized();
         int maNguoiDung = int.Parse(claimMaNguoiDung);
+        int maVaiTro = int.Parse(claimMaVaiTro ?? "0");
+
+        if (string.IsNullOrWhiteSpace(dto.TenNhom))
+        {
+            return BadRequest(new { thongBao = "Tên nhóm không được để trống" });
+        }
+
+        if (dto.MaLop <= 0)
+        {
+            return BadRequest(new { thongBao = "Vui lòng chọn lớp học" });
+        }
+
+        if (dto.SoThanhVienToiDa < 2 || dto.SoThanhVienToiDa > 10)
+        {
+            return BadRequest(new { thongBao = "Số thành viên tối đa phải từ 2 đến 10" });
+        }
+
+        var lop = await _db.LopHocs
+            .Include(l => l.MaSinhViens)
+            .FirstOrDefaultAsync(l => l.MaLop == dto.MaLop);
+        if (lop == null)
+        {
+            return NotFound(new { thongBao = "Không tìm thấy lớp học" });
+        }
+
+        if (maVaiTro != 2)
+        {
+            return BadRequest(new { thongBao = "Chỉ giảng viên mới được tạo nhóm rỗng cho lớp học" });
+        }
+
+        if (lop.MaGiangVien != maNguoiDung)
+        {
+            return BadRequest(new { thongBao = "Bạn chỉ được tạo nhóm cho lớp mình phụ trách" });
+        }
+
+        bool trungTen = await _db.Nhoms.AnyAsync(n => n.MaLop == dto.MaLop && n.TenNhom == dto.TenNhom.Trim());
+        if (trungTen)
+        {
+            return BadRequest(new { thongBao = "Tên nhóm đã tồn tại trong lớp này" });
+        }
 
         // Bước 1: Tạo object nhóm mới
         Nhom nhomMoi = new Nhom();
-        nhomMoi.TenNhom = dto.TenNhom;
+        nhomMoi.TenNhom = dto.TenNhom.Trim();
         nhomMoi.MaLop = dto.MaLop;
         nhomMoi.SoThanhVienToiDa = dto.SoThanhVienToiDa;
-        nhomMoi.MaNhomTruong = maNguoiDung; // Người tạo là nhóm trưởng
-
-        // Bước 2: Thêm người tạo vào danh sách thành viên
-        var creator = await _db.NguoiDungs.FindAsync(maNguoiDung);
-        if (creator != null)
-        {
-            nhomMoi.MaSinhViens.Add(creator);
-        }
+        nhomMoi.MaNhomTruong = null;
 
         _db.Nhoms.Add(nhomMoi);
 
@@ -206,8 +241,16 @@ public class NhomController : ControllerBase
     // POST: api/nhom/1/themthanhvien
     // =============================================
     [HttpPost("{maNhom}/themthanhvien")]
+    [Authorize]
     public async Task<IActionResult> ThemThanhVien(int maNhom, [FromBody] ThemThanhVienDto dto)
     {
+        var claimMaNguoiDung = User.FindFirstValue("maNguoiDung");
+        var claimMaVaiTro = User.FindFirstValue("maVaiTro");
+        if (string.IsNullOrEmpty(claimMaNguoiDung)) return Unauthorized();
+
+        int maNguoiDung = int.Parse(claimMaNguoiDung);
+        int maVaiTro = int.Parse(claimMaVaiTro ?? "0");
+
         // Bước 1: Tìm nhóm
         Nhom? nhom = await _db.Nhoms
             .Include(n => n.MaSinhViens)
@@ -216,8 +259,21 @@ public class NhomController : ControllerBase
 
         if (nhom == null) return NotFound(new { thongBao = "Không tìm thấy nhóm" });
 
-        // Nếu giảng viên đã chốt nhóm thì không cho đăng ký
-        if (nhom.MaLopNavigation != null && nhom.MaLopNavigation.ChoPhepDangKyNhom == false)
+        bool laGiangVienPhuTrach = maVaiTro == 2 && nhom.MaLopNavigation?.MaGiangVien == maNguoiDung;
+        bool laSinhVienTuDangKy = maVaiTro == 3;
+
+        if (!laGiangVienPhuTrach && !laSinhVienTuDangKy)
+        {
+            return BadRequest(new { thongBao = "Bạn không có quyền thêm thành viên vào nhóm này" });
+        }
+
+        if (laSinhVienTuDangKy && dto.MaSinhVien != maNguoiDung)
+        {
+            return BadRequest(new { thongBao = "Sinh viên chỉ được tự đăng ký cho chính mình" });
+        }
+
+        // Sinh viên không được tự đăng ký khi lớp đã chốt. Giảng viên vẫn được điều phối sinh viên còn lại.
+        if (laSinhVienTuDangKy && nhom.MaLopNavigation != null && nhom.MaLopNavigation.ChoPhepDangKyNhom == false)
         {
             return BadRequest(new { thongBao = "Giảng viên đã chốt danh sách nhóm, không thể thêm thành viên lúc này." });
         }

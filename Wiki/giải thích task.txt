@@ -1,0 +1,187 @@
+FLOW Task & nhóm trưởng ===========================================
+task được tạo bởi nhóm trưởng & giao task đến sinh viên khác trong nhóm để cùng nhau hoàn thành đề tài mà giảng viên giao cho .
+-	 trạng thái của task : 
+•	"chưa bắt đầu " : trạng thái của task khi nhóm trưởng chưa giao cho sinh viên trong nhóm.
+•	"đang thực hiện" : Trang thái của task khi nhóm trưởng đã giao cho sinh viên trong nhóm & sinh viên được giao task đang trong quá trình thực hiện task
+•	"phê duyệt" : trạng thái của task khi sinh viên nộp task chờ nhóm trưởng phê duyệt
+•	"yêu cầu làm lại" : trạng thái của task khi nhóm trưởng xem task của sinh viên trong nhóm  nộp & thấy task chưa đầy đủ yêu cầu dựa theo yêu cầu của task đưa ra . Nhóm trưởng có quyền yêu cầu làm lại task & gia hạn deadline mới khi làm lại task của sinh viên trong nhóm
+•	"trễ hạn" : trạng thái của task khi thời gian hiện tại > deadline của task . hệ thống sẽ gửi thông báo đến nhóm trưởng .nhóm trưởng sẽ làm việc với bạn bị trễ task
+•	"hoàn thành" : trạng thái của task khi nhóm trưởng phê duyệt task đã nộp của sinh viên trong nhóm 
+ -	Quy trình :
+B1 : nhóm trưởng tạo task & giao task cho các bạn trong nhóm
+B2 :Các bạn làm task mà nhóm trưởng đã bàn giao cho
+B3: các bạn nộp task đúng hạn & đợi nhóm trưởng phê duyệt
+B3.1 Nếu task trễ hạn , nhóm trưởng làm việc với bạn trễ task & gia hạn deadline task
+	Quay lại B2
+B4:nếu nhóm trưởng xem task đã nộp : 
+B4.1 không phê duyệt & yêu cầu làm lại task . 
+				Quay lại bước 2
+			B4.2 nếu nhóm trưởng phê duyệt task
+				Tiếp bước 5 
+B5. Nhóm trưởng phê duyệt task , task hoàn thành & sinh siên đợi được giao task mới
+1.7 Nhóm trưởng
+-đăng kí đề tài : Nhóm trưởng sẽ đại diện nhóm đăng ký đề tài 	
+	-Tạo task & quản lý task của nhóm : 	
+•	Tạo task : nhóm trưởng dựa theo đề tài đã đăng ký , tạo các task & giao task  đến các bạn trong nhóm 
+•	Quản lý task : nhóm trưởng có trách nhiệm xem xét & phê duyệt các task đã nộp của các bạn trong nhóm để hoàn thành đề tài của giảng viên
+
+GIẢI THÍCH VỀ TÍNH NĂNG =====================================
+1 . Nhóm trưởng -> sinh viên trong nhóm được cả nhóm bầu ra hoặc được giảng viên chỉ định
+-> sau khi gv chốt danh sách nhóm đủ số lượng thành viên , gv sẽ set 1 bạn trong trong nhóm làm nhóm trưởng
+-> nhóm trưởng sẽ vào được tab "điều phối nhóm" để 
+	*dky đề tài theo phương thức tự do đăng ký
+	* tạo task & giao task cho nhóm làm task 
+	* nhóm trưởng xem xét & phê duyệt các task đã nộp của các bạn trong nhóm để hoàn thành đề tài của giảng viên
+* sinh viên không phải là nhóm trưởng thì vào "điều phối nhóm" bị hệ thống chặn
+2. thành viên trong nhóm
+	-> làm task mà nhóm trưởng giao 
+	-> nộp task 
+	
+GIẢI THÍCH VỀ UI========================================
+1. Cycle các tình trạng task ở bảng tiến độ nhiệm vụ kanban
+	- Nguyên tắc của task : 1 bạn / 1 task 
+	-Nhóm trưởng tạo task & chưa giao task cho ai trong nhóm
+		*task ở bảng kanban "chưa bắt đầu"
+	-Nhóm trưởng click vào task "chưa bắt đầu" & giao cho 1 bạn trong nhóm 
+		-> 1 task sẽ do 1 bạn trong nhóm làm
+		*task ở bảng kanban "chưa bắt đầu" -> task ở bảng kanban "đang thực hiện"
+		-> nếu trong quá trình làm task , bạn làm task có gặp vấn đề không thể làm task được :
+		 	+ nhóm trưởng sẽ cập nhật chỉ định 1 bạn khác làm thay task
+			+ nhóm trưởng gia hạn "hạn hoàn thành" task để bạn làm thay task có time làm task được giao
+	- thành viên nhóm nộp task
+		* task ở bảng kanban "đang thực hiện" -> task ở bảng kanban "phê duyệt"
+	- nhóm trưởng xem task -> phê duyệt task 
+		*  task ở bảng kanban "phê duyệt" -> task ở bảng kanban "Hoàn thành"
+	- nhóm trưởng xem task -> yêu cầu làm lại task 
+		* task ở bảng kanban "phê duyệt" -> task ở bảng kanban "Làm lại task" 
+	- khi task trễ hạn (hạn hoàn thành < ngày hiện tại) 
+		* task ở bảng kanban "đang thực hiện " -> task ở bảng kanban "trễ hạn"
+		** nhóm trưởng làm việc với bạn trễ task & gia hạn "hạn hoàn thành"
+		*** task ở bảng kanban "trễ hạn" ->  task ở bảng kanban "đang thực hiện" có gán nhãn nộp trễ 
+2. trang "điều phối phóm"
+	2.1 dropdown "quản lý nhóm" -> cho phép sinh viên quản lý  nhóm của nhiều lớp môn học khác nhau khi làm nhóm trưởng
+	2.2 button "tạo nhiệm vụ mới" -> nhóm trưởng tạo task 
+	2.3 Panel "cảnh báo & duyệt task"
+	-các yêu cầu duyệt task , 
+	-cảnh báo trễ hạn(hạn hoàn thành của 1 task -1 ngày), 
+	-trễ hạn xuất hiện 
+	-thành viên đã gửi yêu cầu chuyển nhóm tới gv
+	-thành viên đã gv phê duyệt yêu cầu chuyển nhóm & đã chuyển sang nhóm mới
+	-thành viên mới gia nhập vào nhóm từ nhóm khác
+	2.4 "thành viên & đóng góp"
+	- hiện danh sách thành viên trong nhóm
+	- mỗi thành viên có dropdown liệt kệ các task "đang thực hiện" & các task "hoàn thành"
+	2.5 panel "đề tài đang thực hiện" -> nhóm trưởng xem chi tiết đề tài 
+	2.6 "tiến độ nhiệm vụ kanban" -> chứa các card tình trạng task
+	2.6.1 task "chưa bắt đầu"
+		-> khi click card hiện chi tiết task :
+			Tên nhiệm vụ 
+			Mô tả chi tiết 
+			Ngày bắt đầu  - hạn hoàn thành 
+			Mức độ ưu tiên 
+			tick chọn "Giao cho thành viên" 
+			Tệp đính kèm 
+			button "đóng" - button "xác nhận"
+		-> nhóm trưởng chỉ định 1 bạn bằng cách tick vào bạn đó
+		-> cho phép nhóm trưởng chỉnh sửa thông tin task
+		* rằng buộc : task theo nguyên tắc 1 task / 1 người
+			- nhóm trường không thể giao 1 task 2 người
+			- nhóm trưởng bỏ tick bạn này -> tick vào bạn khác
+	2.6.2 task "đang thực hiện"
+		-> khi click card hiện chi tiết task 
+			Tên nhiệm vụ
+			Mô tả chi tiết
+			Ngày bắt đầu - hạn hoàn thành
+			Mức độ ưu tiên
+			tick chọn "Giao cho thành viên"
+			Tệp đính kèm
+			button "đóng" - button "xác nhận"
+		* nếu trong quá trình làm task , bạn làm task có gặp vấn đề không thể làm task được 
+		-> cho phép nhóm trưởng chỉnh sửa thông tin task :
+			- nhóm trưởng bỏ tick bạn này -> tick vào bạn làm thay task
+			- nhóm trưởng có thể gia hạn "hạn hoàn thành" task cho bạn làm task thay
+			- nhóm trưởng có thể gửi tệp đính kèm phần làm task "chưa xong "của bạn kia 	
+		-> có gán nhãn "làm thay bạn khác"
+	2.6.3 task "chờ duyệt"
+		-> khi click card hiện "nộp task" của bạn nộp
+			Tên nhiệm vụ
+			Mô tả chi tiết
+			Ngày bắt đầu - hạn hoàn thành
+			Mức độ ưu tiên
+			ghi chú của bạn nộp task
+			tệp đính kèm của bạn nộp task
+			button "đóng" - button "làm lại task" - button "phê duyệt"
+		-> cho phép nhóm trưởng tải tệp đính kèm của bạn làm task
+		* nếu nhóm trưởng nhấn "làm lại task" hiện modal "yêu cầu làm lại task"
+			gia hạn "hạn hoàn thành"
+			ghi lý do yêu cầu làm lại
+			button "xác nhận"
+		* bạn làm lại task mở task làm lại thấy "nộp task" +  "hạn hoàn thành" mới +  ghi lý do yêu cầu làm lại
+			Tên nhiệm vụ
+			Mô tả chi tiết
+			Ngày bắt đầu - hạn hoàn thành(mới)
+			Mức độ ưu tiên
+			ghi chú của bạn nộp task
+			tệp đính kèm của bạn nộp task
+			lý do yêu cầu làm lại
+			button "xác nhận"
+			
+	2.6.4 task "làm lại task"
+		-> khi click card hiện chi tiết task +  "hạn hoàn thành" mới +  ghi lý do yêu cầu làm lại
+			Tên nhiệm vụ
+			Mô tả chi tiết
+			Ngày bắt đầu - hạn hoàn thành(mới)
+			Mức độ ưu tiên
+			tên thành viên làm task
+			lý do yêu cầu làm lại
+			button "xác nhận"
+		-> nhóm trưởng không chỉnh sửa thông tin
+		
+	2.6.5 task "task trễ hạn"
+		-> khi click card hiện chi tiết task
+			Tên nhiệm vụ 
+			Mô tả chi tiết 
+			Ngày bắt đầu  - hạn hoàn thành 
+			Mức độ ưu tiên 
+			tên thành viên làm task
+			Tệp đính kèm 
+			ghi chú lý do trễ hạn task 
+			button "đóng" - button "gia hạn"
+		-> cho phép nhóm trưởng gia hạn "hạn hoàn thành" & ghi ghi chú lý do trễ hạn task 
+	2.6.6 task "hoàn thành"
+		> khi click card hiện "nộp task" của bạn nộp
+			Tên nhiệm vụ
+			Mô tả chi tiết
+			Ngày bắt đầu - hạn hoàn thành
+			Mức độ ưu tiên
+			ghi chú của bạn nộp task
+			tệp đính kèm của bạn nộp task
+			button "đóng" 		
+		-> không chỉnh sửa thông tin
+3. Nhiệm vụ & tiến độ
+3.1 Của tôi
+	-> bộ lọc "nhóm" - bộ lọc "tất cả trạng thái" - bộ lọc "ưu tiên"
+	-> hiện các task do sinh viên đảm nhận - button "nộp task"
+	nộp task gồm :
+			Tên nhiệm vụ
+			tên nhóm - tên lớp môn học 
+			Mô tả chi tiết
+			Ngày bắt đầu - hạn hoàn thành
+			Mức độ ưu tiên
+			ghi chú của bạn 
+			tệp đính kèm của bạn 
+			button "đóng" 	- button "nộp task"
+	-> task "hoàn thành" không có button nộp task 	
+3.2 của nhóm
+	-> bộ lọc nhóm
+	-> hiện tất cả các task có trong nhóm
+	-> sinh viên click vào task hiện chi tiết task 
+			Tên nhiệm vụ 
+			Mô tả chi tiết 
+			Ngày bắt đầu  - hạn hoàn thành 
+			Mức độ ưu tiên 
+			Người làm task : {"chưa có ai","tên bạn làm task"}
+			Tệp đính kèm 
+			button "đóng" 
+ 
+		

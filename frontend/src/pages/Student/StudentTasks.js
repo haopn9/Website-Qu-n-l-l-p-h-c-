@@ -1,94 +1,9 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { FaTimes, FaInbox, FaUsers } from 'react-icons/fa';
+import { FaTimes } from 'react-icons/fa';
 import './StudentTasks.css';
 import nhiemVuService from '../../services/nhiemVuService';
 import authService from '../../services/authService';
-import classService from '../../services/classService';
 import apiClient from '../../services/apiClient';
-
-// ============================================================
-// DỮ LIỆU MẪU — Tab "Của tôi"
-// ============================================================
-const myTasks = [
-  { id: 1, maNhom: 1, name: 'Thiết kế giao diện trang Login', group: 'Nhóm 1', class: 'Lập trình Web',
-    status: 'late', statusLabel: 'Trễ hạn', badgeBg: '#fcebeb', badgeColor: '#a32d2d',
-    deadline: '17/04/2026', startDate: '10/04/2026', lateText: '⚠️ Đã trễ 1 ngày',
-    priority: '🔥 Ưu tiên cao', moTa: 'Thiết kế giao diện login responsive, hỗ trợ cả desktop và mobile.',
-    assignees: [{ ky: 'VA', bg: '#e6f1fb', color: '#185fa5' }], canSubmit: true,
-    nhacNho: 'Nhóm trưởng nhắc nhở: Task đã trễ hạn, vui lòng hoàn thành sớm!' },
-  { id: 2, maNhom: 1, name: 'Xây dựng API đăng nhập & phân quyền', group: 'Nhóm 1', class: 'Lập trình Web',
-    status: 'wait', statusLabel: 'Chờ duyệt', badgeBg: '#faeeda', badgeColor: '#854f0b',
-    deadline: '20/04/2026', startDate: '12/04/2026',
-    priority: '📈 Ưu tiên cao', moTa: 'Xây dựng REST API cho login, register, JWT token.',
-    assignees: [{ ky: 'VA', bg: '#e6f1fb', color: '#185fa5' }, { ky: 'TB', bg: '#faeeda', color: '#854f0b' }],
-    canSubmit: false, waitText: 'Đang chờ nhóm trưởng duyệt...' },
-  { id: 3, maNhom: 3, name: 'Viết báo cáo chương 2 — Phân tích hệ thống', group: 'Nhóm 3', class: 'Cơ sở dữ liệu',
-    status: 'redo', statusLabel: 'Làm lại task', badgeBg: '#fbeaf0', badgeColor: '#993556',
-    deadline: '22/04/2026', startDate: '15/04/2026',
-    priority: '📋 Ưu tiên trung bình', moTa: 'Viết phân tích use case, activity diagram cho hệ thống.',
-    redoNote: '⚠️ Nhóm trưởng yêu cầu làm lại: "Phần phân tích use case chưa đầy đủ, cần bổ sung thêm 3 use case còn thiếu."',
-    redoDeadline: 'Deadline mới: 22/04/2026',
-    assignees: [{ ky: 'VA', bg: '#e6f1fb', color: '#185fa5' }], canSubmit: true },
-  { id: 4, maNhom: 1, name: 'Thiết kế ERD & schema database', group: 'Nhóm 1', class: 'Lập trình Web',
-    status: 'doing', statusLabel: 'Đang thực hiện', badgeBg: '#e6f1fb', badgeColor: '#185fa5',
-    deadline: '25/04/2026', startDate: '18/04/2026',
-    priority: '📋 Ưu tiên trung bình', moTa: 'Thiết kế ERD đầy đủ và viết SQL script tạo bảng.',
-    assignees: [{ ky: 'VA', bg: '#e6f1fb', color: '#185fa5' }, { ky: 'LC', bg: '#e1f5ee', color: '#0f6e56' }],
-    canSubmit: true },
-  { id: 5, maNhom: 1, name: 'Phân tích yêu cầu & lập tài liệu đặc tả', group: 'Nhóm 1', class: 'Lập trình Web',
-    status: 'done', statusLabel: 'Đã hoàn thành', badgeBg: '#eaf3de', badgeColor: '#3b6d11',
-    deadline: '10/03/2026', startDate: '01/03/2026',
-    moTa: 'Phân tích yêu cầu phần mềm và viết tài liệu SRS.',
-    doneText: '✔ Nhóm trưởng đã duyệt', doneTime: 'Hoàn thành lúc 14:32 — 10/03',
-    assignees: [{ ky: 'VA', bg: '#e6f1fb', color: '#185fa5' }, { ky: 'TB', bg: '#faeeda', color: '#854f0b' }, { ky: 'PD', bg: '#fbeaf0', color: '#993556' }],
-    canSubmit: false },
-];
-
-// ============================================================
-// DỮ LIỆU MẪU — Tab "Của nhóm"
-// ============================================================
-const groups = [
-  { maNhom: 1, tenNhom: 'Nhóm 1', tenLop: 'Lập trình Web' },
-  { maNhom: 3, tenNhom: 'Nhóm 3', tenLop: 'Cơ sở dữ liệu' },
-];
-
-const groupTasks = [
-  { id: 101, maNhom: 1, name: 'Thiết kế giao diện trang Login', group: 'Nhóm 1', class: 'Lập trình Web',
-    status: 'late', statusLabel: 'Trễ hạn', badgeBg: '#fcebeb', badgeColor: '#a32d2d',
-    deadline: '17/04/2026', startDate: '10/04/2026', priority: '🔥 Ưu tiên cao',
-    moTa: 'Thiết kế giao diện login responsive.',
-    assignees: [{ ky: 'VA', bg: '#e6f1fb', color: '#185fa5', name: 'Nguyễn Văn A' }] },
-  { id: 102, maNhom: 1, name: 'Xây dựng API đăng nhập & phân quyền', group: 'Nhóm 1', class: 'Lập trình Web',
-    status: 'wait', statusLabel: 'Chờ duyệt', badgeBg: '#faeeda', badgeColor: '#854f0b',
-    deadline: '20/04/2026', startDate: '12/04/2026', priority: '📈 Ưu tiên cao',
-    moTa: 'Xây dựng REST API cho login.',
-    assignees: [{ ky: 'VA', bg: '#e6f1fb', color: '#185fa5', name: 'Nguyễn Văn A' }, { ky: 'TB', bg: '#faeeda', color: '#854f0b', name: 'Trần Thị B' }] },
-  { id: 103, maNhom: 1, name: 'Thiết kế ERD & schema database', group: 'Nhóm 1', class: 'Lập trình Web',
-    status: 'doing', statusLabel: 'Đang thực hiện', badgeBg: '#e6f1fb', badgeColor: '#185fa5',
-    deadline: '25/04/2026', startDate: '18/04/2026', priority: '📋 Ưu tiên trung bình',
-    moTa: 'Thiết kế ERD và viết SQL script.',
-    assignees: [{ ky: 'VA', bg: '#e6f1fb', color: '#185fa5', name: 'Nguyễn Văn A' }, { ky: 'LC', bg: '#e1f5ee', color: '#0f6e56', name: 'Lê Văn C' }] },
-  { id: 104, maNhom: 1, name: 'Viết tài liệu hướng dẫn sử dụng', group: 'Nhóm 1', class: 'Lập trình Web',
-    status: 'doing', statusLabel: 'Đang thực hiện', badgeBg: '#e6f1fb', badgeColor: '#185fa5',
-    deadline: '28/04/2026', startDate: '20/04/2026', priority: '📋 Ưu tiên thấp',
-    moTa: 'Viết hướng dẫn sử dụng cho người dùng cuối.',
-    assignees: [{ ky: 'TB', bg: '#faeeda', color: '#854f0b', name: 'Trần Thị B' }] },
-  { id: 105, maNhom: 1, name: 'Phân tích yêu cầu & lập tài liệu đặc tả', group: 'Nhóm 1', class: 'Lập trình Web',
-    status: 'done', statusLabel: 'Đã hoàn thành', badgeBg: '#eaf3de', badgeColor: '#3b6d11',
-    deadline: '10/03/2026', startDate: '01/03/2026',
-    moTa: 'Phân tích yêu cầu và viết SRS.', doneText: '✔ Nhóm trưởng đã duyệt',
-    assignees: [{ ky: 'VA', bg: '#e6f1fb', color: '#185fa5', name: 'Nguyễn Văn A' }, { ky: 'TB', bg: '#faeeda', color: '#854f0b', name: 'Trần Thị B' }, { ky: 'PD', bg: '#fbeaf0', color: '#993556', name: 'Phạm Thị D' }] },
-  { id: 201, maNhom: 3, name: 'Viết báo cáo chương 2 — Phân tích hệ thống', group: 'Nhóm 3', class: 'Cơ sở dữ liệu',
-    status: 'redo', statusLabel: 'Làm lại task', badgeBg: '#fbeaf0', badgeColor: '#993556',
-    deadline: '22/04/2026', startDate: '15/04/2026', priority: '📋 Ưu tiên trung bình',
-    moTa: 'Viết phân tích use case cho hệ thống thư viện.',
-    assignees: [{ ky: 'VA', bg: '#e6f1fb', color: '#185fa5', name: 'Nguyễn Văn A' }] },
-  { id: 202, maNhom: 3, name: 'Thiết kế sơ đồ ERD cho hệ thống thư viện', group: 'Nhóm 3', class: 'Cơ sở dữ liệu',
-    status: 'done', statusLabel: 'Đã hoàn thành', badgeBg: '#eaf3de', badgeColor: '#3b6d11',
-    deadline: '15/03/2026', startDate: '05/03/2026',
-    moTa: 'Vẽ ERD cho module quản lý sách.', doneText: '✔ Nhóm trưởng đã duyệt',
-    assignees: [{ ky: 'HT', bg: '#e1f5ee', color: '#0f6e56', name: 'Võ Văn Hoài' }, { ky: 'NQ', bg: '#fbeaf0', color: '#993556', name: 'Đỗ Minh Huy' }] },
-];
 
 // ============================================================
 // MODAL CHI TIẾT TASK (read-only)
@@ -172,6 +87,9 @@ function SubmitTaskModal({ task, onClose, onRefresh }) {
         phanTramHoanThanh: 100,
         ghiChu: ghiChu
       });
+      if (files.length > 0) {
+        await nhiemVuService.uploadTaskFiles(task.id, files);
+      }
       alert(`✅ Nộp task "${task.name}" thành công!`);
       onRefresh();
       onClose();
@@ -213,7 +131,7 @@ function SubmitTaskModal({ task, onClose, onRefresh }) {
                 onDragOver={e => { e.preventDefault(); setDragover(true); }}
                 onDragLeave={() => setDragover(false)}
                 onDrop={e => { e.preventDefault(); setDragover(false); handleFiles(e.dataTransfer.files); }}>
-                <div className="st-upload-icon">📎</div>
+                <div className="st-upload-icon">Tệp</div>
                 <div className="st-upload-text">Kéo thả file vào đây hoặc <strong>click để chọn file</strong><br/>Cho phép: .pdf, .docx, .zip, .jpg, .png</div>
                 <input type="file" ref={fileInputRef} multiple accept=".pdf,.docx,.zip,.jpg,.png" onChange={e => { handleFiles(e.target.files); e.target.value = ''; }} />
               </div>
@@ -232,7 +150,9 @@ function SubmitTaskModal({ task, onClose, onRefresh }) {
           </div>
           <div className="st-modal-footer">
             <button type="button" className="st-btn-cancel" onClick={onClose}>Hủy</button>
-            <button type="submit" className="st-btn-submit">Nộp task</button>
+            <button type="submit" className="st-btn-submit" disabled={loading}>
+              {loading ? 'Đang nộp...' : 'Nộp task'}
+            </button>
           </div>
         </form>
       </div>
@@ -300,51 +220,13 @@ const StudentTasks = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      // 1. Lấy danh sách nhóm của tôi
-      const myGroups = await apiClient.get('/api/nhom/cua-toi');
-      setGroups(myGroups);
+      const [myGroups, tasks] = await Promise.all([
+        apiClient.get('/api/nhom/cua-toi'),
+        nhiemVuService.getTasksForMyGroups()
+      ]);
 
-        // 2. Lấy tất cả task từ tất cả nhóm này
-        let tasksAccumulator = [];
-        for (const g of myGroups) {
-          const tasks = await nhiemVuService.getTasksByGroup(g.maNhom);
-          // Map backend data to frontend format
-          const mappedTasks = tasks.map(t => {
-            const isLate = t.trangThai === 'Trễ hạn' || (t.trangThai !== 'Hoàn thành' && new Date(t.hanHoanThanh) < new Date());
-            
-            // Tìm thông tin chi tiết của task để lấy assignees (API get danh sách không trả về đủ info nested sâu)
-            // Tuy nhiên API hiện tại có t.soThanhVienThamGia.
-            // Để đơn giản, ta sẽ fetch chi tiết khi click vào task.
-            
-            return {
-              id: t.maNhiemVu,
-              maNhom: g.maNhom,
-              name: t.tenNhiemVu,
-              group: g.tenNhom,
-              class: g.tenLop,
-              status: mapStatus(t.trangThai, isLate),
-              statusLabel: isLate ? 'Trễ hạn' : t.trangThai,
-              ...getStatusStyles(mapStatus(t.trangThai, isLate)),
-              deadline: formatDate(t.hanHoanThanh),
-              startDate: formatDate(t.ngayBatDau),
-              lateText: isLate ? '⚠️ Đã trễ hạn' : null,
-              priority: t.mucDoUuTien ? `${getPriorityEmoji(t.mucDoUuTien)} ${t.mucDoUuTien}` : null,
-              moTa: t.moTa,
-              maNguoiDungs: (t.maNguoiDungs || []).map(u => u.maNguoiDung),
-              assignees: (t.maNguoiDungs || []).map(u => ({ 
-                name: u.hoTen, 
-                ky: u.hoTen ? u.hoTen.split(' ').pop().substring(0, 2).toUpperCase() : '?', 
-                bg: '#e6f1fb', color: '#185fa5' 
-              })), 
-              canSubmit: ['doing', 'redo', 'late'].includes(mapStatus(t.trangThai, isLate)),
-              raw: t,
-              waitText: t.trangThai === 'Chờ duyệt' ? 'Đang chờ nhóm trưởng duyệt...' : null,
-              doneText: t.trangThai === 'Hoàn thành' ? '✔ Đã hoàn thành' : null
-            };
-          });
-          tasksAccumulator = [...tasksAccumulator, ...mappedTasks];
-        }
-      setAllTasks(tasksAccumulator);
+      setGroups(myGroups);
+      setAllTasks(tasks.map(mapApiTaskToCard));
     } catch (err) {
       console.error("Lỗi fetch data:", err);
     } finally {
@@ -352,14 +234,47 @@ const StudentTasks = () => {
     }
   };
 
+  const mapApiTaskToCard = (t) => {
+    const status = mapStatus(t.trangThai);
+    const assignees = (t.maNguoiDungs || []).map(u => ({
+      maNguoiDung: u.maNguoiDung,
+      name: u.hoTen,
+      ky: u.hoTen ? u.hoTen.split(' ').pop().substring(0, 2).toUpperCase() : '?',
+      bg: '#e6f1fb',
+      color: '#185fa5'
+    }));
+
+    return {
+      id: t.maNhiemVu,
+      maNhom: t.maNhom,
+      name: t.tenNhiemVu,
+      group: t.tenNhom || 'Nhóm học tập',
+      class: t.tenLop || 'Lớp môn học',
+      status,
+      statusLabel: normalizeStatusLabel(t.trangThai),
+      ...getStatusStyles(status),
+      deadline: formatDate(t.hanHoanThanh),
+      startDate: formatDate(t.ngayBatDau),
+      lateText: status === 'late' ? 'Đã trễ hạn' : null,
+      priority: t.mucDoUuTien ? `${getPriorityEmoji(t.mucDoUuTien)} ${t.mucDoUuTien}` : null,
+      moTa: t.moTa,
+      maNguoiDungs: assignees.map(u => u.maNguoiDung),
+      assignees,
+      canSubmit: ['doing', 'redo', 'late'].includes(status),
+      raw: t,
+      waitText: status === 'wait' ? 'Đang chờ nhóm trưởng duyệt...' : null,
+      doneText: status === 'done' ? 'Đã hoàn thành' : null
+    };
+  };
+
   useEffect(() => {
     fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const mapStatus = (backendStatus, isLate) => {
-    if (isLate) return 'late';
+  const mapStatus = (backendStatus) => {
     switch (backendStatus) {
-      case 'Chưa bắt đầu': return 'doing'; // Map về doing để hiện nút nộp nếu cần
+      case 'Chưa bắt đầu': return 'notstart';
       case 'Đang thực hiện': return 'doing';
       case 'Chờ duyệt': return 'wait';
       case 'Làm lại': return 'redo';
@@ -369,11 +284,18 @@ const StudentTasks = () => {
     }
   };
 
+  const normalizeStatusLabel = (backendStatus) => {
+    if (backendStatus === 'Làm lại') return 'Làm lại task';
+    if (backendStatus === 'Hoàn thành') return 'Đã hoàn thành';
+    return backendStatus || 'Đang thực hiện';
+  };
+
   const getStatusStyles = (status) => {
     const map = {
       late: { badgeBg: '#fcebeb', badgeColor: '#a32d2d' },
       wait: { badgeBg: '#faeeda', badgeColor: '#854f0b' },
       redo: { badgeBg: '#fbeaf0', badgeColor: '#993556' },
+      notstart: { badgeBg: '#f0f2f8', badgeColor: '#667085' },
       doing: { badgeBg: '#e6f1fb', badgeColor: '#185fa5' },
       done: { badgeBg: '#eaf3de', badgeColor: '#3b6d11' },
     };
@@ -439,6 +361,7 @@ const StudentTasks = () => {
         )}
         <select className="fsel" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
           <option value="all">Tất cả trạng thái</option>
+          <option value="notstart">Chưa bắt đầu</option>
           <option value="doing">Đang thực hiện</option>
           <option value="wait">Chờ duyệt</option>
           <option value="late">Trễ hạn</option>

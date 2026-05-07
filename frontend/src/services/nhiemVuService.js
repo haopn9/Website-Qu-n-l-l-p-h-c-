@@ -6,6 +6,11 @@ const nhiemVuService = {
     return await apiClient.get(`/api/nhiemvu?maNhom=${maNhom}`);
   },
 
+  // Lấy tất cả task trong các nhóm mà sinh viên đang tham gia
+  getTasksForMyGroups: async () => {
+    return await apiClient.get('/api/nhiemvu/nhom-cua-toi');
+  },
+
   // Lấy chi tiết task
   getTaskById: async (id) => {
     return await apiClient.get(`/api/nhiemvu/${id}`);
@@ -39,6 +44,12 @@ const nhiemVuService = {
   // Nhóm trưởng yêu cầu làm lại
   rejectTask: async (id, data) => {
     return await apiClient.put(`/api/nhiemvu/${id}/lam-lai`, data);
+  },
+
+  uploadTaskFiles: async (id, files) => {
+    const formData = new FormData();
+    Array.from(files || []).forEach(file => formData.append('files', file));
+    return await apiClient.post(`/api/nhiemvu/${id}/tep-dinh-kem`, formData, true);
   }
 };
 

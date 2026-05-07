@@ -193,6 +193,11 @@
   justify-content: center;
 }
 
+.smg-assignee-av.muted {
+  background: #e2e8f0;
+  color: #64748b;
+}
+
 .smg-assignee-name {
   font-size: 12px;
   font-weight: 600;
@@ -242,6 +247,15 @@
   background: #f1f5f9;
   border-radius: 8px;
   margin-bottom: 6px;
+}
+
+.smg-file-item.link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.smg-file-item.link:hover {
+  background: #e6f1fb;
 }
 
 .smg-file-name {
@@ -500,6 +514,8 @@
 .tk.wait { border-left-color: #f59e0b; }
 .tk.late { border-left-color: #ef4444; }
 .tk.done { border-left-color: #10b981; }
+.tk.redo { border-left-color: #d4537e; }
+.tk.notstart { border-left-color: #94a3b8; }
 
 .tk-name {
   font-size: 13px;
@@ -510,6 +526,79 @@
 .tk-meta {
   font-size: 11px;
   color: #94a3b8;
+}
+
+.tk-chip {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  margin-top: 8px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.tk-chip.substitute {
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+.task-state-note {
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 13px;
+  line-height: 1.5;
+  margin-bottom: 16px;
+  border-left: 4px solid #94a3b8;
+}
+
+.task-state-note.notstart { border-left-color: #94a3b8; }
+.task-state-note.doing { border-left-color: #378add; background: #f0f7ff; color: #185fa5; }
+.task-state-note.wait { border-left-color: #ef9f27; background: #fff7ed; color: #854f0b; }
+.task-state-note.redo { border-left-color: #d4537e; background: #fdf2f8; color: #993556; }
+.task-state-note.late,
+.task-state-note.extend { border-left-color: #e24b4a; background: #fef2f2; color: #991b1b; }
+.task-state-note.done { border-left-color: #639922; background: #f0fdf4; color: #166534; }
+.task-state-note.substitute {
+  border-left-color: #ef9f27;
+  background: #fff7ed;
+  color: #854f0b;
+}
+
+.task-readonly-box {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 11px 13px;
+  font-size: 13px;
+  color: #334155;
+  line-height: 1.55;
+}
+
+.task-readonly-box.amber {
+  background: #fff7ed;
+  border-color: #fed7aa;
+  color: #854f0b;
+}
+
+.task-readonly-box.danger {
+  background: #fdf2f8;
+  border-color: #fbcfe8;
+  color: #993556;
+}
+
+.task-readonly-box.muted {
+  color: #94a3b8;
+}
+
+.kanban-empty {
+  color: #94a3b8;
+  font-size: 12px;
+  padding: 12px 8px;
+  text-align: center;
 }
 
 /* MODAL & TOPIC LIST */
@@ -836,7 +925,7 @@
   border-bottom-right-radius: 12px;
   padding: 16px;
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: 1fr 1fr;
   gap: 16px;
   animation: slideDown 0.3s ease-out;
 }

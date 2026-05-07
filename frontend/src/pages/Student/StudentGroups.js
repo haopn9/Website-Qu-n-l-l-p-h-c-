@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { FaTimes } from 'react-icons/fa';
 import './StudentGroups.css';
+import apiClient from '../../services/apiClient';
 
 // ============================================================
 // DỮ LIỆU MẪU
@@ -142,23 +143,15 @@ function JoinModal({ groups, onClose }) {
     if (!selectedGroupId) return;
     
     try {
-      const res = await fetch(`http://localhost:5186/api/nhom/${selectedGroupId}/themthanhvien`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ maSinhVien: JSON.parse(localStorage.getItem('userInfo'))?.maNguoiDung })
+      await apiClient.post(`/api/nhom/${selectedGroupId}/themthanhvien`, {
+        maSinhVien: JSON.parse(localStorage.getItem('userInfo'))?.maNguoiDung
       });
-
-      if (res.ok) {
-        alert(`Bạn đã tham gia ${targetGroup.tenNhom} thành công!`);
-        onClose();
-        window.location.reload(); // Tải lại để cập nhật danh sách nhóm
-      } else {
-        const errorData = await res.json();
-        alert(errorData.thongBao || 'Lỗi khi tham gia nhóm');
-      }
+      alert(`Bạn đã tham gia ${targetGroup.tenNhom} thành công!`);
+      onClose();
+      window.location.reload(); // Tải lại để cập nhật danh sách nhóm
     } catch (err) {
       console.error(err);
-      alert('Không thể kết nối API!');
+      alert(err.message || 'Không thể tham gia nhóm!');
     }
   };
 

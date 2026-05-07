@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './ManageGroups.css';
 import { FaPlus, FaSearch, FaUsers, FaUserFriends, FaCrown, FaRandom, FaUserMinus, FaTimes, FaChalkboard } from 'react-icons/fa';
+import apiClient from '../../../services/apiClient';
 
 const ManageGroups = () => {
   const [groups, setGroups] = useState([]);
@@ -23,7 +24,7 @@ const ManageGroups = () => {
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
   const [teacherResponse, setTeacherResponse] = useState('');
   const [formData, setFormData] = useState({ groupName: '', maxMembers: 5, classId: '' });
-  const [randomForm, setRandomForm] = useState({ classId: '', membersPerGroup: 4 });
+  const [randomForm, setRandomForm] = useState({ classId: '' });
   const [selectedLeaderId, setSelectedLeaderId] = useState('');
   const [selectedStudentId, setSelectedStudentId] = useState('');
 
@@ -94,32 +95,32 @@ const ManageGroups = () => {
 
   const handleCreateGroup = async (e) => {
     e.preventDefault();
+    if (!formData.groupName.trim()) {
+      alert('Vui lòng nhập tên nhóm!');
+      return;
+    }
     if (!formData.classId) {
       alert('Vui lòng chọn lớp!');
       return;
     }
+    if (!formData.maxMembers || formData.maxMembers < 2 || formData.maxMembers > 10) {
+      alert('Số thành viên tối đa phải từ 2 đến 10!');
+      return;
+    }
 
     try {
-      const res = await fetch('http://localhost:5186/api/nhom', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          tenNhom: formData.groupName,
-          maLop: parseInt(formData.classId, 10),
-          soThanhVienToiDa: formData.maxMembers
-        })
+      await apiClient.post('/api/nhom', {
+        tenNhom: formData.groupName.trim(),
+        maLop: parseInt(formData.classId, 10),
+        soThanhVienToiDa: formData.maxMembers
       });
-      if (res.ok) {
-        await fetchData();
-        setIsCreateModalOpen(false);
-        setFormData({ groupName: '', maxMembers: 5, classId: '' });
-        alert('Tạo nhóm thành công!');
-      } else {
-        alert('Lỗi khi tạo nhóm!');
-      }
+      await fetchData();
+      setIsCreateModalOpen(false);
+      setFormData({ groupName: '', maxMembers: 5, classId: '' });
+      alert('Tạo nhóm thành công!');
     } catch (err) {
       console.error(err);
-      alert('Không thể kết nối API!');
+      alert(err.message || 'Không thể tạo nhóm!');
     }
   };
 
@@ -177,23 +178,15 @@ const ManageGroups = () => {
     if (!selectedStudentId || !selectedGroup) return;
 
     try {
-      const res = await fetch(`http://localhost:5186/api/nhom/${selectedGroup.groupId}/themthanhvien`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ maSinhVien: parseInt(selectedStudentId, 10) })
+      await apiClient.post(`/api/nhom/${selectedGroup.groupId}/themthanhvien`, {
+        maSinhVien: parseInt(selectedStudentId, 10)
       });
-
-      if (res.ok) {
-        await fetchData();
-        setIsAddMemberModalOpen(false);
-        alert('Đã thêm thành viên vào nhóm!');
-      } else {
-        const errorData = await res.json();
-        alert(errorData.thongBao || 'Lỗi khi thêm thành viên!');
-      }
+      await fetchData();
+      setIsAddMemberModalOpen(false);
+      alert('Đã thêm thành viên vào nhóm!');
     } catch (err) {
       console.error(err);
-      alert('Không thể kết nối API!');
+      alert(err.message || 'Không thể thêm thành viên!');
     }
   };
 
@@ -515,19 +508,15 @@ const ManageGroups = () => {
             <div className="modal-body">
               <div className="random-assign-info">
                 <h4>Cách hoạt động</h4>
-                <p>Hệ thống sẽ tự động chia các sinh viên chưa có nhóm vào các nhóm mới dựa trên số lượng thành viên bạn chọn.</p>
+                <p>Hệ thống sẽ tự động chia sinh viên chưa có nhóm vào các nhóm rỗng hoặc còn chỗ, dựa trên số thành viên tối đa đã set cho từng nhóm.</p>
               </div>
               <div className="form-grid">
-                <div className="form-group">
+                <div className="form-group full-width">
                   <label>Chọn lớp *</label>
                   <select value={randomForm.classId} onChange={(e) => setRandomForm({ ...randomForm, classId: e.target.value })}>
                     <option value="">-- Chọn lớp --</option>
                     {lopHocList.map((lop) => <option key={lop.maLop} value={lop.maLop}>{lop.tenLop} ({lop.maLopHoc})</option>)}
                   </select>
-                </div>
-                <div className="form-group">
-                  <label>Số SV mỗi nhóm *</label>
-                  <input type="number" value={randomForm.membersPerGroup} onChange={(e) => setRandomForm({ ...randomForm, membersPerGroup: parseInt(e.target.value, 10) })} min="2" max="10" />
                 </div>
               </div>
             </div>

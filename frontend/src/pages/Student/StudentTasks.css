@@ -148,6 +148,10 @@
   border-left-color: #378add;
 }
 
+.st-container .tc.notstart {
+  border-left-color: #94a3b8;
+}
+
 .st-container .tc.wait {
   border-left-color: #ef9f27;
 }
