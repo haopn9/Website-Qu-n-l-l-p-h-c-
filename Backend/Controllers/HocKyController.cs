@@ -22,29 +22,10 @@ public class HocKyController : ControllerBase
     // =============================================
     [HttpGet]
     [AllowAnonymous] // Cho phép lấy danh sách để lọc
-    public async Task<IActionResult> DanhSachHocKy()
+    // GET: api/Detai - Lấy tất cả đề tài
+    public async Task<IActionResult> Get()
     {
-        try
-        {
-            var hocKys = await _db.HocKies
-                .OrderByDescending(h => h.LaHienTai) // Học kỳ hiện tại lên đầu
-                .ThenByDescending(h => h.NgayBatDau)
-                .Select(h => new
-                {
-                    maHocKy = h.MaHocKy,
-                    tenHocKy = h.TenHocKy,
-                    ngayBatDau = h.NgayBatDau,
-                    ngayKetThuc = h.NgayKetThuc,
-                    laHienTai = h.LaHienTai
-                })
-                .ToListAsync();
-
-            return Ok(hocKys);
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new { thongBao = "Lỗi khi lấy danh sách học kỳ: " + ex.Message });
-        }
+        return Ok(await _db.HocKies.ToListAsync());
     }
 
     public class HocKyDto
