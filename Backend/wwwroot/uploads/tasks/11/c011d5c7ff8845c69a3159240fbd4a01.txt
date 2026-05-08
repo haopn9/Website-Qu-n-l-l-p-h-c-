@@ -1,0 +1,52 @@
+TAI LIEU THIET KE CHI TIET - CHUC NANG DANG NHAP
+
+1.  Tong quan
+
+-   Ten chuc nang: Dang nhap
+-   Actor: Nguoi dung
+-   Mo ta: Cho phep nguoi dung dang nhap vao he thong bang username va
+    password
+
+2.  Giao dien
+
+-   Input: username, password
+-   Button: Dang nhap
+-   Link: Quen mat khau, Quay lai
+
+3.  Validation
+
+-   Username: khong duoc rong
+-   Password: khong duoc rong
+
+4.  API POST /api/auth/login
+
+Request: { “username”: “string”, “password”: “string” }
+
+Response thanh cong: { “success”: true, “token”: “jwt_token” }
+
+Response that bai: { “success”: false, “message”: “Sai thong tin dang
+nhap” }
+
+5.  Flow
+
+6.  User nhap thong tin
+
+7.  Frontend validate
+
+8.  Goi API
+
+9.  Backend xu ly
+
+10. Tra ket qua
+
+11. Backend
+
+-   Kiem tra user
+-   So sanh password
+-   Tao token
+
+7.  Test case
+
+-   Dang nhap dung
+-   Sai mat khau
+-   Bo trong input

@@ -13,7 +13,6 @@ const ManageGroups = () => {
   const [isRandomModalOpen, setIsRandomModalOpen] = useState(false);
   const [isAssignLeaderModalOpen, setIsAssignLeaderModalOpen] = useState(false);
   const [isAddMemberModalOpen, setIsAddMemberModalOpen] = useState(false);
-  const [isTimeModalOpen, setIsTimeModalOpen] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [activeTab, setActiveTab] = useState('manage');
   const [transferRequests, setTransferRequests] = useState([
@@ -291,7 +290,6 @@ const ManageGroups = () => {
             <p className="page-subtitle">Tạo nhóm, phân công thành viên và chỉ định nhóm trưởng</p>
           </div>
           <div className="header-actions">
-            <button className="btn-secondary" onClick={() => setIsTimeModalOpen(true)}>Thiết lập thời gian đăng ký nhóm</button>
             <button className="btn-secondary" onClick={() => setIsRandomModalOpen(true)}>
               <FaRandom /> Phân nhóm ngẫu nhiên
             </button>
@@ -635,40 +633,6 @@ const ManageGroups = () => {
         </div>
       )}
 
-      {isTimeModalOpen && (
-        <div className="modal-overlay" onClick={() => setIsTimeModalOpen(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Thiết lập thời gian đăng ký nhóm</h3>
-              <button className="close-btn" onClick={() => setIsTimeModalOpen(false)}><FaTimes /></button>
-            </div>
-            <form onSubmit={(e) => { e.preventDefault(); alert('Đã lưu thời gian đăng ký nhóm!'); setIsTimeModalOpen(false); }}>
-              <div className="modal-body">
-                <div className="form-grid">
-                  <div className="form-group full-width">
-                    <label>Lớp học</label>
-                    <select className="sg-input" style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}>
-                      {lopHocList.map((lop) => <option key={lop.maLop} value={lop.maLop}>{lop.tenLop}</option>)}
-                    </select>
-                  </div>
-                  <div className="form-group">
-                    <label>Thời gian bắt đầu</label>
-                    <input type="datetime-local" className="sg-input" style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }} required />
-                  </div>
-                  <div className="form-group">
-                    <label>Thời gian kết thúc</label>
-                    <input type="datetime-local" className="sg-input" style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }} required />
-                  </div>
-                </div>
-              </div>
-              <div className="modal-footer" style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '20px' }}>
-                <button type="button" className="btn-cancel" onClick={() => setIsTimeModalOpen(false)}>Hủy</button>
-                <button type="submit" className="btn-save">Lưu thiết lập</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

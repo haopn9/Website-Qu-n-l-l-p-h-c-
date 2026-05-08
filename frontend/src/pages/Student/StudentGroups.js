@@ -4,6 +4,14 @@ import { FaTimes } from 'react-icons/fa';
 import './StudentGroups.css';
 import apiClient from '../../services/apiClient';
 
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5186';
+
+const buildFileUrl = (path) => {
+  if (!path) return '';
+  if (path.startsWith('http')) return path;
+  return `${API_BASE_URL}${path.startsWith('/') ? '' : '/'}${path}`;
+};
+
 // ============================================================
 // DỮ LIỆU MẪU
 // ============================================================
@@ -20,32 +28,6 @@ const mockGroups = [
       { maSo: 'DH52300141', hoTen: 'Trần Thị B', isMe: false, laNhomTruong: false, pct: 100, taskLabel: '4/4', bg: '#faeeda', color: '#854f0b', ky: 'TB', barColor: '#639922' },
       { maSo: 'DH52300204', hoTen: 'Lê Văn C', isMe: false, laNhomTruong: false, pct: 33, taskLabel: '1/3', bg: '#e1f5ee', color: '#0f6e56', ky: 'LC', barColor: '#e24b4a' },
       { maSo: 'DH52300249', hoTen: 'Phạm Thị D', isMe: false, laNhomTruong: false, pct: 67, taskLabel: '2/3', bg: '#fbeaf0', color: '#993556', ky: 'PD', barColor: '#ef9f27' },
-    ],
-  },
-  {
-    maNhom: 3, tenNhom: 'Nhóm 3',
-    maLop: 2, maLopHoc: 'CSDL_02', tenLop: 'Cơ sở dữ liệu', tenGV: 'Trần Thị B',
-    laNhomTruong: false,
-    deTai: 'Xây dựng hệ thống quản lý thư viện trường đại học',
-    soThanhVien: 5, soToiDa: 5, ngayLap: '04/03/2026', capNhat: '16/04/2026', tienDo: 80,
-    taskTong: 10, taskHoanThanh: 8, taskTreHan: 0, taskDangLam: 2, taskChoDuyet: 0,
-    thanhVien: [
-      { maSo: 'DH52300591', hoTen: 'Võ Văn Hoài', isMe: false, laNhomTruong: true, pct: 100, taskLabel: '3/3', bg: '#e1f5ee', color: '#0f6e56', ky: 'HT', barColor: '#639922' },
-      { maSo: 'DH52300086', hoTen: 'Nguyễn Văn A', isMe: true, laNhomTruong: false, pct: 80, taskLabel: '4/5', bg: '#e6f1fb', color: '#185fa5', ky: 'VA', barColor: '#378add' },
-      { maSo: 'DH52300654', hoTen: 'Đỗ Minh Huy', isMe: false, laNhomTruong: false, pct: 75, taskLabel: '3/4', bg: '#fbeaf0', color: '#993556', ky: 'NQ', barColor: '#ef9f27' },
-    ],
-  },
-  {
-    maNhom: 5, tenNhom: 'Nhóm 5',
-    maLop: 3, maLopHoc: 'MMT_03', tenLop: 'Mạng máy tính', tenGV: 'Lê Hồng C',
-    laNhomTruong: false,
-    deTai: 'Phân tích và thiết kế mạng LAN cho doanh nghiệp vừa và nhỏ',
-    soThanhVien: 3, soToiDa: 5, ngayLap: '07/03/2026', capNhat: '14/04/2026', tienDo: 40,
-    taskTong: 6, taskHoanThanh: 2, taskTreHan: 1, taskDangLam: 3, taskChoDuyet: 0,
-    thanhVien: [
-      { maSo: 'DH52301884', hoTen: 'Tô Duy Phúc Thịnh', isMe: false, laNhomTruong: true, pct: 50, taskLabel: '1/2', bg: '#fbeaf0', color: '#993556', ky: 'MT', barColor: '#ef9f27' },
-      { maSo: 'DH52300086', hoTen: 'Nguyễn Văn A', isMe: true, laNhomTruong: false, pct: 33, taskLabel: '1/3', bg: '#e6f1fb', color: '#185fa5', ky: 'VA', barColor: '#e24b4a' },
-      { maSo: 'DH52300935', hoTen: 'Phạm Trần Trung Kiên', isMe: false, laNhomTruong: false, pct: 50, taskLabel: '1/2', bg: '#e1f5ee', color: '#0f6e56', ky: 'KD', barColor: '#ef9f27' },
     ],
   },
 ];
@@ -75,7 +57,6 @@ function TransferModal({ groups, onClose }) {
   const handleSend = (e) => {
     e.preventDefault();
     if (!toGroupName.trim() || !lyDo.trim()) return;
-    // TODO: axios.post('/api/yeucauchuyennhom', { maNhomHienTai: fromGroup, tenNhomMuon: toGroupName, lyDo })
     alert('Đã gửi yêu cầu chuyển nhóm thành công!');
     onClose();
   };
@@ -127,7 +108,6 @@ function TransferModal({ groups, onClose }) {
 // ============================================================
 function JoinModal({ groups, onClose }) {
   const [selectedClassId, setSelectedClassId] = useState(groups[0]?.maLop || '');
-  
   const classGroups = groups.filter(g => g.maLop === selectedClassId);
   const [selectedGroupId, setSelectedGroupId] = useState(classGroups[0]?.maNhom || '');
 
@@ -148,7 +128,7 @@ function JoinModal({ groups, onClose }) {
       });
       alert(`Bạn đã tham gia ${targetGroup.tenNhom} thành công!`);
       onClose();
-      window.location.reload(); // Tải lại để cập nhật danh sách nhóm
+      window.location.reload();
     } catch (err) {
       console.error(err);
       alert(err.message || 'Không thể tham gia nhóm!');
@@ -216,6 +196,64 @@ function JoinModal({ groups, onClose }) {
 }
 
 // ============================================================
+// MODAL CHI TIẾT ĐỀ TÀI
+// ============================================================
+function TopicDetailModal({ topic, onClose }) {
+  if (!topic) return null;
+
+  return (
+    <div className="sg-modal-overlay" onClick={onClose}>
+      <div className="sg-modal-content" onClick={e => e.stopPropagation()}>
+        <div className="sg-modal-header">
+          <h3>Chi tiết đề tài</h3>
+          <button className="sg-close-btn" onClick={onClose}><FaTimes /></button>
+        </div>
+        <div className="sg-modal-body" style={{ padding: '20px' }}>
+          <div style={{ marginBottom: '15px' }}>
+            <span style={{ display: 'block', fontSize: '13px', color: '#64748b' }}>Đề tài</span>
+            <strong style={{ fontSize: '18px', color: '#1e293b' }}>{topic.tenDeTai}</strong>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '15px' }}>
+            <div>
+              <span style={{ display: 'block', fontSize: '12px', color: '#64748b' }}>Ngày bắt đầu</span>
+              <strong>{topic.ngayBatDau || '—'}</strong>
+            </div>
+            <div>
+              <span style={{ display: 'block', fontSize: '12px', color: '#64748b' }}>Ngày kết thúc</span>
+              <strong>{topic.ngayKetThuc || '—'}</strong>
+            </div>
+          </div>
+          <div style={{ marginBottom: '15px' }}>
+            <span style={{ display: 'block', fontSize: '12px', color: '#64748b' }}>Mô tả yêu cầu</span>
+            <p style={{ margin: '5px 0', fontSize: '14px', lineHeight: '1.5', color: '#334155' }}>{topic.moTa}</p>
+          </div>
+          <div style={{ marginBottom: '15px' }}>
+            <span style={{ display: 'block', fontSize: '12px', color: '#64748b' }}>Sản phẩm kỳ vọng</span>
+            <p style={{ margin: '5px 0', fontSize: '14px', lineHeight: '1.5', color: '#334155' }}>{topic.sanPhamKyVong}</p>
+          </div>
+          {topic.tepDinhKem && (
+            <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '15px' }}>
+              <span style={{ display: 'block', fontSize: '12px', color: '#64748b', marginBottom: '8px' }}>Tài liệu từ Giảng viên</span>
+              <a 
+                href={buildFileUrl(topic.tepDinhKem.duongDan)} 
+                target="_blank" 
+                rel="noreferrer"
+                style={{ color: '#378add', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '500' }}
+              >
+                📄 {topic.tepDinhKem.tenTep}
+              </a>
+            </div>
+          )}
+        </div>
+        <div className="sg-modal-footer">
+          <button className="sg-btn-save" onClick={onClose}>Đóng</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
 // MAIN COMPONENT
 // ============================================================
 const StudentGroups = () => {
@@ -229,12 +267,14 @@ const StudentGroups = () => {
   const [showTransfer, setShowTransfer] = useState(false);
   const [showJoin, setShowJoin] = useState(false);
   const [selectedHocKy, setSelectedHocKy] = useState(semesters[0]);
+  const [topicDetail, setTopicDetail] = useState(null);
+  const [classTopics, setClassTopics] = useState({});
 
   // Lấy danh sách nhóm của tôi
   const fetchMyGroups = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('http://localhost:5186/api/nhom/cua-toi', {
+      const res = await fetch(`${API_BASE_URL}/api/nhom/cua-toi`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {
@@ -251,20 +291,18 @@ const StudentGroups = () => {
     }
   };
 
-  // Lấy danh sách các nhóm khả dụng để đăng ký (dành cho modal)
+  // Lấy danh sách nhóm khả dụng để đăng ký (dành cho modal)
   const [availableGroups, setAvailableGroups] = useState([]);
   const fetchAvailableGroups = async () => {
     try {
       const token = localStorage.getItem('token');
-      // 1. Lấy danh sách lớp đang học
-      const lopRes = await fetch('http://localhost:5186/api/lophoc/cua-toi', {
+      const lopRes = await fetch(`${API_BASE_URL}/api/lophoc/cua-toi`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (lopRes.ok) {
         const lops = await lopRes.json();
-        // 2. Với mỗi lớp, lấy danh sách nhóm
         const nhomPromises = lops.map(l => 
-          fetch(`http://localhost:5186/api/nhom?maLop=${l.maLop}`).then(r => r.json())
+          fetch(`${API_BASE_URL}/api/nhom?maLop=${l.maLop}`).then(r => r.json())
         );
         const results = await Promise.all(nhomPromises);
         setAvailableGroups(results.flat());
@@ -274,10 +312,26 @@ const StudentGroups = () => {
     }
   };
 
+  // Lấy danh sách đề tài của lớp để xem chi tiết
+  const fetchClassTopics = async (maLop) => {
+    if (!maLop) return;
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API_BASE_URL}/api/detai/lop/${maLop}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setClassTopics(prev => ({ ...prev, [maLop]: data }));
+      }
+    } catch (err) {
+      console.error('Lỗi tải đề tài lớp:', err);
+    }
+  };
+
   useEffect(() => {
     fetchMyGroups();
     fetchAvailableGroups();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -290,11 +344,20 @@ const StudentGroups = () => {
   const selectedGroup = myGroups.find(g => g.maNhom === selectedMaNhom) || myGroups[0];
   const filteredHistory = mockHistory.filter(h => h.hocKy === selectedHocKy);
 
+  useEffect(() => {
+    if (selectedGroup?.maLop) {
+      fetchClassTopics(selectedGroup.maLop);
+    }
+  }, [selectedGroup]);
+
+  const currentGroupTopics = classTopics[selectedGroup?.maLop] || [];
+  const selectedGroupTopicInfo = currentGroupTopics.find(t => t.maDeTai === selectedGroup?.maDeTai);
+
   const handleLeaveGroup = async () => {
     if (window.confirm('Bạn có chắc muốn rời nhóm này?')) {
       try {
         const token = localStorage.getItem('token');
-        const res = await fetch(`http://localhost:5186/api/nhom/${selectedGroup.maNhom}/roinhom`, {
+        const res = await fetch(`${API_BASE_URL}/api/nhom/${selectedGroup.maNhom}/roinhom`, {
           method: 'DELETE',
           headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -346,7 +409,6 @@ const StudentGroups = () => {
         <button className={`sg-tab ${activeTab === 'lichSu' ? 'active' : ''}`} onClick={() => setActiveTab('lichSu')}>Lịch sử yêu cầu</button>
       </div>
 
-      {/* TAB NHÓM CỦA TÔI */}
       {activeTab === 'nhomCuaToi' && (
         !selectedGroup ? (
           <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
@@ -366,13 +428,25 @@ const StudentGroups = () => {
           </div>
 
           <div className="sg-two-col">
-            {/* Thông tin nhóm */}
             <div className="sg-card">
               <div className="sg-card-title">Thông tin nhóm</div>
               <div className="sg-card-sub">Cập nhật lần cuối: {selectedGroup.capNhat}</div>
               <div className="sg-info-row"><span>Lớp</span><span>{selectedGroup.tenLop} ({selectedGroup.maLopHoc})</span></div>
               <div className="sg-info-row"><span>Giảng viên</span><span>{selectedGroup.tenGV}</span></div>
-              <div className="sg-info-row"><span>Đề tài</span><span>{selectedGroup.tenDeTai}</span></div>
+              <div className="sg-info-row">
+                <span>Đề tài</span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', flex: 1, textAlign: 'right' }}>
+                  <span>{selectedGroup.tenDeTai}</span>
+                  {selectedGroup.tenDeTai !== "Chưa có đề tài" && selectedGroup.tenDeTai !== "Chưa đăng ký đề tài" && (
+                    <button 
+                      onClick={() => setTopicDetail(selectedGroupTopicInfo)}
+                      style={{ background: 'none', border: 'none', color: '#378add', cursor: 'pointer', fontSize: '12px', padding: 0, textAlign: 'right', textDecoration: 'underline' }}
+                    >
+                      Xem chi tiết đề tài
+                    </button>
+                  )}
+                </div>
+              </div>
               <div className="sg-info-row"><span>Thành viên</span><span>{selectedGroup.soThanhVienHienTai} / {selectedGroup.soThanhVienToiDa} người</span></div>
               <div className="sg-info-row"><span>Nhóm trưởng</span><span>{selectedGroup.tenNhomTruong}</span></div>
               <div className="sg-progress-wrap">
@@ -381,22 +455,21 @@ const StudentGroups = () => {
               </div>
             </div>
 
-            {/* Thống kê nhiệm vụ */}
             <div className="sg-card">
               <div className="sg-card-title">Thống kê nhiệm vụ</div>
               <div className="sg-card-sub">Tính đến hôm nay</div>
               <div className="sg-stat-mini">
-                <div className="sg-smc"><div className="sg-smc-val" style={{ color: '#378add' }}>{selectedGroup.taskTong}</div><div className="sg-smc-lbl">Tổng task</div></div>
-                <div className="sg-smc"><div className="sg-smc-val" style={{ color: '#639922' }}>{selectedGroup.taskHoanThanh}</div><div className="sg-smc-lbl">Hoàn thành</div></div>
-                <div className="sg-smc"><div className="sg-smc-val" style={{ color: '#e24b4a' }}>{selectedGroup.taskTreHan}</div><div className="sg-smc-lbl">Trễ hạn</div></div>
+                <div className="sg-smc"><div className="sg-smc-val" style={{ color: '#378add' }}>{selectedGroup.taskTong || 0}</div><div className="sg-smc-lbl">Tổng task</div></div>
+                <div className="sg-smc"><div className="sg-smc-val" style={{ color: '#639922' }}>{selectedGroup.taskHoanThanh || 0}</div><div className="sg-smc-lbl">Hoàn thành</div></div>
+                <div className="sg-smc"><div className="sg-smc-val" style={{ color: '#e24b4a' }}>{selectedGroup.taskTreHan || 0}</div><div className="sg-smc-lbl">Trễ hạn</div></div>
               </div>
               {[
                 { label: 'Chưa bắt đầu', val: 1, color: '#94a3b8' },
-                { label: 'Đang thực hiện', val: selectedGroup.taskDangLam, color: '#378add' },
-                { label: 'Chờ duyệt', val: selectedGroup.taskChoDuyet, color: '#ef9f27' },
+                { label: 'Đang thực hiện', val: selectedGroup.taskDangLam || 0, color: '#378add' },
+                { label: 'Chờ duyệt', val: selectedGroup.taskChoDuyet || 0, color: '#ef9f27' },
                 { label: 'Yêu cầu làm lại', val: 0, color: '#b91c1c' },
-                { label: 'Trễ hạn', val: selectedGroup.taskTreHan, color: '#e24b4a' },
-                { label: 'Hoàn thành', val: selectedGroup.taskHoanThanh, color: '#639922' },
+                { label: 'Trễ hạn', val: selectedGroup.taskTreHan || 0, color: '#e24b4a' },
+                { label: 'Hoàn thành', val: selectedGroup.taskHoanThanh || 0, color: '#639922' },
               ].map((item, i) => (
                 <div className="sg-task-bar-row" key={i}>
                   <div className="sg-task-bar-label"><span>{item.label}</span><span>{item.val} task</span></div>
@@ -422,9 +495,9 @@ const StudentGroups = () => {
                   <div className="sg-msub">{tv.maSo}</div>
                 </div>
                 <div className="sg-mini-bar-wrap">
-                  <div className="sg-mini-bar-label">Hoàn thành {tv.taskLabel}</div>
+                  <div className="sg-mini-bar-label">Hoàn thành {tv.taskLabel || '0/0'}</div>
                   <div className="sg-mini-pbar">
-                    <div className="sg-mini-pfill" style={{ width: `${tv.pct}%`, background: tv.barColor }} />
+                    <div className="sg-mini-pfill" style={{ width: `${tv.pct || 0}%`, background: tv.barColor || '#cbd5e1' }} />
                   </div>
                 </div>
               </div>
@@ -434,7 +507,6 @@ const StudentGroups = () => {
         )
       )}
 
-      {/* TAB LỊCH SỬ */}
       {activeTab === 'lichSu' && (
         <>
           <div className="sg-semester-select-wrap">
@@ -464,8 +536,9 @@ const StudentGroups = () => {
         </>
       )}
 
-      {showTransfer && <TransferModal groups={myGroups.length > 0 ? myGroups : mockGroups} onClose={() => setShowTransfer(false)} />}
+      {showTransfer && <TransferModal groups={myGroups} onClose={() => setShowTransfer(false)} />}
       {showJoin && <JoinModal groups={availableGroups} onClose={() => setShowJoin(false)} />}
+      {topicDetail && <TopicDetailModal topic={topicDetail} onClose={() => setTopicDetail(null)} />}
     </div>
   );
 };

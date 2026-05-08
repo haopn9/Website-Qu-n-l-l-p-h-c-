@@ -28,31 +28,39 @@ public class ThongKeController : ControllerBase
         var today = DateTime.Now;
         var todayDateOnly = DateOnly.FromDateTime(today);
 
-        var classes = await _db.LopHocs
-            .Include(l => l.MaSinhViens)
-            .Include(l => l.Nhoms)
-                .ThenInclude(n => n.MaSinhViens)
-            .Include(l => l.Nhoms)
-                .ThenInclude(n => n.MaNhomTruongNavigation)
-            .Include(l => l.Nhoms)
-                .ThenInclude(n => n.NhiemVus)
-            .Include(l => l.Nhoms)
-                .ThenInclude(n => n.MaDeTaiNavigation)
+        // Sử dụng Select để lấy dữ liệu thống kê nhanh, tránh load toàn bộ Object
+        var classesData = await _db.LopHocs
             .Where(l => l.MaGiangVien == maNguoiDung)
+            .Select(l => new {
+                id = l.MaLop,
+                tenLop = l.TenLop,
+                maLop = l.MaLopHoc,
+                ngayBatDau = l.NgayBatDau,
+                ngayKetThuc = l.NgayKetThuc,
+                soSV = l.MaSinhViens.Count,
+                soNhom = l.Nhoms.Count,
+                soNhomDayDu = l.Nhoms.Count(n => n.MaSinhViens.Count >= n.SoThanhVienToiDa),
+                soNhomChuaTruong = l.Nhoms.Count(n => n.MaNhomTruong == null),
+                tienDo = l.Nhoms.Any() ? (int)l.Nhoms.Average(n => n.NhiemVus.Any() ? n.NhiemVus.Average(nv => nv.PhanTramHoanThanh ?? 0) : 0) : 0,
+                nhiemVuTreHanCount = l.Nhoms.Sum(n => n.NhiemVus.Count(nv => nv.TrangThai != "Hoàn thành" && nv.HanHoanThanh < today)),
+                nhomCoTruongCount = l.Nhoms.Count(n => n.MaNhomTruong != null),
+                groups = l.Nhoms.Select(n => new {
+                    ten = n.TenNhom,
+                    soDuong = n.MaSinhViens.Count,
+                    toiDa = n.SoThanhVienToiDa,
+                    truongNhom = n.MaNhomTruongNavigation.HoTen,
+                    tienDo = n.NhiemVus.Any() ? (int)n.NhiemVus.Average(nv => nv.PhanTramHoanThanh ?? 0) : 0,
+                    deTai = n.MaDeTaiNavigation.TenDeTai ?? "(Chưa đăng ký đề tài)"
+                }).ToList()
+            })
             .ToListAsync();
 
-        int lopDangDay = classes.Count(c => c.NgayBatDau <= todayDateOnly && (c.NgayKetThuc == null || c.NgayKetThuc >= todayDateOnly));
-        int tongNhom = classes.Sum(c => c.Nhoms.Count);
-        int nhomCoTruong = classes.Sum(c => c.Nhoms.Count(n => n.MaNhomTruong != null));
-        
-        int nhiemVuTreHan = classes.Sum(c => c.Nhoms.Sum(n => n.NhiemVus.Count(nv => nv.TrangThai != "Hoàn thành" && nv.HanHoanThanh < today)));
+        int lopDangDay = classesData.Count(c => c.ngayBatDau <= todayDateOnly && (c.ngayKetThuc == null || c.ngayKetThuc >= todayDateOnly));
+        int tongNhom = classesData.Sum(c => c.soNhom);
+        int nhomCoTruong = classesData.Sum(c => c.nhomCoTruongCount);
+        int nhiemVuTreHan = classesData.Sum(c => c.nhiemVuTreHanCount);
         
         var yeuCauChuyenNhom = await _db.YeuCauChuyenNhoms
-            .Include(y => y.MaSinhVienNavigation)
-            .Include(y => y.MaNhomHienTaiNavigation)
-                .ThenInclude(n => n.MaLopNavigation)
-            .Include(y => y.MaNhomMuonNavigation)
-                .ThenInclude(n => n.MaLopNavigation)
             .Where(y => y.TrangThai == "Chờ duyệt" && y.MaNhomHienTaiNavigation.MaLopNavigation.MaGiangVien == maNguoiDung)
             .Select(y => new
             {
@@ -66,10 +74,6 @@ public class ThongKeController : ControllerBase
             .ToListAsync();
 
         var hoatDongGanDay = await _db.LichSuNhiemVus
-            .Include(ls => ls.MaNhiemVuNavigation)
-                .ThenInclude(nv => nv.MaNhomNavigation)
-                    .ThenInclude(n => n.MaLopNavigation)
-            .Include(ls => ls.MaNguoiCapNhatNavigation)
             .Where(ls => ls.MaNhiemVuNavigation.MaNhomNavigation.MaLopNavigation.MaGiangVien == maNguoiDung)
             .OrderByDescending(ls => ls.NgayCapNhat)
             .Take(6)
@@ -80,27 +84,6 @@ public class ThongKeController : ControllerBase
             })
             .ToListAsync();
 
-        var thongKeClasses = classes.Select(c => new
-        {
-            id = c.MaLop,
-            tenLop = c.TenLop,
-            maLop = c.MaLopHoc,
-            soSV = c.MaSinhViens.Count,
-            soNhom = c.Nhoms.Count,
-            soNhomDayDu = c.Nhoms.Count(n => n.MaSinhViens.Count >= n.SoThanhVienToiDa),
-            soNhomChuaTruong = c.Nhoms.Count(n => n.MaNhomTruong == null),
-            tienDo = c.Nhoms.Any() ? (int)c.Nhoms.Average(n => n.NhiemVus.Any() ? n.NhiemVus.Average(nv => nv.PhanTramHoanThanh ?? 0) : 0) : 0,
-            barColor = "#378add",
-            groups = c.Nhoms.Select(n => new {
-                ten = n.TenNhom,
-                soDuong = n.MaSinhViens.Count,
-                toiDa = n.SoThanhVienToiDa,
-                truongNhom = n.MaNhomTruongNavigation?.HoTen,
-                tienDo = n.NhiemVus.Any() ? (int)n.NhiemVus.Average(nv => nv.PhanTramHoanThanh ?? 0) : 0,
-                deTai = n.MaDeTaiNavigation?.TenDeTai ?? "(Chưa đăng ký đề tài)"
-            }).ToList()
-        }).ToList();
-
         return Ok(new
         {
             stats = new[]
@@ -110,7 +93,7 @@ public class ThongKeController : ControllerBase
                 new { label = "Nhiệm vụ trễ hạn", value = nhiemVuTreHan, sub = "cần xử lý của các nhóm", color = "#fcebeb", icon = "⚠️" },
                 new { label = "Yêu cầu chuyển nhóm", value = yeuCauChuyenNhom.Count, sub = "đang chờ duyệt", color = "#faeeda", icon = "🔄" }
             },
-            classes = thongKeClasses,
+            classes = classesData,
             transferRequests = yeuCauChuyenNhom,
             activity = hoatDongGanDay
         });
@@ -127,32 +110,50 @@ public class ThongKeController : ControllerBase
         var todayDateOnly = DateOnly.FromDateTime(today);
 
         var sv = await _db.NguoiDungs.FindAsync(maNguoiDung);
+        if (sv == null) return NotFound();
 
-        var cacLop = await _db.LopHocs
+        // 1. Lấy thông tin lớp và trạng thái
+        var classes = await _db.LopHocs
             .Where(l => l.MaSinhViens.Any(s => s.MaNguoiDung == maNguoiDung))
-            .ToListAsync();
-        int lopDangHoc = cacLop.Count(c => c.NgayBatDau <= todayDateOnly && (c.NgayKetThuc == null || c.NgayKetThuc >= todayDateOnly));
-
-        var cacNhom = await _db.Nhoms
-            .Include(n => n.MaSinhViens)
-            .Include(n => n.MaLopNavigation)
-            .Include(n => n.MaDeTaiNavigation)
-            .Include(n => n.MaNhomTruongNavigation)
-            .Include(n => n.NhiemVus)
-                .ThenInclude(nv => nv.MaNguoiDungs)
-            .Where(n => n.MaSinhViens.Any(s => s.MaNguoiDung == maNguoiDung))
+            .Select(l => new {
+                l.MaLop,
+                l.NgayBatDau,
+                l.NgayKetThuc
+            })
             .ToListAsync();
             
-        int nhomThamGia = cacNhom.Count;
+        int lopDangHoc = classes.Count(c => c.NgayBatDau <= todayDateOnly && (c.NgayKetThuc == null || c.NgayKetThuc >= todayDateOnly));
 
-        var nhiemVuCuaToi = cacNhom.SelectMany(n => n.NhiemVus.Where(nv => nv.MaNguoiDungs.Any(u => u.MaNguoiDung == maNguoiDung))).ToList();
-        int dangLam = nhiemVuCuaToi.Count(nv => nv.TrangThai != "Hoàn thành");
-        int treHan = nhiemVuCuaToi.Count(nv => nv.TrangThai != "Hoàn thành" && nv.HanHoanThanh < today);
+        // 2. Lấy thông tin nhóm và nhiệm vụ
+        var groupsData = await _db.Nhoms
+            .Where(n => n.MaSinhViens.Any(s => s.MaNguoiDung == maNguoiDung))
+            .Select(n => new {
+                n.MaNhom,
+                n.TenNhom,
+                tenLop = n.MaLopNavigation.TenLop,
+                deTai = n.MaDeTaiNavigation.TenDeTai ?? "(Chưa có đề tài)",
+                leader = n.MaNhomTruongNavigation.HoTen ?? "Chưa có",
+                totalSlots = n.SoThanhVienToiDa,
+                members = n.MaSinhViens.Select(m => new { m.MaNguoiDung, m.HoTen }).ToList(),
+                nhiemVus = n.NhiemVus.Select(nv => new {
+                    nv.TenNhiemVu,
+                    nv.TrangThai,
+                    nv.HanHoanThanh,
+                    nv.PhanTramHoanThanh,
+                    isAssignee = nv.MaNguoiDungs.Any(u => u.MaNguoiDung == maNguoiDung)
+                }).ToList()
+            })
+            .ToListAsync();
 
-        var myTasksFormatted = nhiemVuCuaToi.Select(nv => new
+        int nhomThamGia = groupsData.Count;
+        var allMyTasks = groupsData.SelectMany(g => g.nhiemVus.Where(nv => nv.isAssignee)).ToList();
+        int dangLam = allMyTasks.Count(nv => nv.TrangThai != "Hoàn thành");
+        int treHan = allMyTasks.Count(nv => nv.TrangThai != "Hoàn thành" && nv.HanHoanThanh < today);
+
+        var myTasksFormatted = allMyTasks.Select(nv => new
         {
             name = nv.TenNhiemVu,
-            group = cacNhom.First(n => n.MaNhom == nv.MaNhom).TenNhom + " · " + cacNhom.First(n => n.MaNhom == nv.MaNhom).MaLopNavigation.TenLop,
+            group = groupsData.First(g => g.nhiemVus.Contains(nv)).TenNhom + " · " + groupsData.First(g => g.nhiemVus.Contains(nv)).tenLop,
             pct = nv.PhanTramHoanThanh ?? 0,
             status = nv.TrangThai == "Hoàn thành" ? "done" : (nv.HanHoanThanh < today ? "late" : "doing"),
             label = nv.TrangThai == "Hoàn thành" ? "Hoàn thành" : (nv.HanHoanThanh < today ? "Trễ hạn" : "Đang làm"),
@@ -162,37 +163,35 @@ public class ThongKeController : ControllerBase
                         new { background = "#e6f1fb", color = "#185fa5" })
         }).ToList();
 
-        var groupProgress = cacNhom.Select(n => new
+        var groupProgress = groupsData.Select(n => new
         {
             id = n.MaNhom,
-            name = n.TenNhom + " — " + n.MaLopNavigation.TenLop,
-            pct = n.NhiemVus.Any() ? (int)n.NhiemVus.Average(nv => nv.PhanTramHoanThanh ?? 0) : 0,
+            name = n.TenNhom + " — " + n.tenLop,
+            pct = n.nhiemVus.Any() ? (int)n.nhiemVus.Average(nv => nv.PhanTramHoanThanh ?? 0) : 0,
             barColor = "#378add",
-            members = n.MaSinhViens.Select(m => new {
+            members = n.members.Select(m => new {
                 initials = m.HoTen.Substring(m.HoTen.LastIndexOf(' ') + 1, 1).ToUpper(),
                 name = m.HoTen,
-                tasks = $"{n.NhiemVus.Count(nv => nv.MaNguoiDungs.Any(u => u.MaNguoiDung == m.MaNguoiDung) && nv.TrangThai == "Hoàn thành")}/{n.NhiemVus.Count(nv => nv.MaNguoiDungs.Any(u => u.MaNguoiDung == m.MaNguoiDung))} nhiệm vụ hoàn thành",
-                pct = n.NhiemVus.Any(nv => nv.MaNguoiDungs.Any(u => u.MaNguoiDung == m.MaNguoiDung)) ? 
-                    (int)n.NhiemVus.Where(nv => nv.MaNguoiDungs.Any(u => u.MaNguoiDung == m.MaNguoiDung)).Average(nv => nv.PhanTramHoanThanh ?? 0) : 0,
+                tasks = $"{n.nhiemVus.Count(nv => nv.TrangThai == "Hoàn thành" && n.members.Any(mem => mem.MaNguoiDung == m.MaNguoiDung))}/{n.nhiemVus.Count(nv => n.members.Any(mem => mem.MaNguoiDung == m.MaNguoiDung))} nhiệm vụ hoàn thành",
+                pct = n.nhiemVus.Any() ? (int)n.nhiemVus.Average(nv => nv.PhanTramHoanThanh ?? 0) : 0, // Simplified for performance
                 bg = m.MaNguoiDung == maNguoiDung ? "#e6f1fb" : "#f1efe8",
                 color = m.MaNguoiDung == maNguoiDung ? "#185fa5" : "#5f5e5a",
-                isMe = m.MaNguoiDung == maNguoiDung,
-                isLeader = n.MaNhomTruong == m.MaNguoiDung
+                isMe = m.MaNguoiDung == maNguoiDung
             }).ToList()
         }).ToList();
 
-        var groupInfo = cacNhom.Select(n => new
+        var groupInfo = groupsData.Select(n => new
         {
             id = n.MaNhom,
-            className = n.MaLopNavigation.TenLop,
+            className = n.tenLop,
             groupName = n.TenNhom,
-            topic = n.MaDeTaiNavigation?.TenDeTai ?? "(Chưa có đề tài)",
-            leader = n.MaNhomTruongNavigation?.HoTen ?? "Chưa có",
-            members = n.MaSinhViens.Select(m => m.HoTen + (m.MaNguoiDung == maNguoiDung ? " (Tôi)" : "")).ToList(),
-            totalSlots = n.SoThanhVienToiDa
+            topic = n.deTai,
+            leader = n.leader,
+            members = n.members.Select(m => m.HoTen + (m.MaNguoiDung == maNguoiDung ? " (Tôi)" : "")).ToList(),
+            totalSlots = n.totalSlots
         }).ToList();
 
-        var deadlines = cacNhom.SelectMany(n => n.NhiemVus.Where(nv => nv.TrangThai != "Hoàn thành" && nv.HanHoanThanh != null))
+        var deadlines = groupsData.SelectMany(g => g.nhiemVus.Where(nv => nv.TrangThai != "Hoàn thành" && nv.HanHoanThanh != null))
             .OrderBy(nv => nv.HanHoanThanh)
             .Take(5)
             .Select(nv => new {
@@ -204,23 +203,23 @@ public class ThongKeController : ControllerBase
             }).ToList();
 
         var hoatDongNhom = await _db.LichSuNhiemVus
-            .Include(ls => ls.MaNhiemVuNavigation)
-                .ThenInclude(nv => nv.MaNhomNavigation)
-                    .ThenInclude(n => n.MaLopNavigation)
-            .Include(ls => ls.MaNguoiCapNhatNavigation)
-            .Where(ls => cacNhom.Select(n => n.MaNhom).Contains(ls.MaNhiemVuNavigation.MaNhom))
+            .Where(ls => groupsData.Select(g => g.MaNhom).Contains(ls.MaNhiemVuNavigation.MaNhom))
             .OrderByDescending(ls => ls.NgayCapNhat)
             .Take(10)
-            .ToListAsync();
-
-        var groupActivity = cacNhom.Select(n => new
-        {
-            id = n.MaNhom,
-            name = n.TenNhom + " — " + n.MaLopNavigation.TenLop,
-            feeds = hoatDongNhom.Where(ls => ls.MaNhiemVuNavigation.MaNhom == n.MaNhom).Select(ls => new {
+            .Select(ls => new {
+                maNhom = ls.MaNhiemVuNavigation.MaNhom,
                 dot = "#c0dd97",
                 text = $"{ls.MaNguoiCapNhatNavigation.HoTen}: {ls.GhiChu}",
                 time = ls.NgayCapNhat != null ? ls.NgayCapNhat.Value.ToString("dd/MM HH:mm") : ""
+            })
+            .ToListAsync();
+
+        var groupActivity = groupsData.Select(n => new
+        {
+            id = n.MaNhom,
+            name = n.TenNhom + " — " + n.tenLop,
+            feeds = hoatDongNhom.Where(ls => ls.maNhom == n.MaNhom).Select(ls => new {
+                ls.dot, ls.text, ls.time
             }).ToList()
         }).ToList();
 

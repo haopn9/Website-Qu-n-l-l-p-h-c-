@@ -1,0 +1,293 @@
+=================WORKFLOW======================
+1. lớp môn học
+	1.1 giảng viên tạo lớp môn học
+	2.1 Để mời sinh viên vào lớp môn học thì có 2 cách
+		2.1.1 giảng viên tải lên file Excel danh sách sinh viên; hệ thống tự động gửi lời mời tham gia đến từng cá nhân.
+		2.1.2 giảng viên lấy một mã lớp duy nhất (Unique Code do hệ thống cung cấp . Giảng viên gửi mã này để sinh viên chủ động đăng ký tham gia lớp.
+	3.1 Sinh viên có 2 cách để vào lớp môn học của giảng viên :
+		3.1.1 Sinh viên chấp nhận lời mời từ hệ thống để được vào lớp môn học
+		3.1.2 Sinh viên tự nhập class code do giảng viên cung cấp để vào lớp môn học
+2. tạo nhóm
+Hệ thống hỗ trợ 2 phương thức  phân nhóm linh hoạt :
+	Cách 1 - Phân nhóm nhẫu nhiên : hệ thống tự động chia sinh viên trong lớp vào các nhóm dựa trên số lượng thành viên yêu cầu
+		+ giảng viên tạo các nhóm rỗng , giảng viên đặt tên nhóm + set số lượng thành viên .
+		+ giảng viên sử dụng chức năng "Phân nhóm nhẫu nhiên " để hệ thống chia sinh viên vào nhóm
+	Cách 2 – Phân nhóm theo lựa chọn :
+	o	Sinh viên tự đăng ký : sinh viên chủ động tìm kiếm và ghi danh vào nhóm mong muốn 
+		+ giảng viên tạo các nhóm rỗng , giảng viên đặt tên nhóm + set số lượng thành viên .
+		+ Gv thông báo với sinh viên học môn học của mình về việc đăng ký nhóm &  quy định thời hạn đăng ký nhóm
+		+ Trong khoảng thời gian này, sinh viên có quyền tự do tham gia (In) và rời nhóm (Out).
+		+ Khi hết hạn đăng ký, hệ thống khóa đăng ký các nhóm đã đủ thành viên & không khóa các nhóm chưa đủ thành viên .Giảng viên sẽ thêm thủ công các sinh viên chưa có nhóm vào các nhóm thiếu người và bấm nút "Chốt danh sách nhóm". Lúc này danh sách bị khóa, hệ thống tự động tạo Nhóm chat và sinh viên không thể tự ý rời nhóm được nữa (chỉ có thể gửi Yêu cầu chuyển nhóm).
+	o	Giảng viên điều phối : giảng viên trực tiếp phân công những sinh viên còn lại vào các nhóm phù hợp để đảm bảo không có sinh viên bị bỏ sót.
+		+ Sau khoản thời gian nhất định để sinh viên đăng ký nhóm , giảng viên xem còn sinh viên chưa có nhóm thì thêm thủ công sinh viên đó vào nhóm chưa đủ thành viên.
+
+3.Nhóm trưởng 
+	Giảng viên thực hiện chỉ định Nhóm trưởng theo 2 cách
+	+ Các thành viên trong nhóm thảo luận để bầu ra nhóm trưởng .Sau đó nhóm thông báo với giảng viên để giảng viên set nhóm trưởng cho bạn được bầu
+	+ giảng viên tự chỉ định nhóm trưởng .
+4. Tạo đề tài
+	4.1 giảng viên tạo ngân hàng đề tài gồm nhiều đề tài khác nhau
+	4.2 Phương thức giao đề tài theo 2 cách :
+		o	Chỉ định trực tiếp: Giảng viên gán một đề tài cụ thể cho một nhóm nhất định.
+		o	Đăng ký tự do: Giảng viên công bố danh sách đề tài và các nhóm trưởng sẽ thực hiện đăng ký theo nguyên tắc ưu tiên nhóm đăng ký sớm.
+5. yêu cầu chuyển nhóm -> trong quá trình làm việc nhóm , giữa các thành viên xảy ra xung đột , sinh viên có quyền yêu cầu chuyển nhóm gửi đến giáo viên lớp môn học
+	5.1 Nếu giảng viên không phê duyệt yêu cầu chuyển nhóm của sinh viên . vì các lý do (các nhóm khác đủ thành viên ,....) -> sinh viên không được qua chuyển nhóm mới
+ 	5.2 Nếu giảng viên phê duyệt yêu cầu chuyển nhóm của sinh viên , hệ thống mới tự động cập nhật lại thông tin thành viên (GroupMembers) sang nhóm mới & 2 nhóm trưởng cũng sẽ nhận thông báo về sự thay đổi thành viên của nhóm
+		5.2.1 Các vấn đề & hướng giải quyết của nhóm cũ về việc chuyển nhóm :
+			- Nhóm có biết về việc thành viên trong nhóm xin chuyển nhóm không ?
+			  	+ Về việc đó liên quan đến sự trao đổi của các thành viên trong nhóm , nhưng khi sinh viên yêu cầu chuyển nhóm gửi đến giảng viên chờ phê duyệt thì hệ thống gửi thông báo đến nhóm trưởng biết thành viên trong nhóm đã xin phê duyệt chuyển nhóm
+			- Trạng thái của Sinh viên trong lúc chờ duyệt : Từ lúc SV gửi đơn đến lúc GV duyệt có thể mất vài ngày. Trong lúc đó SV này có phải làm việc ở nhóm cũ không?
+				+ Giao diện của Nhóm trưởng cũ nên hiện một cái Tag màu vàng cảnh báo: "Sinh viên này đang trong quá trình xin chuyển nhóm". Để trưởng nhóm cũ biết mà hạn chế giao các Task quan trọng cho bạn này nữa.
+			- Về các task của sinh viên xin chuyển nhóm giải quyết sao?
+			  	+ Các task chưa hoàn thành ("đang thực hiện","chờ duyệt","làm lại task","trễ hạn") của sinh viên chuyển nhóm chuyển về trang thái "chưa bắt đầu" . Nhóm trưởng cần thảo luận với các thành viên khác trong nhóm để giải quyết các task chưa hoàn thành
+				+ Đối với các Task đã ở trạng thái [Hoàn Thành - Done], hệ thống vẫn giữ nguyên trong nhóm cũ và ghi nhận lịch sử là do SV đó làm." Điều này giúp nhóm cũ không bị mất công sức, và GV có cơ sở chấm điểm những đóng góp cũ của SV đó.
+		5.2.2 Các vấn đề & hướng giải quyết của nhóm mới về việc chuyển nhóm
+			- Quyền từ chối của Nhóm mới : Ví dụ sinh viên làm đơn xin qua Nhóm 2. Giảng viên thấy Nhóm 2 còn chỗ nên bấm [Phê duyệt]. Nhưng lỡ Trưởng nhóm 2 không thích sinh viên này thì sao? Hành động ép buộc này có thể gây ra xung đột mới ở Nhóm 2.
+				+ "Quyết định của Giảng viên là tối cao". Nghĩa là khi GV đã duyệt, sinh viên đó bị ép vào Nhóm 2, Trưởng nhóm 2 bắt buộc phải nhận (và hệ thống chỉ gửi thông báo chứ không cho Trưởng nhóm 2 quyền từ chối).
+		5.2.3  Chuyện gì xảy ra nếu "Nhóm trưởng" đòi chuyển nhóm? 
+
+		Vấn đề: Nếu SV xin chuyển nhóm lại chính là Nhóm trưởng của nhóm cũ. Khi GV bấm duyệt cho SV này bay qua nhóm khác, nhóm cũ sẽ lâm vào tình trạng "Rắn mất đầu" (Dữ liệu MaNhomTruong bị rỗng), không ai có quyền duyệt Task hay sửa thông tin nhóm nữa.
+		Giải pháp:  Hệ thống không hỗ trợ cho việc nhóm trưởng xin chuyển nhóm 
+6. Task : task được tạo bởi nhóm trưởng & giao task đến sinh viên khác trong nhóm để cùng nhau hoàn thành đề tài mà giảng viên giao cho .
+	6.1 trạng thái của task : 
+		"chưa bắt đầu " : trạng thái của task khi nhóm trưởng chưa giao cho sinh viên trong nhóm.
+		"đang thực hiện" : Trang thái của task khi nhóm trưởng đã giao cho sinh viên trong nhóm & sinh viên được giao task đang trong quá trình thực hiện task
+		"phê duyệt" : trạng thái của task khi sinh viên nộp task chờ nhóm trưởng phê duyệt
+		"yêu cầu làm lại" : trạng thái của task khi nhóm trưởng xem task của sinh viên trong nhóm  nộp & thấy task chưa đầy đủ yêu cầu dựa theo yêu cầu của task đưa ra . Nhóm trưởng có quyền yêu cầu làm lại task & gia hạn deadline mới khi làm lại task của sinh viên trong nhóm
+		"trễ hạn" : trạng thái của task khi thời gian hiện tại > deadline của task . hệ thống sẽ gửi thông báo đến nhóm trưởng .nhóm trưởng sẽ làm việc với bạn bị trễ task
+		"hoàn thành" : trạng thái của task khi nhóm trưởng phê duyệt task đã nộp của sinh viên trong nhóm 
+	6.2 quy trình 
+		6.2.1 nhóm trưởng tạo task & giao task cho các bạn trong nhóm
+		6.2.2 Các bạn làm task mà nhóm trưởng đã bàn giao cho
+		6.2.3 các bạn nộp task & đợi nhóm trưởng phê duyệt
+			6.2.3.1 nếu nhóm trưởng không phê duyệt & yêu cầu làm lại task . 
+				Quay lại bước 6.2.2
+			6.2.3.2 nếu nhóm trưởng phê duyệt task
+				Tiếp bước 6.2.4
+		6.2.4 Nhóm trưởng phê duyệt task , task hoàn thành & sinh siên đợi được giao task mới
+7 Nhóm trưởng
+	7.2 đăng kí đề tài : NHóm trưởng sẽ đại diện nhóm đăng ký đề tài 	
+	7.3 Tạo task & quản lý task của nhóm : 	
+		+Tạo task : nhóm trưởng dựa theo đề tài đã đăng ký , tạo các task & giao task  đến các bạn trong nhóm 
+		+ Quản lý task : nhóm trưởng có trách nhiệm xem xét & phê duyệt các task đã nộp của các bạn trong nhóm để hoàn thành đề tài của giảng viên
+			
+	
+==================DATABASE============================
+- thêm thuộc tính "lopsinhvien" vào table nguoidung -> lớp của sinh viên phân biệt với lớp môn học
+- thêm thuộc tính "ChoPhepDangKyNhom" vào table lophoc -> cho phép giảng viên không cho phép đăng ký nhóm
+- thêm thuộc tính "HanDangKyNhom" vào table lophoc -> Hạn đăng ký nhóm
+=================Page login====================
+1. code link text "quên mật khẩu"
+	1.1 khi user click vào "quên mật khẩu" hiện modal "lấy lại mật khẩu"
+		1.1.1 modal gồm :
+			text "Hình thức gửi code xác minh" - "qua email"
+			text "Mã tài khoản" & placeholder
+			text "Email đăng ký trong hệ thống" & placeholder
+			button "gửi"
+	1.2 khi user điền thông tin & click gửi
+		1.2.1 Hệ thống hiện thông báo "Mã xác minh đã gửi đến Email. Vui lòng nhập mã Mã xác minh và Mật khẩu mới đề hoàn thành" & button "đóng"
+	1.3 hệ thống gửi đến email đăng ký 1 mail "ĐỔI MẬT KHẨU TÀI KHOẢN" có chứa code xác minh có thời hạn  5 phút
+		1.3.1 Nội dung mail "ĐỔI MẬT KHẨU TÀI KHOẢN"
+			"Website nhóm 2
+				Thông báo về việc tài khoản [tên user] - [mã tài khoản] yêu cầu đổi mật khẩu.
+				Mã xác minh: [code xác minh]
+				Lưu ý: mã xác minh chỉ hiệu lực đến [giờ hiện tại]"
+	1.4 hệ thống tự động chuyển modal "cập nhật mật khẩu"
+		1.4.1 Modal gồm :
+			text "Mã tài khoản " - [mã tài khoản]
+			text "Mã xác minh" 
+				Kiểm tra code xác minh :
+				- nếu code xác minh còn time sử dụng -> pass
+				- nếu code xác minh hết time sử dụng -> yêu cầu lấy code xác minh mới
+				- nếu code xác minh sai -> yêu cầu nhập lại 
+			Text "mật khẩu mới" & placeholder có Toggle show/hide mật khẩu
+				có check list mật khẩu :
+					+ Độ dài tối thiểu (thường 8-12 ký tự)
+					+ Có chữ hoa (A-Z)
+					+ Có chữ thường (a-z)
+					+ Có số (0-9)
+					+ Có ký tự đặc biệt (!@#$%...)
+					+ Không có khoảng trắng 
+					+ mật khẩu không được trùng với [mã tài khoản]
+					+ Mật khẩu mới không trùng với [mật khẩu trước đó]
+					+ Không chứa [tên user]
+   			Button "Xác nhận" bị disable cho đến khi tất cả rule pass
+	1.5 khi user click xác nhận , hiện thông báo "mật khẩu tải khoản của bạn đã cập nhật" & link text"quay lại trang đăng nhập"
+	** mật khẩu mới sẽ được cập nhật vào matkhauhash bảng nguoidung
+=================Page layout===================
+-sửa phần avatar , tên user , role trùng thông tin trong hồ sơ cá nhân
+=================User profile==================
+button "đổi mật khẩu"
+	+ Update rule check list password :
+		+ Độ dài tối thiểu (thường 8-12 ký tự)
+					+ Có chữ hoa (A-Z)
+					+ Có chữ thường (a-z)
+					+ Có số (0-9)
+					+ Có ký tự đặc biệt (!@#$%...)
+					+ Không có khoảng trắng 
+					+ mật khẩu không được trùng với [mã tài khoản]
+					+ Mật khẩu mới không trùng với [mật khẩu trước đó]
+					+ Không chứa [tên user]
+   			Button "Xác nhận" bị disable cho đến khi tất cả rule pass
+=================ADMIN=========================
+1. trang "tổng quan" -> thống kê người dùng , lớp học , nhóm ,.... của hệ thống website -> không sửa
+2. trang "quản lý người dùng"
+	2.1 sửa button "thêm người dùng"
+		- check Email -> kiểm tra user điền đúng định dạng email không?
+		- mật khẩu -> đặt kế bên placeholder"nhập Mật khẩu" -> thêm button"Mật khẩu ngẫu nhiên"
+			+ khi admin click button "mật khẩu ngẫu nhiên" -> hệ thống sinh ra pass ngẫu nhiêu cho tài khoản user
+ 			+ mật khẩu ngẫu nhiên được theo quy tắc :
+				+ Độ dài tối thiểu (thường 8-12 ký tự)
+				+ Có chữ hoa (A-Z)
+				+ Có chữ thường (a-z)
+				+ Có số (0-9)
+				+ Có ký tự đặc biệt (!@#$%...)
+				+ Không có khoảng trắng 
+				+ mật khẩu không được trùng với mật khẩu của tài khoản khác
+				+ Không chứa [tên user]
+		- swap dropdown "vai trò" lên trên dropdown "khoa"
+			+ khi admin chọn tài khoản vai trò "admin" thì không chọn được dropdown danh sách "khoa" & dropdown danh sách "lớp sinh viên" -> do admin là người quản lý chung ko thuộc về 1 khoa & 1 lớp nào khác
+			+ khi admin chọn tài khoản vai trò "giảng viên" thì chọn được dropdown danh sách "khoa" mà giáo viên làm việc &  không chọn được dropdown danh sách "lớp sinh viên" -> do giảng viên thuộc 1 khoa duy nhất & dạy nhiều lớp khác nhau
+			+ khi admin chọn tài khoản vai trò "sinh viên" thì  chọn được dropdown danh sách "khoa" & dropdown danh sách "lớp sinh viên" -> do sinh viên thuộc về 1 khoa duy nhất & 1 lớp duy nhất
+	2.2 Thêm button import excel -> cho phép admin import danh sách giảng viên & sinh viên -> từ đó hệ thống sinh ra account  cung cấp cho giảng viên , sinh viên sử dụng trang web 
+		- Ui modal : Modal sẽ được chia làm 2 trạng thái: 
+			Trạng thái 1: Chọn và Kiểm tra file
+				+ 2 Dropdown (Vai trò & Khoa) nằm ngang nhau.
+				+ Khu vực kéo thả file (Drag & Drop) hoặc nút "Chọn File" có icon Excel.
+				+ Nút "Kiểm tra dữ liệu" (màu Xanh dương/Vàng).
+				+ Nút "Tải file mẫu" (để Admin tải template về điền cho chuẩn).
+			Trạng thái 2: Preview (Sau khi nhấn Kiểm tra và Pass)
+				+ Hiện thông báo: "✅ Tìm thấy 45 dòng hợp lệ."
+				+ Hiện 1 bảng nhỏ có thanh cuộn (Scrollable Table) chứa 5 dòng đầu tiên của file để Admin xác nhận xem hệ thống đọc đúng tên cột chưa.
+				+ Nút "Tiến hành Import" (màu Xanh lá) lúc này mới sáng lên.
+
+		- giải tích flow "gửi mail account tự động đến email nội bộ của trường"
+			**Gửi Email THẬT bằng SMTP của Gmail 
+			Ngay cả khi mail đích là mail nội bộ của trường, bản chất các trường đại học hiện nay đều dùng hạ tầng của Google Workspace (Gmail) hoặc Microsoft 365 (Outlook) để cấp mail cho sinh viên. Do đó, mail trường vẫn có thể nhận được email từ một tài khoản Gmail bình thường bên ngoài gửi vào.
+			Cách làm (Bên Backend C#):
+                  		+ Bạn tạo một tài khoản Gmail ảo của hệ thống. Ví dụ: admin.quanlyquanlop.stu@gmail.com.
+				+ Bật tính năng App Passwords (Mật khẩu ứng dụng) của Gmail đó.
+				+ Trong Backend (C#), dùng thư viện MailKit hoặc System.Net.Mail để kết nối tới máy chủ SMTP của Gmail (smtp.gmail.com).
+     				+ Khi Admin bấm "Import Excel", Backend xử lý lưu DB xong -> Chạy vòng lặp gửi mail từ admin.quanlyquanlop.stu@gmail.com tới các danh sách email trong file Excel.
+			Về bản chất, chúng ta sẽ tạo ra một tài khoản Gmail có tên đại loại như hethong.quanlyhoc.stu@gmail.com để đóng vai trò làm "hệ thống bưu điện" (Mail Server). Tài khoản này sẽ có nhiệm vụ lấy danh sách tài khoản vừa tạo trong DB và tự động gửi email chào mừng (kèm mật khẩu) tới từng cái địa chỉ email thật của sinh viên/giảng viên.
+	2.3 Sửa các thao tác : sửa , khóa , xóa
+		giữ Thao tác sửa -> hiện modal sửa các thông tin định danh mà User không có quyền tự sửa (như MSSV, Họ tên, Khoa) nhằm đảm bảo tính chính xác của dữ liệu quản lý. 
+		giữ Thao tác xóa -> sử dụng Soft Delete (Xóa mềm). Admin sẽ cập nhật trạng thái IsActive = 0 để khóa tài khoản khi User ngừng học tập/làm việc. 
+		bỏ thao tác "khóa" -> xóa & khóa giống nhau về cơ chế
+3. Gộp lại trang quản lý lớp & trang quản lý nhóm thành 1 trang "quản lý lớp & nhóm" -> admin chỉ xem thống kê lớp & nhóm , còn các thao tác lớp & nhóm do giảng viên làm.
+4. bỏ trang "quản lý tin nhắn" -> không cần thiết ở trang admin
+5. Thêm trang cấu hình & hệ thống -> cấu hình các định dạng file & dung lượng file -> tránh tình trạng user gửi file chứa  mã độc hoặc file chứa dung lượng quá lớn
+	MÔ TẢ GIAO DIỆN CHỨC NĂNG CẤU HÌNH HỆ THỐNG
+	5.1 Thông tin chung
+
+		Tên màn hình: Cấu hình hệ thống (System Settings)
+		Vai trò truy cập: Admin
+		Bố cục (Layout): Dạng thẻ (Card-based), chia thành các khối chức năng độc lập giúp tối ưu không gian và dễ mở rộng trong tương lai. Nền xám nhạt (#f4f7f6) kết hợp thẻ nội dung trắng giúp làm nổi bật công cụ.
+	5.2 Các thành phần giao diện (UI Components)
+
+		5.2.1 Khu vực Tiêu đề (Header)
+
+			Tiêu đề trang: "Cấu hình hệ thống" kèm mô tả chức năng.
+			Nút "Lưu thay đổi" (Save Button): Đặt ở góc phải phía trên. Nút mang màu xanh lá đặc trưng của hành động "Thành công".
+			Trạng thái nút Lưu: Nút sẽ bị khóa (Xám mờ/Disabled) theo mặc định, và chỉ được kích hoạt sáng lên khi hệ thống ghi nhận có ít nhất một sự thay đổi từ người dùng (Trạng thái isDirty).
+		5.2.2 Khối Cấu hình Lưu trữ & Upload (Storage Card) Được chia làm 2 thành phần chính:
+
+			a) Cấu hình Dung lượng tối đa (Max File Size):
+
+				Công cụ UI: Sử dụng thanh trượt Range Slider.
+				Cơ chế hoạt động: Cho phép Admin kéo trượt để chọn dung lượng từ 1MB đến 100MB.
+				Ưu điểm UX: Trực quan hóa dữ liệu, ngăn chặn tuyệt đối lỗi nhập liệu bằng tay (chữ cái, ký tự đặc biệt, số âm).
+			b) Cấu hình Định dạng cho phép (Allowed Extensions):
+
+				Công cụ UI: Sử dụng hộp nhập liệu dạng Nhãn (Tag/Chip Input).
+				Cơ chế hoạt động: Khi Admin gõ đuôi tệp (VD: rar) và nhấn Enter, từ khóa sẽ tự động thêm dấu chấm (.rar) và đóng gói thành một thẻ Tag màu xanh có nút [x] để xóa.
+				Nút thêm nhanh (Quick Tags): Có sẵn 3 nút + Văn bản, + Nén, + Hình ảnh. Khi click, hệ thống tự điền hàng loạt đuôi file phổ biến vào danh sách.
+				Bảo mật: Tích hợp cảnh báo chống mã độc. Cấm nhập các định dạng thực thi (Ví dụ: .exe, .bat).
+		5.2.3. Phản hồi hệ thống (System Feedback)
+
+			Sau khi lưu thành công, xuất hiện hộp thoại nhỏ (Toast Notification) trượt lên từ góc phải dưới màn hình báo hiệu "Đã cập nhật cấu hình hệ thống thành công!", tự động ẩn đi sau 3 giây, không làm gián đoạn luồng làm việc của Admin.
+
+=================TEACHER========================
+1. quản lý lớp học
+	1.1 Modal "chi tiết lớp học"
+		+ thêm 1 buuton "thêm sinh viên = import file excel"
+		+ table bảng danh sách sinh viên -> thêm 1 cột lớp sinh viên
+		+ Sửa classcode : thay vì classcode = mã lớp môn học -> hệ thống sinh ra unique classcode ngẫu nhiên 6 ký tự 
+	1.2 Button "thêm sinh viên = import excel " -> sử dụng cơ chế import = file excel giống bên admin
+		
+2. quản lý đề tài
+	2.1 phương thức giao đề tài -> khi giảng viên tạo đề tài xong thì mặc định phương thức giao đề tài là "đăng ký tự do" . 
+	nếu giảng viên muốn chỉ định đề tài cho nhóm bất kì thì gv swap phương thức giao đề tài "chỉ định nhóm"
+	2.2 card đề tài cho phép giảng viên có thể gửi file tài liệu giúp giảng viên mô tả chi tiết đề tài
+3. quản lý nhóm học tập
+	3.1 sẽ chia thành 2 buuton "quản lý nhóm học tập"(mặc định) - "xỷ lý yêu cầu chuyển nhóm"
+	3.2 Ui"xỷ lý yêu cầu chuyển nhóm" -> tái sử dụng Ui "lịch sử yêu cầu" của trang sinh viên 
+		- các yêu cầu chuyển nhóm có 2 trạng thái "đã xử lý" & "chưa xử lý"
+		- khi gv click vào yêu cầu chuyển nhóm hiện modal chi tiết yêu cầu chuyển nhóm
+		Modal chi tiết yêu cầu chuyển nhóm 
+		-tái sử dụng UI modal yêu cầu chuyển nhóm của sinh viên -> các thông tin của sinh viên ở dạng readonly
+		- thêm phần text giảng viên phản hồi (tùy chọn) -> giới hạn 255 ký tự
+		- button "hủy"- button "Từ chối" - "Đồng ý"
+		Khi gv tự chối -> hệ thống gửi thông báo tới lịch sử yêu cầu cảu trang sinh viên - trang giáo viên ghi nhận yêu cầu đã xử lý
+		khi gv đống ý -> hệ thống gửi thông báo đến 2 nhóm trưởng cũ & mới -> hệ thống tự động kick sinh viên ở nhóm cũ & add sinh viên vào nhóm mới
+	3.3 bổ sung button "thiết lập thời gian đăng ký nhóm" -> khi tới deadline đăng ký nhóm . hệ thống tự động khóa các nhóm đủ thành viên , không khóa nhóm chưa đủ thành viên
+	3.4 bổ sung "Chốt danh sách nhóm" thay thế button "thêm sinh viên" ở card nhóm
+	3.5 button "thêm sinh viên" sửa thành icon "+" để ở chỗ danh sách thành viên ở card nhóm
+		
+			
+4. giám sát & đánh giá
+	4.1 Button "tiến độ nhóm"
+	- Card "Nhóm học tập"
+		+ ở phần "tiến độ thành viên" -> add thêm dropdown liệt kệ các trạng thái & tên task của  sinh viên trong nhóm 
+	4.2 Button "đánh giá & chấm điểm"
+		+ cột task hoàn thành hiển thị [task hoàn thành]/[tổng số task của nhóm]
+		+ hiện dropdown của từng sinh viên gồm liệt kê [tên task hoàn thành]
+
+=================STUDENT========================
+1.Lớp học của tôi
+	1.1 add thêm list học kỳ -> cho phép sinh viên chọn các học kỳ khác -> hiện các lớp - các nhóm tham gia ở học kỳ đó 
+	1.2 ở card lớp , add 1 card để sinh viên chấp nhận lời mời lớp môn học của giảng viên được gửi từ hệ thống
+		thông tin card gồm :
+		 - Hệ thống gửi lời mời tham gia lớp [tên lớp môn học] của giảng viên [tên giảng viên]
+		 - Button "từ chối", button "tham gia"
+	1.3 bỏ phần "chi tiết lớp học" -> trong tài liệu không ghi -> không làm
+2.Nhóm học tập
+	2.1 sửa button "yêu cầu vào nhóm" -> "đăng ký nhóm"
+		Modal "đăng ký nhóm"
+		+ dropdown Lớp môn học -> hiện danh sách lớp môn học mà sinh viên đã tham gia trong học kỳ hiện tại
+		+ dropdown nhóm -> hiện danh sách nhóm (chưa đủ thành viên) của lớp môn học sinh viên đã chọn
+			- Nếu nhóm đã đủ thành viên nhóm thì sinh viên ko click được
+		+ Thành viên nhóm [số lượng thành viên hiện có trong nhóm / số lượng giới hạn thành viên nhóm] 
+			-> hiện list [tên sinh viên][Lớp hành chính của sinh viên]
+		+ button "đóng" button "xác nhận tham gia"
+		* khi sinh viên xác nhận tham gia hiện thông báo "bạn đã tham gia nhóm [tên nhóm ] lớp [tên lớp môn học] thành công"
+	2.2 card thống kê nhiệm vụ
+		+ add thêm các thanh task của trạng thái [chưa bắt đầu][yêu cầu làm lại][trễ hạn]
+	2.3 Ở trang Sinh viên (STUDENT - Nhóm học tập)
+	- thêm button rời nhóm 
+	- rằng buộc button "rời nhóm"
+		+ trong time quy định đăng ký nhóm , buttton rời nhóm hoạt động cho phép sinh viên rời nhóm
+		+ hết time quy định đăng ký nhóm , button rời nhóm disable 
+		+ sinh viên có thể rời nhóm trong time quy định 
+3.Nhiệm vụ & tiến độ
+4.Không gian thảo luận
+	+ khi giảng viên chốt nhóm & bầu ra nhóm trưởng , hệ thống sẽ tự động tạo ra nhóm chat & add tất cả thành viên trong nhóm vào nhóm chat đó . 
+	+ khi giảng viên không chốt nhóm thì sẽ không tạo ra nhóm chat & không cho phép sinh viên add & xóa thành viên trong nhóm chat
+	+ hệ thống tự động cập nhật thành viên nếu có sinh viên chuyển nhóm -> hệ thống tự động xóa sinh viên đó khỏi nhóm chat cũ & add sinh viên đó vào nhóm chat mới . 
+	+ code các chức năng trong phần chi tiết phòng chat gồm
+		-tìm kiếm trong đoạn chat
+		- xem tin nhắn ghim'
+		- xem file phương tiện
+		- xem liên kết đã gửi
+	 	Bỏ phần : -> không cần thiết
+		- thay đổi avatar nhóm chat
+		- đổi theme
+		- thay đổi biểu tượng
+		
+5.Điều phối nhóm
+ 	5.1 xóa phần "yêu cầu gia nhập nhóm " -> phê duyệt thành viên mới của nhóm 
+	5.2 thêm phần thông báo thành viên chuyển nhóm & thành viên gia nhập nhóm từ nhóm khác
+	5.3 thêm phần đăng ký đề tài hiện trang "đăng ký đề tài"
+		+ hiện tất cả các đề tài trong lớp môn học bao gồm đề tài đã được đăng ký & đề tài chưa đăng ký
+		+ cho phép nhóm trưởng xem chi tiết đề tài khi click vào card đề tài . 
+	

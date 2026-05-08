@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FaCalendarAlt, FaUserFriends } from 'react-icons/fa';
+import { FaUserFriends } from 'react-icons/fa';
 import './StudentClasses.css';
 import classService from '../../services/classService';
 
@@ -13,11 +13,11 @@ function JoinModal({ onClose, onJoin }) {
   const [loading, setLoading] = useState(false);
 
   const handleJoin = async () => {
-    if (!code.trim()) { 
-      setError('Vui lòng nhập mã lớp.'); 
-      return; 
+    if (!code.trim()) {
+      setError('Vui lòng nhập mã lớp.');
+      return;
     }
-    
+
     setLoading(true);
     try {
       await classService.joinClass(code);
@@ -75,12 +75,6 @@ function ClassCard({ cls, onClick }) {
           <div className="meta-row">
             <div className="meta-icon" style={{ background: cls.gvBg, color: cls.gvColor }}>GV</div>
             {cls.tenGV}
-          </div>
-          <div className="meta-row">
-            <div className="meta-icon" style={{ background: '#eaf3de', color: '#3b6d11' }}>
-              <FaCalendarAlt />
-            </div>
-            {cls.thoiGianHoc}
           </div>
           <div className="meta-row">
             <div className="meta-icon" style={{ background: '#faeeda', color: '#854f0b' }}>
@@ -260,9 +254,9 @@ const StudentClasses = () => {
   const handleClickGroup = (group) => {
     navigate('/student/groups', {
       state: {
-        maNhom : group.maNhom,
+        maNhom: group.maNhom,
         tenNhom: group.tenNhom,
-        tenLop : group.tenLop,
+        tenLop: group.tenLop,
       },
     });
   };

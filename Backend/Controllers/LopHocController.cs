@@ -72,48 +72,56 @@ public class LopHocController : ControllerBase
 
         int maNguoiDung = int.Parse(claimMaNguoiDung);
         int maVaiTro = int.Parse(claimMaVaiTro ?? "0");
-
-        List<object> ketQua = new List<object>();
+        var homNay = DateOnly.FromDateTime(DateTime.Now);
 
         if (maVaiTro == 2) // Giảng viên
         {
-            List<LopHoc> lopCuaGV = await _db.LopHocs
-                .Include(l => l.MaGiangVienNavigation)
-                .Include(l => l.MaHocKyNavigation)
-                .Include(l => l.MaSinhViens)
-                .Include(l => l.Nhoms)
+            var lopCuaGV = await _db.LopHocs
                 .Where(l => l.MaGiangVien == maNguoiDung)
+                .Select(l => new {
+                    maLop = l.MaLop,
+                    maLopHoc = l.MaLopHoc,
+                    tenLop = l.TenLop,
+                    maGiangVien = l.MaGiangVien,
+                    tenGiangVien = l.MaGiangVienNavigation.HoTen,
+                    soSinhVien = l.MaSinhViens.Count,
+                    soNhom = l.Nhoms.Count,
+                    trangThai = (l.NgayKetThuc.HasValue && l.NgayKetThuc.Value < homNay) ? "inactive" : "active",
+                    maHocKy = l.MaHocKy,
+                    tenHocKy = l.MaHocKyNavigation.TenHocKy,
+                    ngayBatDau = l.NgayBatDau,
+                    ngayKetThuc = l.NgayKetThuc,
+                    thoiGianHoc = l.ThoiGianHoc
+                })
                 .ToListAsync();
 
-            foreach (var lop in lopCuaGV)
-            {
-                ketQua.Add(TaoLopHocResponse(lop));
-            }
+            return Ok(lopCuaGV);
         }
         else if (maVaiTro == 3) // Sinh viên
         {
-            // Tìm các lớp mà sinh viên tham gia thông qua Navigation MaSinhViens (M-N với NguoiDung)
-            NguoiDung? sv = await _db.NguoiDungs
-                .Include(u => u.MaLops) // Sinh viên nằm trong nhiều lớp
-                .ThenInclude(l => l.MaGiangVienNavigation)
-                .Include(u => u.MaLops)
-                .ThenInclude(l => l.MaHocKyNavigation)
-                .Include(u => u.MaLops)
-                .ThenInclude(l => l.MaSinhViens)
-                .Include(u => u.MaLops)
-                .ThenInclude(l => l.Nhoms)
-                .FirstOrDefaultAsync(u => u.MaNguoiDung == maNguoiDung);
+            var lopCuaSV = await _db.LopHocs
+                .Where(l => l.MaSinhViens.Any(sv => sv.MaNguoiDung == maNguoiDung))
+                .Select(l => new {
+                    maLop = l.MaLop,
+                    maLopHoc = l.MaLopHoc,
+                    tenLop = l.TenLop,
+                    maGiangVien = l.MaGiangVien,
+                    tenGiangVien = l.MaGiangVienNavigation.HoTen,
+                    soSinhVien = l.MaSinhViens.Count,
+                    soNhom = l.Nhoms.Count,
+                    trangThai = (l.NgayKetThuc.HasValue && l.NgayKetThuc.Value < homNay) ? "inactive" : "active",
+                    maHocKy = l.MaHocKy,
+                    tenHocKy = l.MaHocKyNavigation.TenHocKy,
+                    ngayBatDau = l.NgayBatDau,
+                    ngayKetThuc = l.NgayKetThuc,
+                    thoiGianHoc = l.ThoiGianHoc
+                })
+                .ToListAsync();
 
-            if (sv != null)
-            {
-                foreach (var lop in sv.MaLops)
-                {
-                    ketQua.Add(TaoLopHocResponse(lop));
-                }
-            }
+            return Ok(lopCuaSV);
         }
 
-        return Ok(ketQua);
+        return Ok(new List<object>());
     }
 
     // =============================================
@@ -189,41 +197,31 @@ public class LopHocController : ControllerBase
     {
         var homNay = DateOnly.FromDateTime(DateTime.Now);
 
-        // Bước 1: Lấy tất cả lớp học kèm thông tin giảng viên
-        var query = _db.LopHocs
-            .Include(l => l.MaGiangVienNavigation)
-            .Include(l => l.MaHocKyNavigation)
-            .Include(l => l.MaSinhViens)
-            .Include(l => l.DeTais)
-            .Include(l => l.Nhoms)
-                .ThenInclude(n => n.MaSinhViens)
-            .Include(l => l.Nhoms)
-                .ThenInclude(n => n.MaDeTaiNavigation)
-            .Include(l => l.Nhoms)
-                .ThenInclude(n => n.MaNhomTruongNavigation)
-            .AsQueryable();
+        var query = _db.LopHocs.AsQueryable();
 
         if (maHocKy.HasValue && maHocKy.Value > 0)
         {
             query = query.Where(l => l.MaHocKy == maHocKy.Value);
         }
 
-        List<LopHoc> tatCaLop = await query.ToListAsync();
+        var ketQua = await query
+            .Select(l => new {
+                maLop = l.MaLop,
+                maLopHoc = l.MaLopHoc,
+                tenLop = l.TenLop,
+                maGiangVien = l.MaGiangVien,
+                tenGiangVien = l.MaGiangVienNavigation.HoTen,
+                soSinhVien = l.MaSinhViens.Count,
+                soNhom = l.Nhoms.Count,
+                trangThai = (l.NgayKetThuc.HasValue && l.NgayKetThuc.Value < homNay) ? "inactive" : "active",
+                maHocKy = l.MaHocKy,
+                tenHocKy = l.MaHocKyNavigation.TenHocKy,
+                ngayBatDau = l.NgayBatDau,
+                ngayKetThuc = l.NgayKetThuc,
+                thoiGianHoc = l.ThoiGianHoc
+            })
+            .ToListAsync();
 
-        // Bước 2: Tạo danh sách kết quả
-        List<object> ketQua = new List<object>();
-        foreach (LopHoc lop in tatCaLop)
-        {
-            string tenGiangVien = "";
-            if (lop.MaGiangVienNavigation != null)
-            {
-                tenGiangVien = lop.MaGiangVienNavigation.HoTen;
-            }
-
-            ketQua.Add(TaoLopHocResponse(lop, tenGiangVien, homNay));
-        }
-
-        // Bước 3: Trả về kết quả
         return Ok(ketQua);
     }
 
@@ -245,32 +243,96 @@ public class LopHocController : ControllerBase
         int maNguoiDung = int.Parse(claimMaNguoiDung);
         int maVaiTro = int.Parse(claimMaVaiTro ?? "0");
 
-        LopHoc? lop = await _db.LopHocs
-            .Include(l => l.MaGiangVienNavigation)
-            .Include(l => l.MaHocKyNavigation)
-            .Include(l => l.MaSinhViens)
-            .Include(l => l.Nhoms)
-                .ThenInclude(n => n.MaSinhViens)
-            .Include(l => l.Nhoms)
-                .ThenInclude(n => n.MaDeTaiNavigation)
-            .Include(l => l.DeTais)
-                .ThenInclude(dt => dt.Nhoms)
-            .FirstOrDefaultAsync(l => l.MaLop == id);
+        // Sử dụng Select để chỉ lấy dữ liệu cần thiết và tránh Include lồng nhau quá sâu gây chậm
+        var lop = await _db.LopHocs
+            .Where(l => l.MaLop == id)
+            .Select(l => new {
+                maLop = l.MaLop,
+                maLopHoc = l.MaLopHoc,
+                tenLop = l.TenLop,
+                maGiangVien = l.MaGiangVien,
+                tenGiangVien = l.MaGiangVienNavigation.HoTen,
+                soSinhVien = l.MaSinhViens.Count,
+                soNhom = l.Nhoms.Count,
+                trangThai = (l.NgayKetThuc.HasValue && l.NgayKetThuc.Value < DateOnly.FromDateTime(DateTime.Now)) ? "inactive" : "active",
+                maHocKy = l.MaHocKy,
+                tenHocKy = l.MaHocKyNavigation.TenHocKy,
+                ngayBatDau = l.NgayBatDau,
+                ngayKetThuc = l.NgayKetThuc,
+                thoiGianHoc = l.ThoiGianHoc,
+                choPhepDangKyNhom = l.ChoPhepDangKyNhom,
+                
+                // Quyền hạn
+                isGiangVien = l.MaGiangVien == maNguoiDung,
+                isSinhVien = l.MaSinhViens.Any(sv => sv.MaNguoiDung == maNguoiDung),
+
+                danhSachSinhVien = l.MaSinhViens
+                    .OrderBy(sv => sv.MaSo)
+                    .Select(sv => new
+                    {
+                        maNguoiDung = sv.MaNguoiDung,
+                        maSo = sv.MaSo,
+                        hoTen = sv.HoTen,
+                        email = sv.Email,
+                        lopSinhVien = sv.LopSinhVien,
+                        tenNhom = l.Nhoms.FirstOrDefault(n => n.MaSinhViens.Any(s => s.MaNguoiDung == sv.MaNguoiDung)).TenNhom ?? "",
+                        laNhomTruong = l.Nhoms.Any(n => n.MaNhomTruong == sv.MaNguoiDung)
+                    }).ToList(),
+
+                danhSachNhom = l.Nhoms
+                    .OrderBy(n => n.TenNhom)
+                    .Select(n => new
+                    {
+                        maNhom = n.MaNhom,
+                        tenNhom = n.TenNhom,
+                        soThanhVienHienTai = n.MaSinhViens.Count,
+                        soThanhVienToiDa = n.SoThanhVienToiDa,
+                        tenDeTai = n.MaDeTaiNavigation.TenDeTai ?? "",
+                        maDeTai = n.MaDeTai,
+                        maNhomTruong = n.MaNhomTruong,
+                        tenNhomTruong = n.MaNhomTruongNavigation.HoTen ?? "",
+                        thanhViens = n.MaSinhViens.Select(sv => new
+                        {
+                            maNguoiDung = sv.MaNguoiDung,
+                            maSo = sv.MaSo,
+                            hoTen = sv.HoTen,
+                            laNhomTruong = n.MaNhomTruong == sv.MaNguoiDung
+                        }).ToList()
+                    }).ToList(),
+
+                danhSachDeTai = l.DeTais
+                    .OrderBy(dt => dt.TenDeTai)
+                    .Select(dt => new
+                    {
+                        maDeTai = dt.MaDeTai,
+                        tenDeTai = dt.TenDeTai,
+                        moTa = dt.MoTa,
+                        sanPhamKyVong = dt.SanPhamKyVong,
+                        ngayBatDau = dt.NgayBatDau,
+                        ngayKetThuc = dt.NgayKetThuc,
+                        phuongThucGiao = dt.PhuongThucGiao ?? "Đăng ký tự do",
+                        daCoNhom = dt.Nhoms.Any(),
+                        tenNhom = dt.Nhoms.FirstOrDefault().TenNhom ?? "",
+                        tepDinhKem = dt.TepDinhKems
+                            .Select(t => new { t.MaTep, t.TenTep, duongDan = t.DuongDanTep })
+                            .FirstOrDefault()
+                    }).ToList()
+            })
+            .FirstOrDefaultAsync();
 
         if (lop == null)
         {
             return NotFound(new { thongBao = "Không tìm thấy lớp học" });
         }
 
-        bool duocXem = maVaiTro == 1 ||
-            lop.MaGiangVien == maNguoiDung ||
-            lop.MaSinhViens.Any(sv => sv.MaNguoiDung == maNguoiDung);
+        // Kiểm tra quyền xem
+        bool duocXem = maVaiTro == 1 || lop.isGiangVien || lop.isSinhVien;
         if (!duocXem)
         {
             return Forbid();
         }
 
-        return Ok(TaoLopHocResponse(lop));
+        return Ok(lop);
     }
 
     // =============================================
@@ -369,6 +431,38 @@ public class LopHocController : ControllerBase
             return BadRequest(new { thongBao = "Ngày kết thúc phải sau ngày bắt đầu" });
         }
 
+        // Kiểm tra trùng tên lớp học cho cùng 1 giảng viên trong cùng học kỳ
+        bool biTrungTen = await _db.LopHocs.AnyAsync(l => 
+            l.MaGiangVien == maGiangVien && 
+            l.MaHocKy == dto.MaHocKy && 
+            l.TenLop.ToLower() == tenLop.ToLower());
+            
+        if (biTrungTen)
+        {
+            return BadRequest(new { thongBao = $"Bạn đã tạo một lớp học tên '{tenLop}' trong học kỳ này rồi. Vui lòng đặt tên khác (VD: thêm số thứ tự ca học)." });
+        }
+
+        // Kiểm tra ngày tháng so với học kỳ
+        var hk = await _db.HocKies.FindAsync(dto.MaHocKy);
+        if (hk != null)
+        {
+            if (dto.NgayBatDau.HasValue)
+            {
+                if (hk.NgayBatDau.HasValue && dto.NgayBatDau.Value < hk.NgayBatDau.Value)
+                    return BadRequest(new { thongBao = $"Ngày bắt đầu lớp học không được trước ngày bắt đầu học kỳ ({hk.NgayBatDau:dd/MM/yyyy})" });
+                if (hk.NgayKetThuc.HasValue && dto.NgayBatDau.Value > hk.NgayKetThuc.Value)
+                    return BadRequest(new { thongBao = $"Ngày bắt đầu lớp học không được sau ngày kết thúc học kỳ ({hk.NgayKetThuc:dd/MM/yyyy})" });
+            }
+
+            if (dto.NgayKetThuc.HasValue)
+            {
+                if (hk.NgayBatDau.HasValue && dto.NgayKetThuc.Value < hk.NgayBatDau.Value)
+                    return BadRequest(new { thongBao = $"Ngày kết thúc lớp học không được trước ngày bắt đầu học kỳ ({hk.NgayBatDau:dd/MM/yyyy})" });
+                if (hk.NgayKetThuc.HasValue && dto.NgayKetThuc.Value > hk.NgayKetThuc.Value)
+                    return BadRequest(new { thongBao = $"Ngày kết thúc lớp học không được sau ngày kết thúc học kỳ ({hk.NgayKetThuc:dd/MM/yyyy})" });
+            }
+        }
+
         // Bước 1: Tạo object lớp học mới, mã lớp do backend tự sinh để đảm bảo unique.
         LopHoc lopMoi = new LopHoc();
         lopMoi.TenLop = tenLop;
@@ -433,6 +527,39 @@ public class LopHocController : ControllerBase
         if (dto.NgayBatDau.HasValue && dto.NgayKetThuc.HasValue && dto.NgayKetThuc.Value < dto.NgayBatDau.Value)
         {
             return BadRequest(new { thongBao = "Ngày kết thúc phải sau ngày bắt đầu" });
+        }
+
+        // Kiểm tra trùng tên lớp học cho cùng 1 giảng viên trong cùng học kỳ (trừ lớp hiện tại)
+        bool biTrungTen = await _db.LopHocs.AnyAsync(l => 
+            l.MaLop != id &&
+            l.MaGiangVien == maNguoiDung && 
+            l.MaHocKy == dto.MaHocKy && 
+            l.TenLop.ToLower() == tenLop.ToLower());
+            
+        if (biTrungTen)
+        {
+            return BadRequest(new { thongBao = $"Tên lớp '{tenLop}' đã tồn tại trong học kỳ này của bạn. Vui lòng chọn tên khác." });
+        }
+
+        // Kiểm tra ngày tháng so với học kỳ
+        var hk = await _db.HocKies.FindAsync(dto.MaHocKy);
+        if (hk != null)
+        {
+            if (dto.NgayBatDau.HasValue)
+            {
+                if (hk.NgayBatDau.HasValue && dto.NgayBatDau.Value < hk.NgayBatDau.Value)
+                    return BadRequest(new { thongBao = $"Ngày bắt đầu lớp học không được trước ngày bắt đầu học kỳ ({hk.NgayBatDau:dd/MM/yyyy})" });
+                if (hk.NgayKetThuc.HasValue && dto.NgayBatDau.Value > hk.NgayKetThuc.Value)
+                    return BadRequest(new { thongBao = $"Ngày bắt đầu lớp học không được sau ngày kết thúc học kỳ ({hk.NgayKetThuc:dd/MM/yyyy})" });
+            }
+
+            if (dto.NgayKetThuc.HasValue)
+            {
+                if (hk.NgayBatDau.HasValue && dto.NgayKetThuc.Value < hk.NgayBatDau.Value)
+                    return BadRequest(new { thongBao = $"Ngày kết thúc lớp học không được trước ngày bắt đầu học kỳ ({hk.NgayBatDau:dd/MM/yyyy})" });
+                if (hk.NgayKetThuc.HasValue && dto.NgayKetThuc.Value > hk.NgayKetThuc.Value)
+                    return BadRequest(new { thongBao = $"Ngày kết thúc lớp học không được sau ngày kết thúc học kỳ ({hk.NgayKetThuc:dd/MM/yyyy})" });
+            }
         }
 
         // Chỉ cập nhật thông tin lớp; mã lớp học giữ nguyên vì sinh viên đang dùng code này để tham gia.
@@ -568,77 +695,6 @@ public class LopHocController : ControllerBase
         return Guid.NewGuid().ToString("N")[..8].ToUpper();
     }
 
-    private object TaoLopHocResponse(LopHoc lop, string? tenGiangVien = null, DateOnly? homNay = null)
-    {
-        DateOnly ngayHienTai = homNay ?? DateOnly.FromDateTime(DateTime.Now);
-
-        return new
-        {
-            maLop = lop.MaLop,
-            maLopHoc = lop.MaLopHoc,
-            tenLop = lop.TenLop,
-            maGiangVien = lop.MaGiangVien,
-            tenGiangVien = tenGiangVien ?? lop.MaGiangVienNavigation?.HoTen ?? "",
-            soSinhVien = lop.MaSinhViens.Count,
-            soNhom = lop.Nhoms.Count,
-            trangThai = (lop.NgayKetThuc.HasValue && lop.NgayKetThuc.Value < ngayHienTai) ? "inactive" : "active",
-            maHocKy = lop.MaHocKy,
-            tenHocKy = lop.MaHocKyNavigation?.TenHocKy ?? "",
-            ngayBatDau = lop.NgayBatDau,
-            ngayKetThuc = lop.NgayKetThuc,
-            thoiGianHoc = lop.ThoiGianHoc,
-            danhSachSinhVien = lop.MaSinhViens
-                .OrderBy(sv => sv.MaSo)
-                .Select(sv => new
-                {
-                    maNguoiDung = sv.MaNguoiDung,
-                    maSo = sv.MaSo,
-                    hoTen = sv.HoTen,
-                    email = sv.Email,
-                    lopSinhVien = sv.LopSinhVien,
-                    // Tìm nhom sinh viên đang thuộc trong lớp này
-                    tenNhom = lop.Nhoms.FirstOrDefault(n => n.MaSinhViens.Any(s => s.MaNguoiDung == sv.MaNguoiDung))?.TenNhom ?? "",
-                    laNhomTruong = lop.Nhoms.Any(n => n.MaNhomTruong == sv.MaNguoiDung)
-                })
-                .ToList(),
-            danhSachNhom = lop.Nhoms
-                .OrderBy(n => n.TenNhom)
-                .Select(n => new
-                {
-                    maNhom = n.MaNhom,
-                    tenNhom = n.TenNhom,
-                    soThanhVienHienTai = n.MaSinhViens.Count,
-                    soThanhVienToiDa = n.SoThanhVienToiDa,
-                    tenDeTai = n.MaDeTaiNavigation?.TenDeTai ?? "",
-                    maDeTai = n.MaDeTai,
-                    maNhomTruong = n.MaNhomTruong,
-                    tenNhomTruong = n.MaNhomTruongNavigation?.HoTen ?? "",
-                    thanhViens = n.MaSinhViens.Select(sv => new
-                    {
-                        maNguoiDung = sv.MaNguoiDung,
-                        maSo = sv.MaSo,
-                        hoTen = sv.HoTen,
-                        laNhomTruong = n.MaNhomTruong == sv.MaNguoiDung
-                    }).ToList()
-                })
-                .ToList(),
-            danhSachDeTai = lop.DeTais
-                .OrderBy(dt => dt.TenDeTai)
-                .Select(dt => new
-                {
-                    maDeTai = dt.MaDeTai,
-                    tenDeTai = dt.TenDeTai,
-                    moTa = dt.MoTa,
-                    sanPhamKyVong = dt.SanPhamKyVong,
-                    ngayBatDau = dt.NgayBatDau?.ToString("yyyy-MM-dd"),
-                    ngayKetThuc = dt.NgayKetThuc?.ToString("yyyy-MM-dd"),
-                    phuongThucGiao = dt.PhuongThucGiao ?? "Đăng ký tự do",
-                    daCoNhom = dt.Nhoms.Any(),
-                    tenNhom = dt.Nhoms.FirstOrDefault()?.TenNhom ?? ""
-                })
-                .ToList()
-        };
-    }
     // =============================================
     // CHỐT DANH SÁCH NHÓM
     // PUT: api/lophoc/5/chot-nhom

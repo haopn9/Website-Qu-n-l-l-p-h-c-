@@ -40,6 +40,25 @@ const ClassManagement = () => {
     }
   };
 
+  const handleSelectClass = async (classItem) => {
+    try {
+      setLoading(true);
+      const res = await fetch(`http://localhost:5186/api/lophoc/${classItem.maLop}`, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setSelectedClass(data);
+      } else {
+        alert('Lỗi tải chi tiết lớp học');
+      }
+    } catch (error) {
+      console.error('Lỗi khi tải chi tiết:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => { fetchData(); }, []);
 
   const filteredClasses = classes.filter(c => {
@@ -245,7 +264,7 @@ const ClassManagement = () => {
 
       <div className="classes-grid-modern">
         {filteredClasses.map(classItem => (
-          <div key={classItem.id} className="class-card-modern" onClick={() => setSelectedClass(classItem)} style={{ cursor: 'pointer', transition: 'transform 0.15s, box-shadow 0.15s' }}
+          <div key={classItem.id} className="class-card-modern" onClick={() => handleSelectClass(classItem)} style={{ cursor: 'pointer', transition: 'transform 0.15s, box-shadow 0.15s' }}
             onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 20px rgba(0,0,0,0.1)'; }}
             onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; }}>
             <div className="class-card-header">

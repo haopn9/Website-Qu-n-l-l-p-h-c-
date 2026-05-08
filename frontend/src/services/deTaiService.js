@@ -13,7 +13,8 @@ const deTaiService = {
 
   // Cập nhật đề tài
   capNhatDeTai: (id, data) => {
-    return apiClient.put(`/api/detai/${id}`, data);
+    const isFormData = data instanceof FormData;
+    return apiClient.put(`/api/detai/${id}`, data, isFormData);
   },
 
   // Xóa đề tài

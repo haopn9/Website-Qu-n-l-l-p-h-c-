@@ -1,0 +1,206 @@
+tui vừa download folder backend từ github project gồm các api , giờ tui và bạn sẽ call api vào frontend 
+do các backend -er code dựa trên frontend cũ nên khi call api lên frontend mới sẽ có sai sót . nên giờ tui với bạn sẽ fix từng các api & call api lên frontend
+Bạn sẽ dựa frontend đang có -> xem api liên quan tính năng đó -> trình bày tui xem chức năng api là gì & có cần fix không ? & fix như thế nào để call data lên
+1. sẽ có những api thừa do frontend mới nhất tui đã xóa hoặc đã thay đổi flow 
+2 .đừng có sửa dòng text , website sử dụng tiếng việt có dấu 
+3. tôi và bạn sẽ cùng nhau sửa từng controller -> tính năng chạy được -> fix tiếp các api khác
+4. tui sài brave nên tui sẽ tự load backend & frontend trên trình duyệt 
+5. khi code hãy comment 
+bạn đã hiểu cách làm việc của chúng ta chưa ? nếu được chúng ta bắt đầu từ post /api/xacthuc/dangnhap . hiện tại thì khi tui nhập đúng username + pass thì vào được đúng với vai trò
+nhưng khi cố tình nhập sai username + pass thì nút đăng nhập bị disable -> ko thông báo lỗi sai user name hoặc sai pass
+=================================================================
+tui sử dụng 1 acc gv : gv_test & 1 acc sv : sv_test
+- Đã test thành công
+1. bên trang giảng viên - quản lý lớp học
+	- đã tạo được lớp môn học mới
+	- load lớp môn học lên bảng lớp
+	- các card thống kê đúng 
+	- hệ thống cung cấp unique code 
+	- cập nhật tên lớp - ngày tháng thành công 
+	- sử dụng nút xóa lớp có sinh viên- nhận thông báo "không thể xóa lớp đã có sinh viên, nhóm hoặc đề tài"
+	- sử dụng nút xóa lớp ko có sinh viên -> xóa lớp thành công 
+2. bên trang sinh viên	
+	- nhập unique code -> đã vào được lớp học
+	- đã load lớp học tham gia 
+- vấn đề :
+1. bên trang giảng viên - quản lý lớp học
+- button "chi tiết lớp học"
+	- tôi muốn đổi dòng "yyyy/mm/dd" thành "dd/mm/yyyy"
+	- khi có sinh viên vào lớp môn học thành công nhưng danh sách sinh viên lại không hiện sinh viên đó trên table
+2. bên trang sinh viên	
+	- khi giáo viên cập nhật thông tin lớp học thì bên sinh viên không thấy thay đổi đó
+	- khi click vào card lớp học thì hiện chi tiết lớp học -> tui thấy không tìm thấy lớp học - quay lại lớp học 
+=================================================================
+Test sau khi update 
+- Đã test thành công
+1. bên trang giảng viên - quản lý lớp học
+	1.1 "chi tiết lớp học "
+		- dòng ngaybatdau -> ngayketthuc đúng định dạng "dd/mm/yyyy"
+		- đã load sinh viên tham gia lớp môn học
+		- giáo viên kick sv ra khỏi lớp môn học  -> kick thành công 
+2. bên trang sinh viên	
+	- khi click vào card lớp -> đã hiện "chi tiết lớp học"
+	- khi gv cập nhật thông tin lớp môn học -> bên sv thấy sự thông tin lớp môn học
+	- sv không thấy lớp môn học khi bị gv kick 
+======================================================================
+API nhóm
+- get /api/nhom/cua-toi
+- get /api/nhom
+- post /api/nhom
+- get /api/nhom{manhom}
+- delete /api/nhom{manhom}
+- post /api/nhom/{manhom}/themthanhvien
+- delete /api/nhom/{manhom}/xoathanhvien/{masinhvien}
+- put /api/nhom/{manhom}/nhomtruong
+- post /api/nhom/{manhom}/detai
+flow liên quan tới nhóm :
+2. tạo nhóm
+Hệ thống hỗ trợ 2 phương thức  phân nhóm linh hoạt :
+	Cách 1 - Phân nhóm nhẫu nhiên : hệ thống tự động chia sinh viên trong lớp vào các nhóm dựa trên số lượng thành viên yêu cầu
+		+ giảng viên tạo các nhóm rỗng , giảng viên đặt tên nhóm + set số lượng thành viên .
+		+ giảng viên sử dụng chức năng "Phân nhóm nhẫu nhiên " để hệ thống chia sinh viên vào nhóm
+	Cách 2 – Phân nhóm theo lựa chọn :
+	o	Sinh viên tự đăng ký : sinh viên chủ động tìm kiếm và ghi danh vào nhóm mong muốn 
+		+ giảng viên tạo các nhóm rỗng , giảng viên đặt tên nhóm + set số lượng thành viên .
+		+ Gv thông báo với sinh viên học môn học của mình về việc đăng ký nhóm &  quy định thời hạn đăng ký nhóm
+		+ Trong khoảng thời gian này, sinh viên có quyền tự do tham gia (In) và rời nhóm (Out).
+		+ Khi hết hạn đăng ký, hệ thống khóa đăng ký các nhóm đã đủ thành viên & không khóa các nhóm chưa đủ thành viên .Giảng viên sẽ thêm thủ công các sinh viên chưa có nhóm vào các nhóm thiếu người và bấm nút "Chốt danh sách nhóm". Lúc này danh sách bị khóa, hệ thống tự động tạo Nhóm chat và sinh viên không thể tự ý rời nhóm được nữa (chỉ có thể gửi Yêu cầu chuyển nhóm).
+	o	Giảng viên điều phối : giảng viên trực tiếp phân công những sinh viên còn lại vào các nhóm phù hợp để đảm bảo không có sinh viên bị bỏ sót.
+		+ Sau khoản thời gian nhất định để sinh viên đăng ký nhóm , giảng viên xem còn sinh viên chưa có nhóm thì thêm thủ công sinh viên đó vào nhóm chưa đủ thành viên.
+
+3.Nhóm trưởng 
+	Giảng viên thực hiện chỉ định Nhóm trưởng theo 2 cách
+	+ Các thành viên trong nhóm thảo luận để bầu ra nhóm trưởng .Sau đó nhóm thông báo với giảng viên để giảng viên set nhóm trưởng cho bạn được bầu
+	+ giảng viên tự chỉ định nhóm trưởng .
+======================================================================
+Test lần đầu 
+Sử dụng 1 acc gv : gv_test / 123456 & 2 acc sv : sv_test / 123456 | sv2_test / 123456H@o
+-bên trang giảng viên - quản lý nhóm học tập
+ + trường hợp để giáo viên phân nhóm ngẫu nhiên 
+ 	- tạo nhóm rỗng thành công 
+	- backend chưa xử lý chức năng này
+ + trường hợp để giáo viên thêm sinh viên vào nhóm thủ công
+	- tạo nhóm rỗng thành công 
+	- Thêm sinh viên (chưa có nhóm) trong lớp vào nhóm thành công 
+	- xóa sinh viên ra khỏi nhóm thành công 
+ + trường hợp để sinh viên đăng ký nhóm tự do (không có thiết lập thời gian đăng ký nhóm)
+	-  tạo nhóm rỗng thành công 
+ + trường hợp chỉ định nhóm trưởng 
+	- giảng viên set nhóm trưởng -> thành công 
+	- giảng viên chuyển chức nhóm trưởng cho bạn khác trong nhóm -> thành công 	
+-bên trang sinh viên - nhóm học tập
+  + trường hợp để sinh viên đăng ký nhóm tự do (không có thiết lập thời gian đăng ký nhóm)
+ 	- khi sử dụng button "đăng ký nhóm" -> không thấy nhóm của lớp môn học tham gia 
+  + trường hợp để giáo viên thêm sinh viên vào nhóm thủ công
+	- backend chưa xử lý chức năng này
+  + trường hợp khi được giảng viên set chức nhóm trưởng
+	- backend chưa xử lý chức năng này
+	- có vào được trang điều phối nhóm không ? -> chưa test
+		+ kịch bản : sinh viên sử dụng tab "điều phối nhóm"
+	
+  + trường hợp sinh viên trong nhóm không phải là  nhóm trưởng
+	- backend chưa xử lý chức năng này
+	- có vào được trang điều phối nhóm không ? -> chưa test
+		+ kịch bản : sinh viên không sử dụng tab "điều phối nhóm" & hiện thông báo "điều phối nhóm" chỉ có nhóm trưởng sử dụng 
+================================================================================
+Test lần 2 
+sử dụng 1 acc gv : gv_test / 123456 & 2 acc sv : sv_test / 123456 | sv2_test / 123456H@o
+mã lớp : 32AWLP
+-bên trang giảng viên - quản lý nhóm học tập
+ + trường hợp để giáo viên phân nhóm ngẫu nhiên 
+ 	- tạo nhóm rỗng thành công 
+	- giảng viên sử dụng nút "phân nhóm ngẫu nhiên" -> thành công đưa sinh viên chưa có nhóm vào nhóm chưa đủ thành viên
+ + trường hợp để sinh viên đăng ký nhóm tự do (không có thiết lập thời gian đăng ký nhóm)
+	- tạo nhóm rỗng thành công 
+	- sv đăng ký vào nhóm chưa đủ thành viên thành công
+ + trường hợp chỉ định nhóm trưởng 
+	- giảng viên set nhóm trưởng -> thành công 
+	- giảng viên chuyển chức nhóm trưởng cho bạn khác trong nhóm -> thành công 
+ + trường hợp để giáo viên thêm sinh viên vào nhóm  & xóa sinh viên ra khỏi nhómthủ công
+	- gv thêm thủ công sv thành công
+		+ sinh viên vào "nhóm học tập" -> hiện nhóm học tập
+	- xóa thủ công sv thành công
+		+ sinh viên vào "nhóm học tập" -> không hiện nhóm học tập
+ + trường hợp để sinh viên đăng ký nhóm tự do (không có thiết lập thời gian đăng ký nhóm)
+	- chưa test
+-bên trang sinh viên - nhóm học tập
+  + trường hợp để sinh viên đăng ký nhóm tự do (không có thiết lập thời gian đăng ký nhóm)
+ 	- khi sử dụng button "đăng ký nhóm" -> thấy ds lớp tham gia & đăng ký nhóm chưa đủ thành viên
+	- chưa load được danh sách thành viên nhóm
+  
+  + trường hợp khi được giảng viên set chức nhóm trưởng
+	- backend chưa xử lý chức năng này
+	- có vào được trang điều phối nhóm không ? -> chưa test
+		+ kịch bản : sinh viên sử dụng tab "điều phối nhóm"
+  + trường hợp sinh viên trong nhóm không phải là  nhóm trưởng
+	- backend chưa xử lý chức năng này
+	- có vào được trang điều phối nhóm không ? -> chưa test
+		+ kịch bản : sinh viên không sử dụng tab "điều phối nhóm" & hiện thông báo "điều phối nhóm chỉ dành nhóm trưởng sử dụng "
+
+  + trường hợp sinh viên muốn rời nhóm trong khoảng time giảng viên chưa chốt nhóm
+	- backend chưa xử lý chức năng này
+
+ Vấn đề : 
+- modal đăng ký nhóm không hiện số lượng thành viên đang có trong nhóm / số lượng giới hạn 
+============================================================================================
+test lần 3
+- sử dụng 1 acc gv : gv_test / 123456 & 2 acc sv : sv_test / 123456 | sv2_test / 123456H@o
+mã lớp : 32AWLP
+Vấn đề đã giải quyết :
+- modal đăng ký nhóm đã hiện số lượng thành viên đang có trong nhóm / số lượng giới hạn 
+- hiện danh sách thành viên nhóm
+- sv ko phải nhóm trưởng vào tab "điều phối nhóm" -> không vào được
+- sv là  nhóm trưởng vào tab "điều phối nhóm" ->  vào được tab
+- sv rời nhóm thành công
+Vấn đề mới :
+- giảng viên không được chỉ định nhóm trưởng khi nhóm chưa chốt nhóm -
+-> cho phép giảng viên chốt / chưa chốt nhóm thủ công thông qua button "chốt ds nhóm"
+-> cho phép giảng viên chọn dòng "--chọn thành viên " khi chỉ định nhóm trưởng -> gỡ chức nhóm trưởng -> nhóm không có nhóm trưởng
+	+ Khi chốt nhóm , các nút chức năng bị disable
+		- không thêm thành viên
+		- không xóa thành viên 
+	+ khi chưa chốt nhóm ,các nút chức năng bị disable
+		- nút chỉ định nhóm trưởng 
+- khi sinh viên đăng ký thành công vào nhóm 1 & tiếp tục đăng ký vào nhóm 1 -> hiện thông báo vào nhóm thành công -> bug
+- khi sinh viên đang là thành viên vào nhóm 1 & tiếp tục đăng ký vào nhóm 2 -> sinh viên là thành viên của 2 nhóm -> bug
+	+ sinh viên thuộc 1 nhóm / 1 lớp môn học 
+	+ sinh viên muốn qua nhóm khác thì quy trình : nhóm hiện tại -> rời nhóm -> tham gia nhóm mới
+============================================================================================
+test lần 4
+- sử dụng 1 acc gv : gv_test / 123456 & 2 acc sv : sv_test / 123456 | sv2_test / 123456H@o
+mã lớp : 32AWLP
+Vấn đề giải quyết : 
+- khi sinh viên đang là thành viên vào nhóm 1 & tiếp tục đăng ký vào nhóm 2 -> không cho đăng ký nhóm khác khi chưa rời nhóm hiện tại
+- khi sinh viên đăng ký thành công vào nhóm 1 & tiếp tục đăng ký vào nhóm 1 ->  không cho đăng ký nhóm khác
+- khi giảng viên chưa chốt nhóm
+	-> button chỉ định nhóm trưởng bị disable -> không thể chỉ định nhóm trưởng 
+Vấn đề chưa giải quyết 
+- giảng viên không thể  chốt / chưa chốt nhóm thủ công thông qua button "chốt ds nhóm"
+============================================================================================
+test lần 5
+- sử dụng 1 acc gv : gv_test / 123456 & 2 acc sv : sv_test / 123456 | sv2_test / 123456H@o
+mã lớp : 32AWLP
+Vấn đề giải quyết : 
+- giảng viên có thể sử dụng  chốt / chưa chốt nhóm thủ công thông qua button "chốt ds nhóm"
+ + Khi chốt nhóm , các nút chức năng bị disable
+		- không thêm thành viên
+		- không xóa thành viên 
+	+ khi chưa chốt nhóm ,các nút chức năng bị disable
+		- nút chỉ định nhóm trưởng 
+- giảng viên có thể chỉ định / gỡ nhóm trưởng
+- khi chốt nhóm thì sv không thể rời nhóm -> nút rời nhóm bị disable
+Vấn đề mới  :
+- khi gv chốt nhóm thì nút đăng ký nhóm cũng bị disable luôn
+ -> sv muốn sang nhóm khác khi đã chốt nhóm -> yêu cầu chuyển nhóm -> nếu gv duyệt yêu cầu -> sv mới sang nhóm mới
+- khi gv mở chưa chốt nhóm -> xóa sinh viên là nhóm trưởng -> bug
+	-> khi gv mở chưa chốt nhóm có thể thực hiện các thao tác thêm / xóa các thành viên bình thường
+	-> khi gv xóa sinh viên là nhóm trưởng -> thông báo sinh viên này là trưởng nhóm , không thể xóa được -> yêu cầu đổi nhóm trưởng cho thành viên khác hoặc gỡ chức trưởng nhóm cho bạn sinh viên này
+============================================================================================
+test lần 5
+- sử dụng 1 acc gv : gv_test / 123456 & 2 acc sv : sv_test / 123456 | sv2_test / 123456H@o
+mã lớp : 32AWLP
+Vấn đề giải quyết : 
+- khi gv chốt nhóm thì nút đăng ký nhóm cũng bị disable luôn
+- khi gv mở chưa chốt nhóm -> xóa sinh viên là nhóm trưởng -> bug
+	-> khi gv mở chưa chốt nhóm có thể thực hiện các thao tác thêm / xóa các thành viên bình thường
+	-> khi gv xóa sinh viên là nhóm trưởng -> thông báo sinh viên này là trưởng nhóm , không thể xóa được -> yêu cầu đổi nhóm trưởng cho thành viên khác hoặc gỡ chức 

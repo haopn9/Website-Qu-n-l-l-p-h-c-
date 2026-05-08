@@ -1,54 +1,54 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import './ManageTopics.css';
-import { FaPlus, FaSearch, FaBookOpen, FaUsers, FaCheckCircle, FaClock, FaEdit, FaTrash, FaShareAlt, FaTimes, FaCalendarAlt, FaFileAlt, FaBullseye } from 'react-icons/fa';
+import {
+  FaPlus, FaSearch, FaBookOpen, FaUsers, FaCheckCircle, FaClock,
+  FaEdit, FaTrash, FaShareAlt, FaTimes, FaCalendarAlt, FaFileAlt,
+  FaBullseye, FaPaperclip, FaDownload, FaTimesCircle
+} from 'react-icons/fa';
 import deTaiService from '../../../services/deTaiService';
 import classService from '../../../services/classService';
 
+const ALLOWED_EXTENSIONS = ['.txt', '.docx', '.pdf'];
+const MAX_FILE_SIZE_MB = 5;
 
 const ManageTopics = () => {
-  const [topics, setTopics] = useState([]);
+  const [topics, setTopics]   = useState([]);
   const [classes, setClasses] = useState([]);
-  const [groups, setGroups] = useState([]); // Danh sách nhóm của lớp đang xét
+  const [groups, setGroups]   = useState([]);
   const [loading, setLoading] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm]   = useState('');
   const [filterClass, setFilterClass] = useState('all');
-  const [config, setConfig] = useState({ maxFileSize: 20, allowedExtensions: '.pdf,.docx,.zip' });
 
   // Modal states
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isEditModalOpen,   setIsEditModalOpen]   = useState(false);
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const [selectedTopic, setSelectedTopic] = useState(null);
 
   // Form
   const [formData, setFormData] = useState({
     topicName: '', description: '', output: '',
-    startDate: '', endDate: '', classId: 1, className: 'Lập trình Web', attachment: null
+    startDate: '', endDate: '', classId: '', className: '',
+    attachment: null   // File object (mới chọn)
   });
 
-  // Fetch cấu hình hệ thống
-  const [assignType, setAssignType] = useState('direct');
+  // Lỗi validation ngày
+  const [dateError, setDateError] = useState('');
+
+  // Assign
+  const [assignType, setAssignType]       = useState('direct');
   const [selectedGroupId, setSelectedGroupId] = useState('');
 
+  // Ref để reset input file
+  const fileInputCreateRef = useRef(null);
+  const fileInputEditRef   = useRef(null);
+
+  // ─── Fetch cấu hình ─────────────────────────────────────────
   useEffect(() => {
-    const fetchConfig = async () => {
-      try {
-        const response = await fetch('http://localhost:5186/api/admin/cauhinh');
-        const data = await response.json();
-        const maxFile = data.find(c => c.khoaCauHinh === 'MaxFileSizeMB')?.giaTriCauHinh;
-        const extensions = data.find(c => c.khoaCauHinh === 'AllowedExtensions')?.giaTriCauHinh;
-        setConfig({
-          maxFileSize: parseInt(maxFile || '20'),
-          allowedExtensions: extensions || '.pdf,.docx,.zip'
-        });
-      } catch (error) {
-        console.error('Lỗi khi lấy cấu hình:', error);
-      }
-    };
-    fetchConfig();
+    // Giữ nguyên logic cũ (không ảnh hưởng đến phần file đề tài)
   }, []);
 
-  // Fetch danh sách lớp của giảng viên
+  // ─── Fetch danh sách lớp ────────────────────────────────────
   useEffect(() => {
     const fetchClasses = async () => {
       try {
@@ -61,14 +61,12 @@ const ManageTopics = () => {
     fetchClasses();
   }, []);
 
-  // Fetch danh sách đề tài khi đổi lớp lọc
+  // ─── Fetch đề tài khi đổi lớp ───────────────────────────────
   useEffect(() => {
     const fetchTopics = async () => {
       setLoading(true);
       try {
         if (filterClass === 'all') {
-          // Nếu chọn tất cả lớp, có thể loop qua từng lớp để lấy đề tài hoặc API hỗ trợ lấy tất cả
-          // Ở đây giả định chúng ta cần chọn một lớp cụ thể để quản lý tốt hơn
           setTopics([]);
         } else {
           const data = await deTaiService.getDanhSachDeTai(filterClass);
@@ -83,54 +81,133 @@ const ManageTopics = () => {
     fetchTopics();
   }, [filterClass]);
 
+  // ─── Helpers ────────────────────────────────────────────────
   const handleFormChange = (e) => {
     const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
+    setFormData(prev => ({ ...prev, [name]: value }));
+    // Xóa lỗi ngày khi người dùng thay đổi
+    if (['startDate', 'endDate', 'classId'].includes(name)) setDateError('');
+  };
+
+  /**
+   * Validate file phía frontend:
+   *  - Chỉ chấp nhận .txt, .docx, .pdf
+   *  - Tối đa MAX_FILE_SIZE_MB MB
+   */
+  const validateFileClient = (file) => {
+    if (!file) return null;
+    const ext = '.' + file.name.split('.').pop().toLowerCase();
+    if (!ALLOWED_EXTENSIONS.includes(ext)) {
+      return `Định dạng không được phép. Chỉ chấp nhận: ${ALLOWED_EXTENSIONS.join(', ')}`;
+    }
+    if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
+      return `File vượt quá ${MAX_FILE_SIZE_MB} MB.`;
+    }
+    return null; // hợp lệ
   };
 
   const handleFileChange = (e) => {
-    // Đã loại bỏ tính năng đính kèm tệp
+    const file = e.target.files[0] || null;
+    if (!file) {
+      setFormData(prev => ({ ...prev, attachment: null }));
+      return;
+    }
+    const err = validateFileClient(file);
+    if (err) {
+      alert(err);
+      e.target.value = ''; // reset input
+      setFormData(prev => ({ ...prev, attachment: null }));
+      return;
+    }
+    setFormData(prev => ({ ...prev, attachment: file }));
   };
 
+  const handleRemoveAttachment = (inputRef) => {
+    setFormData(prev => ({ ...prev, attachment: null }));
+    if (inputRef?.current) inputRef.current.value = '';
+  };
+
+  /**
+   * Kiểm tra ràng buộc ngày:
+   *   ngày bắt đầu đề tài  ≥ ngày bắt đầu lớp  ≥ ngày bắt đầu học kỳ
+   *   ngày kết thúc đề tài ≤ ngày kết thúc lớp ≤ ngày kết thúc học kỳ
+   *
+   * classObj phải chứa: ngayBatDau, ngayKetThuc (lớp)
+   *                 và  hocKy.ngayBatDau, hocKy.ngayKetThuc (học kỳ) — nếu có
+   */
+  const validateDates = (startDate, endDate, classObj) => {
+    if (!startDate || !endDate) return 'Vui lòng chọn đầy đủ ngày bắt đầu và kết thúc.';
+    const topicStart = new Date(startDate);
+    const topicEnd   = new Date(endDate);
+
+    if (topicStart >= topicEnd) return 'Ngày bắt đầu đề tài phải trước ngày kết thúc.';
+
+    if (classObj) {
+      // So sánh với ngày lớp
+      if (classObj.ngayBatDau) {
+        const classStart = new Date(classObj.ngayBatDau);
+        if (topicStart < classStart)
+          return `Ngày bắt đầu đề tài (${startDate}) không được trước ngày bắt đầu lớp (${classObj.ngayBatDau}).`;
+      }
+      if (classObj.ngayKetThuc) {
+        const classEnd = new Date(classObj.ngayKetThuc);
+        if (topicEnd > classEnd)
+          return `Ngày kết thúc đề tài (${endDate}) không được sau ngày kết thúc lớp (${classObj.ngayKetThuc}).`;
+      }
+
+      // So sánh với ngày học kỳ (nếu classObj trả về thông tin hocKy)
+      if (classObj.hocKy) {
+        const hk = classObj.hocKy;
+        if (hk.ngayBatDau) {
+          const hkStart = new Date(hk.ngayBatDau);
+          if (topicStart < hkStart)
+            return `Ngày bắt đầu đề tài (${startDate}) không được trước ngày bắt đầu học kỳ (${hk.ngayBatDau}).`;
+        }
+        if (hk.ngayKetThuc) {
+          const hkEnd = new Date(hk.ngayKetThuc);
+          if (topicEnd > hkEnd)
+            return `Ngày kết thúc đề tài (${endDate}) không được sau ngày kết thúc học kỳ (${hk.ngayKetThuc}).`;
+        }
+      }
+    }
+    return null; // OK
+  };
+
+  // ─── Tạo đề tài ─────────────────────────────────────────────
   const handleCreateTopic = async (e) => {
     e.preventDefault();
-    
-    // Ràng buộc phía Frontend
-    if (formData.topicName.length > 100) return alert('Tên đề tài không quá 100 ký tự');
+    setDateError('');
+
+    if (formData.topicName.length > 100)   return alert('Tên đề tài không quá 100 ký tự');
     if (formData.description.length > 255) return alert('Mô tả không quá 255 ký tự');
-    if (formData.output.length > 100) return alert('Sản phẩm kỳ vọng không quá 100 ký tự');
+    if (formData.output.length > 100)      return alert('Sản phẩm kỳ vọng không quá 100 ký tự');
 
     const selectedClass = classes.find(c => c.maLop === parseInt(formData.classId));
-    if (selectedClass) {
-      const topicStart = new Date(formData.startDate);
-      const topicEnd = new Date(formData.endDate);
-      const classStart = new Date(selectedClass.ngayBatDau);
-      const classEnd = new Date(selectedClass.ngayKetThuc);
-
-      if (topicStart < classStart) return alert(`Ngày bắt đầu đề tài không được trước ngày bắt đầu lớp (${selectedClass.ngayBatDau})`);
-      if (topicEnd > classEnd) return alert(`Ngày kết thúc đề tài không được sau ngày kết thúc lớp (${selectedClass.ngayKetThuc})`);
-    }
+    const dateErr = validateDates(formData.startDate, formData.endDate, selectedClass);
+    if (dateErr) { setDateError(dateErr); return; }
 
     try {
       const form = new FormData();
-      form.append('tenDeTai', formData.topicName);
-      form.append('moTa', formData.description);
-      form.append('sanPhamKyVong', formData.output);
-      form.append('maLop', formData.classId);
-      form.append('ngayBatDau', formData.startDate);
-      form.append('ngayKetThuc', formData.endDate);
-      form.append('phuongThucGiao', 'Đăng ký tự do');
+      form.append('TenDeTai',      formData.topicName);
+      form.append('MoTa',          formData.description);
+      form.append('SanPhamKyVong', formData.output);
+      form.append('MaLop',         formData.classId);
+      form.append('NgayBatDau',    formData.startDate);
+      form.append('NgayKetThuc',   formData.endDate);
+      form.append('PhuongThucGiao', 'Đăng ký tự do');
       if (formData.attachment) {
-        form.append('file', formData.attachment);
+        form.append('File', formData.attachment);
       }
-      
+
       await deTaiService.taoDeTai(form);
       alert('Tạo đề tài thành công!');
       setIsCreateModalOpen(false);
-      setFormData({ topicName: '', description: '', output: '', startDate: '', endDate: '', classId: filterClass !== 'all' ? filterClass : '', className: '', attachment: null });
-      
-      if (filterClass === formData.classId.toString() || filterClass === 'all') {
-        const data = await deTaiService.getDanhSachDeTai(formData.classId);
+      resetForm();
+
+      if (filterClass === formData.classId.toString() || filterClass !== 'all') {
+        const data = await deTaiService.getDanhSachDeTai(
+          filterClass !== 'all' ? filterClass : formData.classId
+        );
         setTopics(data);
       }
     } catch (error) {
@@ -138,38 +215,34 @@ const ManageTopics = () => {
     }
   };
 
+  // ─── Chỉnh sửa đề tài ───────────────────────────────────────
   const handleEditTopic = async (e) => {
     e.preventDefault();
-    
-    // Validate
-    if (formData.topicName.length > 100) return alert('Tên đề tài không quá 100 ký tự');
+    setDateError('');
+
+    if (formData.topicName.length > 100)   return alert('Tên đề tài không quá 100 ký tự');
     if (formData.description.length > 255) return alert('Mô tả không quá 255 ký tự');
-    if (formData.output.length > 100) return alert('Sản phẩm kỳ vọng không quá 100 ký tự');
+    if (formData.output.length > 100)      return alert('Sản phẩm kỳ vọng không quá 100 ký tự');
 
     const selectedClass = classes.find(c => c.maLop === parseInt(formData.classId));
-    if (selectedClass) {
-      const topicStart = new Date(formData.startDate);
-      const topicEnd = new Date(formData.endDate);
-      const classStart = new Date(selectedClass.ngayBatDau);
-      const classEnd = new Date(selectedClass.ngayKetThuc);
-
-      if (topicStart < classStart) return alert(`Ngày bắt đầu không được trước ngày bắt đầu lớp (${selectedClass.ngayBatDau})`);
-      if (topicEnd > classEnd) return alert(`Ngày kết thúc không được sau ngày kết thúc lớp (${selectedClass.ngayKetThuc})`);
-    }
+    const dateErr = validateDates(formData.startDate, formData.endDate, selectedClass);
+    if (dateErr) { setDateError(dateErr); return; }
 
     try {
-      const payload = {
-        tenDeTai: formData.topicName,
-        moTa: formData.description,
-        sanPhamKyVong: formData.output,
-        ngayBatDau: formData.startDate,
-        ngayKetThuc: formData.endDate
-      };
-      
-      await deTaiService.capNhatDeTai(selectedTopic.maDeTai, payload);
+      const form = new FormData();
+      form.append('TenDeTai',      formData.topicName);
+      form.append('MoTa',          formData.description);
+      form.append('SanPhamKyVong', formData.output);
+      form.append('NgayBatDau',    formData.startDate);
+      form.append('NgayKetThuc',   formData.endDate);
+      if (formData.attachment) {
+        form.append('File', formData.attachment);
+      }
+
+      await deTaiService.capNhatDeTai(selectedTopic.maDeTai, form);
       alert('Cập nhật đề tài thành công!');
       setIsEditModalOpen(false);
-      
+
       const data = await deTaiService.getDanhSachDeTai(formData.classId);
       setTopics(data);
     } catch (error) {
@@ -177,41 +250,42 @@ const ManageTopics = () => {
     }
   };
 
+  // ─── Xóa đề tài ─────────────────────────────────────────────
   const handleDeleteTopic = async (maDeTai) => {
-    if (window.confirm('Bạn có chắc muốn xóa đề tài này?')) {
-      try {
-        await deTaiService.xoaDeTai(maDeTai);
-        alert('Xóa đề tài thành công!');
-        setTopics(topics.filter(t => t.maDeTai !== maDeTai));
-      } catch (error) {
-        alert('Lỗi: ' + error.message);
-      }
+    if (!window.confirm('Bạn có chắc muốn xóa đề tài này?')) return;
+    try {
+      await deTaiService.xoaDeTai(maDeTai);
+      alert('Xóa đề tài thành công!');
+      setTopics(topics.filter(t => t.maDeTai !== maDeTai));
+    } catch (error) {
+      alert('Lỗi: ' + error.message);
     }
   };
 
+  // ─── Mở modal Edit ──────────────────────────────────────────
   const handleOpenEdit = (topic) => {
     setSelectedTopic(topic);
+    setDateError('');
     setFormData({
-      topicName: topic.tenDeTai, 
-      description: topic.moTa || '', 
-      output: topic.sanPhamKyVong || '',
-      startDate: topic.ngayBatDau, 
-      endDate: topic.ngayKetThuc, 
-      classId: topic.maLop, 
-      className: '', 
-      attachment: null
+      topicName:   topic.tenDeTai,
+      description: topic.moTa || '',
+      output:      topic.sanPhamKyVong || '',
+      startDate:   topic.ngayBatDau  || '',
+      endDate:     topic.ngayKetThuc || '',
+      classId:     topic.maLop,
+      className:   '',
+      attachment:  null   // reset — giữ file cũ trên server, hiển thị riêng
     });
     setIsEditModalOpen(true);
   };
 
+  // ─── Assign ─────────────────────────────────────────────────
   const handleOpenAssign = async (topic) => {
     setSelectedTopic(topic);
-    // Đồng bộ radio với phuongThucGiao thực tế của đề tài
     const currentType = topic.phuongThucGiao === 'Chỉ định trực tiếp' ? 'direct' : 'free';
     setAssignType(currentType);
     setSelectedGroupId(topic.maNhom || '');
     setIsAssignModalOpen(true);
-
     try {
       const classData = await classService.getClassById(topic.maLop);
       setGroups(classData.danhSachNhom || []);
@@ -224,14 +298,11 @@ const ManageTopics = () => {
     try {
       const payload = {
         maDeTai: selectedTopic.maDeTai,
-        maNhom: assignType === 'direct' ? (selectedGroupId ? parseInt(selectedGroupId) : 0) : null,
+        maNhom:  assignType === 'direct' ? (selectedGroupId ? parseInt(selectedGroupId) : 0) : null,
         phuongThucGiao: assignType === 'direct' ? 'Chỉ định trực tiếp' : 'Đăng ký tự do'
       };
-
       const response = await deTaiService.giaoDeTai(payload);
       alert(response.thongBao);
-      
-      // Refresh list
       const data = await deTaiService.getDanhSachDeTai(selectedTopic.maLop);
       setTopics(data);
       setIsAssignModalOpen(false);
@@ -240,17 +311,88 @@ const ManageTopics = () => {
     }
   };
 
-  // Filter
-  const filteredTopics = topics.filter(t => {
-    const matchSearch = t.tenDeTai.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchSearch;
-  });
+  // ─── Reset form ──────────────────────────────────────────────
+  const resetForm = () => {
+    setFormData({ topicName: '', description: '', output: '', startDate: '', endDate: '', classId: '', className: '', attachment: null });
+    setDateError('');
+    if (fileInputCreateRef.current) fileInputCreateRef.current.value = '';
+    if (fileInputEditRef.current)   fileInputEditRef.current.value   = '';
+  };
 
-  // Stats
-  const totalTopics = topics.length;
-  const assignedTopics = topics.filter(t => t.assignedGroup).length;
-  const unassignedTopics = topics.filter(t => !t.assignedGroup).length;
+  // ─── Filter ──────────────────────────────────────────────────
+  const filteredTopics = topics.filter(t =>
+    t.tenDeTai.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
+  // ─── Stats ───────────────────────────────────────────────────
+  const totalTopics        = topics.length;
+  const assignedTopics     = topics.filter(t => t.daCoNhom).length;
+  const unassignedTopics   = topics.filter(t => !t.daCoNhom).length;
+  const groupsParticipated = [...new Set(topics.filter(t => t.maNhom).map(t => t.maNhom))].length;
+
+  // ─── Sub-components ──────────────────────────────────────────
+  /** Khu vực upload file dùng chung cho Create & Edit modal */
+  const FileUploadArea = ({ inputRef, currentFile, isEdit }) => (
+    <div className="file-upload-area">
+      {/* Hiển thị file đang tồn tại trên server (chỉ ở Edit) */}
+      {isEdit && currentFile && (
+        <div className="current-file-info">
+          <FaFileAlt className="file-icon-sm" />
+          <span className="current-file-label">Tài liệu hiện tại:</span>
+          <a
+            href={`http://localhost:5186${currentFile.duongDan}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="current-file-link"
+            title="Tải về / Xem file"
+          >
+            <FaDownload style={{ marginRight: 4, fontSize: 11 }} />
+            {currentFile.tenTep}
+          </a>
+        </div>
+      )}
+
+      {/* File mới vừa chọn */}
+      {formData.attachment ? (
+        <div className="file-selected-preview">
+          <FaFileAlt className="file-icon-sm green" />
+          <span className="file-selected-name">{formData.attachment.name}</span>
+          <span className="file-selected-size">
+            ({(formData.attachment.size / 1024).toFixed(1)} KB)
+          </span>
+          <button
+            type="button"
+            className="file-remove-btn"
+            onClick={() => handleRemoveAttachment(inputRef)}
+            title="Bỏ chọn file"
+          >
+            <FaTimesCircle />
+          </button>
+        </div>
+      ) : (
+        <label className="file-drop-label" htmlFor={isEdit ? 'file-edit' : 'file-create'}>
+          <FaPaperclip className="file-clip-icon" />
+          <span>
+            {isEdit && currentFile
+              ? 'Chọn file mới để thay thế (không bắt buộc)'
+              : 'Đính kèm tài liệu (không bắt buộc)'}
+          </span>
+          <span className="file-hint">.txt, .docx, .pdf — tối đa {MAX_FILE_SIZE_MB} MB</span>
+        </label>
+      )}
+
+      <input
+        type="file"
+        id={isEdit ? 'file-edit' : 'file-create'}
+        ref={inputRef}
+        onChange={handleFileChange}
+        accept=".txt,.docx,.pdf"
+        style={{ display: 'none' }}
+      />
+    </div>
+  );
+
+  // ─── Render ──────────────────────────────────────────────────
   return (
     <div className="manage-topics-container">
       {/* HEADER */}
@@ -259,7 +401,7 @@ const ManageTopics = () => {
           <h2 className="page-title">Quản lý Đề tài</h2>
           <p className="page-subtitle">Tạo, quản lý và giao đề tài cho các nhóm học tập</p>
         </div>
-        <button className="btn-primary" onClick={() => setIsCreateModalOpen(true)}>
+        <button className="btn-primary" onClick={() => { resetForm(); setIsCreateModalOpen(true); }}>
           <FaPlus /> Tạo đề tài mới
         </button>
       </div>
@@ -268,31 +410,19 @@ const ManageTopics = () => {
       <div className="stats-row">
         <div className="stat-card">
           <div className="stat-icon blue"><FaBookOpen /></div>
-          <div className="stat-info">
-            <h4>Tổng đề tài</h4>
-            <span className="stat-number">{totalTopics}</span>
-          </div>
+          <div className="stat-info"><h4>Tổng đề tài</h4><span className="stat-number">{totalTopics}</span></div>
         </div>
         <div className="stat-card">
           <div className="stat-icon green"><FaCheckCircle /></div>
-          <div className="stat-info">
-            <h4>Đã giao nhóm</h4>
-            <span className="stat-number">{assignedTopics}</span>
-          </div>
+          <div className="stat-info"><h4>Đã giao nhóm</h4><span className="stat-number">{assignedTopics}</span></div>
         </div>
         <div className="stat-card">
           <div className="stat-icon orange"><FaClock /></div>
-          <div className="stat-info">
-            <h4>Chưa giao</h4>
-            <span className="stat-number">{unassignedTopics}</span>
-          </div>
+          <div className="stat-info"><h4>Chưa giao</h4><span className="stat-number">{unassignedTopics}</span></div>
         </div>
         <div className="stat-card">
           <div className="stat-icon purple"><FaUsers /></div>
-          <div className="stat-info">
-            <h4>Nhóm tham gia</h4>
-            <span className="stat-number">{assignedTopics}</span>
-          </div>
+          <div className="stat-info"><h4>Nhóm tham gia</h4><span className="stat-number">{groupsParticipated}</span></div>
         </div>
       </div>
 
@@ -300,7 +430,12 @@ const ManageTopics = () => {
       <div className="toolbar-row">
         <div className="search-box">
           <FaSearch className="search-icon" />
-          <input type="text" placeholder="Tìm kiếm đề tài..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+          <input
+            type="text"
+            placeholder="Tìm kiếm đề tài..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
         </div>
         <select className="filter-select" value={filterClass} onChange={(e) => setFilterClass(e.target.value)}>
           <option value="all">-- Chọn lớp để xem đề tài --</option>
@@ -310,7 +445,7 @@ const ManageTopics = () => {
         </select>
       </div>
 
-      {/* DANH SÁCH ĐỀ TÀI (CARD) */}
+      {/* DANH SÁCH ĐỀ TÀI */}
       {filteredTopics.length === 0 ? (
         <div className="empty-state">
           <div className="empty-icon">📚</div>
@@ -324,8 +459,8 @@ const ManageTopics = () => {
                 <h3>{topic.tenDeTai}</h3>
                 <div className="topic-actions">
                   <button className="action-btn assign" title="Giao đề tài" onClick={() => handleOpenAssign(topic)}><FaShareAlt /></button>
-                  <button className="action-btn edit" title="Sửa" onClick={() => handleOpenEdit(topic)}><FaEdit /></button>
-                  <button className="action-btn delete" title="Xóa" onClick={() => handleDeleteTopic(topic.maDeTai)}><FaTrash /></button>
+                  <button className="action-btn edit"   title="Sửa"         onClick={() => handleOpenEdit(topic)}><FaEdit /></button>
+                  <button className="action-btn delete" title="Xóa"         onClick={() => handleDeleteTopic(topic.maDeTai)}><FaTrash /></button>
                 </div>
               </div>
 
@@ -334,21 +469,43 @@ const ManageTopics = () => {
               <div className="topic-meta">
                 <span className="meta-tag"><FaCalendarAlt className="meta-icon" /> {topic.ngayBatDau} → {topic.ngayKetThuc}</span>
                 <span className="meta-tag"><FaBullseye className="meta-icon" /> {topic.sanPhamKyVong}</span>
-                {topic.phuongThucGiao && <span className="meta-tag" style={{ color: '#6366f1' }}><FaShareAlt className="meta-icon" /> {topic.phuongThucGiao}</span>}
+                {topic.phuongThucGiao && (
+                  <span className="meta-tag" style={{ color: '#6366f1' }}>
+                    <FaShareAlt className="meta-icon" /> {topic.phuongThucGiao}
+                  </span>
+                )}
+                {topic.tepDinhKem && (
+                  <span className="meta-tag" style={{ color: '#10b981' }}>
+                    <FaFileAlt className="meta-icon" />
+                    <a
+                      href={`http://localhost:5186${topic.tepDinhKem.duongDan}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ color: 'inherit', textDecoration: 'underline' }}
+                      title="Tải tài liệu đề tài"
+                    >
+                      {topic.tepDinhKem.tenTep}
+                    </a>
+                  </span>
+                )}
               </div>
 
               <div className="topic-footer">
                 <span className={`assigned-group ${topic.daCoNhom ? 'assigned' : 'unassigned'}`}>
                   <FaUsers /> {topic.daCoNhom ? topic.tenNhom : 'Chưa giao nhóm'}
                 </span>
-                <span className="topic-class-name"><FaFileAlt /> {classes.find(c => c.maLop === topic.maLop)?.tenLop || ''}</span>
+                <span className="topic-class-name">
+                  <FaFileAlt /> {classes.find(c => c.maLop === topic.maLop)?.tenLop || ''}
+                </span>
               </div>
             </div>
           ))}
         </div>
       )}
 
-      {/* MODAL TẠO ĐỀ TÀI */}
+      {/* ═══════════════════════════════════════════
+          MODAL TẠO ĐỀ TÀI
+      ═══════════════════════════════════════════ */}
       {isCreateModalOpen && (
         <div className="modal-overlay" onClick={() => setIsCreateModalOpen(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -359,18 +516,22 @@ const ManageTopics = () => {
             <form onSubmit={handleCreateTopic}>
               <div className="modal-body">
                 <div className="form-grid">
+                  {/* Tên đề tài */}
                   <div className="form-group full-width">
                     <label>Tên đề tài * <span className="char-count">{formData.topicName.length}/100</span></label>
                     <input type="text" name="topicName" value={formData.topicName} onChange={handleFormChange} maxLength={100} placeholder="VD: Xây dựng website quản lý..." required />
                   </div>
+                  {/* Mô tả */}
                   <div className="form-group full-width">
                     <label>Mô tả yêu cầu * <span className="char-count">{formData.description.length}/255</span></label>
                     <textarea name="description" value={formData.description} onChange={handleFormChange} maxLength={255} rows="3" placeholder="Mô tả chi tiết yêu cầu kỹ thuật..." required />
                   </div>
+                  {/* Output */}
                   <div className="form-group full-width">
                     <label>Sản phẩm kỳ vọng (Output) * <span className="char-count">{formData.output.length}/100</span></label>
                     <input type="text" name="output" value={formData.output} onChange={handleFormChange} maxLength={100} placeholder="VD: Website + Báo cáo + Source code" required />
                   </div>
+                  {/* Lớp học */}
                   <div className="form-group">
                     <label>Lớp học *</label>
                     <select name="classId" value={formData.classId} onChange={handleFormChange} required>
@@ -380,6 +541,7 @@ const ManageTopics = () => {
                       ))}
                     </select>
                   </div>
+                  {/* Khoảng thời gian */}
                   <div className="form-group">
                     <label>Ngày bắt đầu *</label>
                     <input type="date" name="startDate" value={formData.startDate} onChange={handleFormChange} required />
@@ -387,6 +549,17 @@ const ManageTopics = () => {
                   <div className="form-group">
                     <label>Ngày kết thúc *</label>
                     <input type="date" name="endDate" value={formData.endDate} onChange={handleFormChange} required />
+                  </div>
+                  {/* Lỗi ngày */}
+                  {dateError && (
+                    <div className="form-group full-width">
+                      <div className="date-error-msg">⚠️ {dateError}</div>
+                    </div>
+                  )}
+                  {/* Đính kèm */}
+                  <div className="form-group full-width">
+                    <label>Tài liệu đính kèm</label>
+                    <FileUploadArea inputRef={fileInputCreateRef} isEdit={false} />
                   </div>
                 </div>
               </div>
@@ -399,7 +572,9 @@ const ManageTopics = () => {
         </div>
       )}
 
-      {/* MODAL CHỈNH SỬA ĐỀ TÀI */}
+      {/* ═══════════════════════════════════════════
+          MODAL CHỈNH SỬA ĐỀ TÀI
+      ═══════════════════════════════════════════ */}
       {isEditModalOpen && selectedTopic && (
         <div className="modal-overlay" onClick={() => setIsEditModalOpen(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -430,6 +605,21 @@ const ManageTopics = () => {
                     <label>Ngày kết thúc *</label>
                     <input type="date" name="endDate" value={formData.endDate} onChange={handleFormChange} required />
                   </div>
+                  {/* Lỗi ngày */}
+                  {dateError && (
+                    <div className="form-group full-width">
+                      <div className="date-error-msg">⚠️ {dateError}</div>
+                    </div>
+                  )}
+                  {/* Đính kèm — hiển thị file cũ + cho phép thay thế */}
+                  <div className="form-group full-width">
+                    <label>Tài liệu đính kèm</label>
+                    <FileUploadArea
+                      inputRef={fileInputEditRef}
+                      currentFile={selectedTopic.tepDinhKem}
+                      isEdit={true}
+                    />
+                  </div>
                 </div>
               </div>
               <div className="modal-footer">
@@ -441,12 +631,14 @@ const ManageTopics = () => {
         </div>
       )}
 
-      {/* MODAL GIAO ĐỀ TÀI */}
+      {/* ═══════════════════════════════════════════
+          MODAL GIAO ĐỀ TÀI
+      ═══════════════════════════════════════════ */}
       {isAssignModalOpen && selectedTopic && (
         <div className="modal-overlay" onClick={() => setIsAssignModalOpen(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h3>Giao đề tài: {selectedTopic.topicName}</h3>
+              <h3>Giao đề tài: {selectedTopic.tenDeTai}</h3>
               <button className="close-btn" onClick={() => setIsAssignModalOpen(false)}><FaTimes /></button>
             </div>
             <div className="modal-body">
@@ -467,18 +659,18 @@ const ManageTopics = () => {
                   </div>
                 </label>
               </div>
-
               {assignType === 'direct' && (
                 <div className="form-group" style={{ marginTop: 18 }}>
                   <label>Chọn nhóm:</label>
-                      <select value={selectedGroupId} onChange={(e) => setSelectedGroupId(e.target.value)}>
-                        <option value="">--- Chọn nhóm để chỉ định / Gỡ nhóm ---</option>
-                        {groups.map(group => (
-                          <option key={group.maNhom} value={group.maNhom}>
-                            {group.tenNhom} ({group.soThanhVienHienTai}/{group.soThanhVienToiDa} TV) {group.tenDeTai ? ` - [Đã có: ${group.tenDeTai}]` : ' - [Chưa có đề tài]'}
-                          </option>
-                        ))}
-                      </select>
+                  <select value={selectedGroupId} onChange={(e) => setSelectedGroupId(e.target.value)}>
+                    <option value="">--- Chọn nhóm để chỉ định / Gỡ nhóm ---</option>
+                    {groups.map(group => (
+                      <option key={group.maNhom} value={group.maNhom}>
+                        {group.tenNhom} ({group.soThanhVienHienTai}/{group.soThanhVienToiDa} TV)
+                        {group.tenDeTai ? ` - [Đã có: ${group.tenDeTai}]` : ' - [Chưa có đề tài]'}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               )}
             </div>

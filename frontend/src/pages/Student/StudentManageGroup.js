@@ -98,18 +98,31 @@ function WarnCard({ w, onOpenDetail, onOpenRedo, onApprove }) {
 
 /** Card task trong Kanban */
 function TaskCard({ task, colCls, onOpenDetail, onOpenRedo, onApprove }) {
+  const isLate = task.trangThai === 'Trễ hạn';
+  const isRedo = task.trangThai === 'Làm lại';
+  const fileCount = task.tepDinhKems?.length || 0;
+
   return (
-    <div className={`tk ${colCls}`}>
+    <div className={`tk ${isLate ? 'late' : colCls}`}>
       <div style={{ cursor: 'pointer' }} onClick={() => onOpenDetail({ ...task, status: colCls })}>
-        <div className="tk-name">{task.name}</div>
-        <div className="tk-meta">{task.meta}</div>
-        {task.coLamThay && <div className="tk-chip substitute">Làm thay bạn khác</div>}
-      </div>
-      {task.av && (
-        <div className="tk-av" style={{ background: task.av.bg, color: task.av.color }}>
-          {task.av.ky}
+        <div className="tk-badges">
+          {task.mucDoUuTien === 'Cao' && <span className="tk-badge priority">🔥 Cao</span>}
+          {isRedo && <span className="tk-badge redo">Làm lại</span>}
+          {isLate && <span className="tk-badge late">Trễ hạn</span>}
         </div>
-      )}
+        <div className="tk-name">{task.name}</div>
+        <div className="tk-meta">
+          <div className="tk-meta-left">
+            <span>📅 {task.hanHoanThanh ? task.hanHoanThanh.substring(5, 10).replace('-', '/') : '—'}</span>
+            {fileCount > 0 && <span className="tk-file-count">📎 {fileCount}</span>}
+          </div>
+          {task.av && (
+            <div className="tk-av" style={{ background: task.av.bg, color: task.av.color }}>
+              {task.av.ky}
+            </div>
+          )}
+        </div>
+      </div>
       {task.actions.length > 0 && (
         <div className="action-row">
           {task.actions.map((a, i) => (
@@ -132,79 +145,35 @@ function TaskCard({ task, colCls, onOpenDetail, onOpenRedo, onApprove }) {
 
 /** Modal chi tiết nhiệm vụ */
 function TaskDetailModal({ task, groupMembers, onClose, onApprove, onRedo, onRefresh }) {
-  const isNotStart = task.status === 'notstart';
-  const isDoing = task.status === 'doing';
-  const isExtend = task.status === 'extend';
-  const isWait = task.status === 'wait';
-  const isRedo = task.status === 'redo';
-  const isLate = task.status === 'late';
-  const isDone = task.status === 'done';
-  const isEditable = isNotStart || isDoing;
-  const canExtend = isExtend || isLate;
-  const isReadonly = !isEditable;
+  const isWait = task.trangThai === 'Chờ duyệt';
+  const isDone = task.trangThai === 'Hoàn thành';
+  const isRedo = task.trangThai === 'Làm lại';
+  const isLate = task.trangThai === 'Trễ hạn';
+  const canEdit = task.trangThai === 'Chưa bắt đầu' || task.trangThai === 'Đang thực hiện' || isLate;
+  const canExtend = isLate || task.status === 'extend';
 
   const [tenNhiemVu, setTenNhiemVu] = useState(task.tenNhiemVu || task.name || '');
-  const maNhom = task.maNhom || 0;
-  const [ngayBatDau, setNgayBatDau] = useState(task.ngayBatDau ? task.ngayBatDau.substring(0, 10) : '');
   const [hanHoanThanh, setHanHoanThanh] = useState(task.hanHoanThanh ? task.hanHoanThanh.substring(0, 10) : '');
   const [mucDoUuTien, setMucDoUuTien] = useState(task.mucDoUuTien || 'Trung bình');
   const [moTa, setMoTa] = useState(task.moTa || '');
   const [assignees, setAssignees] = useState((task.maNguoiDungs || []).map(u => typeof u === 'object' ? u.maNguoiDung : u));
   const [ghiChuGiaHan, setGhiChuGiaHan] = useState('');
   const [newFiles, setNewFiles] = useState([]);
-  const [dragover, setDragover] = useState(false);
   const [loading, setLoading] = useState(false);
-  const fileInputRef = useRef(null);
+  const fileRef = useRef(null);
 
   const files = task.tepDinhKems || [];
-  const ghiChuThanhVien = task.ghiChuNop || task.ghiChu || 'Không có ghi chú từ thành viên.';
-  const lyDoLamLai = task.lyDoLamLai || task.ghiChu || 'Chưa có lý do làm lại.';
   const assigneeNames = (task.maNguoiDungs || [])
     .map(u => typeof u === 'object' ? u.hoTen : groupMembers.find(m => m.maNguoiDung === u)?.hoTen)
     .filter(Boolean)
-    .join(', ') || 'Chưa có ai';
-  const modalTitle = isWait || isDone ? 'Bài nộp nhiệm vụ' : isRedo ? 'Task làm lại' : isLate ? 'Task trễ hạn' : canExtend ? 'Gia hạn nhiệm vụ' : 'Chi tiết nhiệm vụ';
-
-  const toggleAssignee = (maNguoiDung) => {
-    if (isReadonly) return;
-    setAssignees(prev => prev.includes(maNguoiDung) ? [] : [maNguoiDung]);
-  };
-
-  const handleFiles = (selectedFiles) => {
-    setNewFiles(prev => [...prev, ...Array.from(selectedFiles || [])]);
-  };
-
-  const removeNewFile = (idx) => {
-    setNewFiles(prev => prev.filter((_, i) => i !== idx));
-  };
-
-  const formatSize = (bytes) => {
-    if (!bytes) return 'Tải xuống';
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1048576) return `${(bytes / 1024).toFixed(1)} KB`;
-    return `${(bytes / 1048576).toFixed(1)} MB`;
-  };
-
-  const validateDates = () => {
-    if (ngayBatDau && hanHoanThanh && new Date(ngayBatDau) >= new Date(hanHoanThanh)) {
-      alert('Ngày bắt đầu phải nhỏ hơn hạn hoàn thành.');
-      return false;
-    }
-    if ((isLate || isExtend) && task.hanHoanThanh && hanHoanThanh && new Date(task.hanHoanThanh) >= new Date(hanHoanThanh)) {
-      alert('Hạn hoàn thành mới phải lớn hơn hạn hoàn thành hiện tại.');
-      return false;
-    }
-    return true;
-  };
+    .join(', ') || 'Chưa giao';
 
   const handleUpdate = async () => {
-    if (!validateDates()) return;
     setLoading(true);
     try {
       await nhiemVuService.updateTask(task.id, {
-        maNhom: maNhom || task.maNhom,
+        maNhom: task.maNhom,
         tenNhiemVu,
-        ngayBatDau: ngayBatDau || null,
         hanHoanThanh,
         mucDoUuTien,
         moTa,
@@ -214,11 +183,11 @@ function TaskDetailModal({ task, groupMembers, onClose, onApprove, onRedo, onRef
       if (newFiles.length > 0) {
         await nhiemVuService.uploadTaskFiles(task.id, newFiles);
       }
-      alert('✅ Cập nhật nhiệm vụ thành công!');
+      alert('✅ Cập nhật thành công!');
       onRefresh();
       onClose();
     } catch (error) {
-      alert('Lỗi khi cập nhật: ' + error.message);
+      alert('Lỗi: ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -226,180 +195,110 @@ function TaskDetailModal({ task, groupMembers, onClose, onApprove, onRedo, onRef
 
   return (
     <div className="smg-modal-overlay" onClick={onClose}>
-      <div className="smg-modal-content" onClick={e => e.stopPropagation()}>
+      <div className="smg-modal-content refined-modal" onClick={e => e.stopPropagation()}>
         <div className="smg-modal-header">
-          <h3>{modalTitle}</h3>
+          <div className="modal-title-box">
+            <span className={`status-dot ${task.trangThai === 'Trễ hạn' ? 'late' : ''}`}></span>
+            <h3>{isWait || isDone ? 'Kiểm tra kết quả' : 'Thông tin nhiệm vụ'}</h3>
+          </div>
           <button className="smg-close-btn" onClick={onClose}><FaTimes /></button>
         </div>
+
         <div className="smg-modal-body">
-          <div className={`task-state-note ${task.status}`}>
-            {isNotStart && 'Task chưa giao cho thành viên. Nhóm trưởng có thể chỉnh sửa thông tin và chọn 1 người phụ trách.'}
-            {isDoing && 'Task đang thực hiện. Nếu cần đổi người làm, chọn thành viên thay thế và cập nhật hạn hoàn thành.'}
-            {isWait && 'Thành viên đã nộp task. Nhóm trưởng kiểm tra ghi chú, tệp đính kèm rồi phê duyệt hoặc yêu cầu làm lại.'}
-            {isRedo && 'Task đã bị yêu cầu làm lại. Nhóm trưởng chỉ theo dõi lý do và hạn hoàn thành mới.'}
-            {isLate && 'Task đã trễ hạn. Nhóm trưởng có thể gia hạn deadline và ghi chú lý do trễ hạn.'}
-            {isDone && 'Task đã hoàn thành và chỉ được xem lại thông tin bài nộp.'}
-            {isExtend && 'Gia hạn deadline cho task và ghi chú lý do cập nhật.'}
-          </div>
-
-          <div className="smg-form-group">
-            <label>Tên nhiệm vụ</label>
-            <input className="smg-input" value={tenNhiemVu} onChange={e => setTenNhiemVu(e.target.value)} disabled={!isEditable} />
-          </div>
-
-          <div className="smg-date-row">
+          {/* Cấu trúc Grid cho thông tin cơ bản */}
+          <div className="modal-grid">
             <div className="smg-form-group">
-              <label>Ngày bắt đầu</label>
-              <input type="date" className="smg-input" value={ngayBatDau} onChange={e => setNgayBatDau(e.target.value)} disabled={!isEditable} />
+              <label>Tên nhiệm vụ</label>
+              <input className="smg-input" value={tenNhiemVu} onChange={e => setTenNhiemVu(e.target.value)} disabled={!canEdit} />
             </div>
             <div className="smg-form-group">
-              <label>{isRedo || isLate || canExtend ? 'Hạn hoàn thành mới' : 'Hạn hoàn thành'}</label>
-              <input type="date" className="smg-input" value={hanHoanThanh} onChange={e => setHanHoanThanh(e.target.value)} disabled={!isEditable && !canExtend} />
+              <label>Mức độ ưu tiên</label>
+              <select className="smg-input" value={mucDoUuTien} onChange={e => setMucDoUuTien(e.target.value)} disabled={!canEdit}>
+                <option value="Cao">🔥 Cao</option>
+                <option value="Trung bình">📋 Trung bình</option>
+                <option value="Thấp">📌 Thấp</option>
+              </select>
             </div>
           </div>
 
-          <div className="smg-form-group">
-            <label>Mức độ ưu tiên</label>
-            <select className="smg-input" value={mucDoUuTien} onChange={e => setMucDoUuTien(e.target.value)} disabled={!isEditable}>
-              <option value="Cao">🔥 Cao</option>
-              <option value="Trung bình">📋 Trung bình</option>
-              <option value="Thấp">📌 Thấp</option>
-            </select>
-          </div>
-
-          <div className="smg-form-group">
-            <label>Mô tả chi tiết của nhóm trưởng</label>
-            <textarea className="smg-input" rows="3" value={moTa} onChange={e => setMoTa(e.target.value)} disabled={!isEditable} />
-          </div>
-
-          {isEditable ? (
+          <div className="modal-grid">
             <div className="smg-form-group">
-            <label>Thành viên thực hiện</label>
-            <div className="smg-assignee-list" style={{ opacity: isReadonly ? 0.7 : 1 }}>
-              {!isReadonly && (
-                <label className="smg-assignee-item">
-                  <input type="radio" name="taskAssignee" checked={assignees.length === 0} onChange={() => setAssignees([])} />
-                  <div className="smg-assignee-av muted">--</div>
-                  <span className="smg-assignee-name">Chưa giao</span>
-                </label>
-              )}
-              {groupMembers.map(m => (
-                <label key={m.maNguoiDung} className="smg-assignee-item" style={{ cursor: isReadonly ? 'default' : 'pointer' }}>
-                  <input type="radio" name="taskAssignee" checked={assignees.includes(m.maNguoiDung)} onChange={() => toggleAssignee(m.maNguoiDung)} disabled={isReadonly} />
-                  <div className="smg-assignee-av" style={{ background: m.bg, color: m.color }}>{m.ky}</div>
-                  <span className="smg-assignee-name">{m.hoTen}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-          ) : (
-            <div className="smg-form-group">
-              <label>Thành viên thực hiện</label>
-              <div className="task-readonly-box">{assigneeNames}</div>
-            </div>
-          )}
-
-          {task.coLamThay && (
-            <div className="task-state-note substitute">Task này đã được đổi sang thành viên làm thay.</div>
-          )}
-
-          {(isWait || isDone) && (
-            <div className="smg-form-group">
-              <label>Ghi chú của thành viên nộp task</label>
-              <div className="task-readonly-box amber">{ghiChuThanhVien}</div>
-            </div>
-          )}
-
-          {isRedo && (
-            <div className="smg-form-group">
-              <label>Lý do yêu cầu làm lại</label>
-              <div className="task-readonly-box danger">{lyDoLamLai}</div>
-            </div>
-          )}
-
-          {isLate && (
-            <div className="smg-form-group">
-              <label>Ghi chú lý do trễ hạn</label>
-              <textarea
-                className="smg-input"
-                rows="3"
-                placeholder="VD: Thành viên gặp vấn đề kỹ thuật, cần gia hạn thêm..."
-                value={ghiChuGiaHan}
-                onChange={e => setGhiChuGiaHan(e.target.value)}
-              />
-            </div>
-          )}
-
-          {isExtend && (
-            <div className="smg-form-group">
-              <label>Ghi chú gia hạn</label>
-              <textarea
-                className="smg-input"
-                rows="3"
-                placeholder="Nhập lý do gia hạn hoặc ghi chú cho lần cập nhật này..."
-                value={ghiChuGiaHan}
-                onChange={e => setGhiChuGiaHan(e.target.value)}
-              />
-            </div>
-          )}
-
-          <div className="smg-form-group">
-            <label>Tệp đính kèm</label>
-            <div className="smg-file-list">
-              {files.length > 0 ? files.map((f, i) => (
-                <a className="smg-file-item link" key={i} href={buildFileUrl(f.duongDanTep)} target="_blank" rel="noreferrer">
-                  <span className="smg-file-name">{f.tenTep || f.name || `Tệp ${i + 1}`}</span>
-                  <span className="smg-file-size">{formatSize(f.dungLuong)}</span>
-                </a>
-              )) : (
-                <div className="task-readonly-box muted">Chưa có tệp đính kèm.</div>
+              <label>Người thực hiện</label>
+              {canEdit ? (
+                <select className="smg-input" value={assignees[0] || ''} onChange={e => setAssignees(e.target.value ? [parseInt(e.target.value)] : [])}>
+                  <option value="">Chưa giao</option>
+                  {groupMembers.map(m => <option key={m.maNguoiDung} value={m.maNguoiDung}>{m.hoTen}</option>)}
+                </select>
+              ) : (
+                <div className="task-readonly-box">{assigneeNames}</div>
               )}
             </div>
+            <div className="smg-form-group">
+              <label>{canExtend ? 'Deadline mới' : 'Deadline'}</label>
+              <input type="date" className="smg-input" value={hanHoanThanh} onChange={e => setHanHoanThanh(e.target.value)} disabled={!canEdit && !canExtend} />
+            </div>
           </div>
 
-          {isEditable && (
-            <div className="smg-form-group">
-              <label>Gửi thêm tệp đính kèm</label>
-              <div
-                className={`smg-upload-zone ${dragover ? 'dragover' : ''}`}
-                onClick={() => fileInputRef.current?.click()}
-                onDragOver={e => { e.preventDefault(); setDragover(true); }}
-                onDragLeave={() => setDragover(false)}
-                onDrop={e => { e.preventDefault(); setDragover(false); handleFiles(e.dataTransfer.files); }}
-              >
-                <div className="smg-upload-icon">Tệp</div>
-                <div className="smg-upload-text">Kéo thả file vào đây hoặc <strong>click để chọn file</strong></div>
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  multiple
-                  accept=".pdf,.doc,.docx,.zip,.jpg,.jpeg,.png,.txt"
-                  onChange={e => { handleFiles(e.target.files); e.target.value = ''; }}
-                />
-              </div>
+          {/* Section mô tả & tài liệu hướng dẫn */}
+          <div className="modal-section-v2">
+            <label className="section-label-v2">Mô tả & Tài liệu hướng dẫn</label>
+            <div className="section-content-v2">
+              <textarea className="smg-input minimal-textarea" rows="2" value={moTa} onChange={e => setMoTa(e.target.value)} disabled={!canEdit} placeholder="Chưa có mô tả..." />
+              {files.length > 0 && (
+                <div className="file-list-v2">
+                  {files.map((f, i) => (
+                    <a key={i} href={buildFileUrl(f.duongDanTep)} target="_blank" rel="noreferrer" className="file-link-v2">
+                      📎 {f.tenTep}
+                    </a>
+                  ))}
+                </div>
+              )}
+              {canEdit && (
+                <div className="upload-inline-v2" onClick={() => fileRef.current?.click()}>
+                  <input type="file" hidden ref={fileRef} multiple onChange={e => setNewFiles(prev => [...prev, ...Array.from(e.target.files)])} />
+                  <span>+ Đính kèm thêm tài liệu</span>
+                </div>
+              )}
               {newFiles.length > 0 && (
-                <div className="smg-file-list">
+                <div className="new-files-v2">
                   {newFiles.map((f, i) => (
-                    <div className="smg-file-item" key={i}>
-                      <span className="smg-file-name">{f.name}</span>
-                      <span className="smg-file-size">{formatSize(f.size)}</span>
-                      <button type="button" className="smg-file-remove" onClick={() => removeNewFile(i)}><FaTimes /></button>
+                    <div key={i} className="nf-item-v2">
+                      {f.name} <FaTimes onClick={() => setNewFiles(prev => prev.filter((_, idx) => idx !== i))} />
                     </div>
                   ))}
                 </div>
               )}
             </div>
+          </div>
+
+          {/* Section kết quả / phản hồi (Chỉ hiện khi có dữ liệu) */}
+          {(isWait || isDone || isRedo || isLate) && (
+            <div className={`feedback-area-v2 ${isRedo ? 'redo' : isLate ? 'late' : ''}`}>
+              <div className="fa-header-v2">
+                {isWait && 'Thành viên đã nộp bài'}
+                {isDone && 'Kết quả cuối cùng'}
+                {isRedo && 'Lý do yêu cầu làm lại'}
+                {isLate && 'Phản hồi trễ hạn'}
+              </div>
+              <div className="fa-body-v2">
+                <p>{isRedo || isLate ? task.lyDoLamLai : (task.ghiChuNop || 'Không có ghi chú nộp bài.')}</p>
+                {canExtend && (
+                  <textarea className="smg-input mt-10" placeholder="Nhập lý do gia hạn..." value={ghiChuGiaHan} onChange={e => setGhiChuGiaHan(e.target.value)} />
+                )}
+              </div>
+            </div>
           )}
         </div>
+
         <div className="smg-modal-footer">
-          <button type="button" className="smg-btn-cancel" onClick={onClose}>{isRedo ? 'Xác nhận' : 'Đóng'}</button>
-          {isEditable && <button type="button" className="smg-btn-create" disabled={loading} onClick={handleUpdate}>{loading ? 'Đang lưu...' : 'Xác nhận'}</button>}
-          {canExtend && <button type="button" className="smg-btn-create" style={{ background: '#ef9f27', color: '#fff' }} disabled={loading} onClick={handleUpdate}>{loading ? 'Đang lưu...' : 'Gia hạn'}</button>}
+          <button type="button" className="smg-btn-cancel" onClick={onClose}>Đóng</button>
+          {canEdit && <button type="button" className="smg-btn-create" disabled={loading} onClick={handleUpdate}>{loading ? 'Đang lưu...' : 'Lưu thay đổi'}</button>}
+          {canExtend && <button type="button" className="smg-btn-create" style={{ background: '#f59e0b' }} onClick={handleUpdate}>Xác nhận gia hạn</button>}
           {isWait && (
-            <>
-              <button type="button" className="smg-btn-cancel" style={{ color: '#854f0b', borderColor: '#ef9f27' }} onClick={onRedo}>Yêu cầu làm lại</button>
-              <button type="button" className="smg-btn-create" style={{ background: '#639922' }} onClick={onApprove}>Phê duyệt</button>
-            </>
+            <div className="footer-actions">
+              <button type="button" className="smg-btn-cancel danger-text" onClick={onRedo}>Từ chối & Sửa lại</button>
+              <button type="button" className="smg-btn-create success-bg" onClick={onApprove}>Duyệt hoàn tất</button>
+            </div>
           )}
         </div>
       </div>
@@ -483,11 +382,9 @@ function RedoTaskModal({ task, groupMembers, onClose, onRefresh }) {
   );
 }
 
-/** Modal Tạo nhiệm vụ mới */
 function CreateTaskModal({ group, onClose, onRefresh }) {
   const [tenNhiemVu, setTenNhiemVu] = useState('');
   const [moTa, setMoTa] = useState('');
-  const [ngayBatDau, setNgayBatDau] = useState('');
   const [hanHoanThanh, setHanHoanThanh] = useState('');
   const [mucDoUuTien, setMucDoUuTien] = useState('Trung bình');
   const [assignees, setAssignees] = useState([]);
@@ -496,32 +393,10 @@ function CreateTaskModal({ group, onClose, onRefresh }) {
   const [dragover, setDragover] = useState(false);
   const fileRef = useRef(null);
 
-  const toggleAssignee = (maNguoiDung) => {
-    setAssignees(prev => prev.includes(maNguoiDung) ? [] : [maNguoiDung]);
-  };
-
-  const handleFiles = (newFiles) => {
-    setFiles(prev => [...prev, ...Array.from(newFiles)]);
-  };
-
-  const removeFile = (idx) => {
-    setFiles(prev => prev.filter((_, i) => i !== idx));
-  };
-
-  const formatSize = (bytes) => {
-    if (bytes < 1024) return bytes + ' B';
-    if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
-    return (bytes / 1048576).toFixed(1) + ' MB';
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!tenNhiemVu.trim() || !hanHoanThanh) {
-      alert('Vui lòng điền đầy đủ các trường bắt buộc (Tên, Hạn hoàn thành).');
-      return;
-    }
-    if (ngayBatDau && hanHoanThanh && new Date(ngayBatDau) >= new Date(hanHoanThanh)) {
-      alert('Ngày bắt đầu phải nhỏ hơn hạn hoàn thành.');
+      alert('Vui lòng điền đầy đủ các trường bắt buộc.');
       return;
     }
 
@@ -531,11 +406,10 @@ function CreateTaskModal({ group, onClose, onRefresh }) {
         maNhom: group.maNhom,
         tenNhiemVu: tenNhiemVu.trim(),
         moTa: moTa.trim(),
-        ngayBatDau: ngayBatDau || null,
-        hanHoanThanh: hanHoanThanh,
-        mucDoUuTien: mucDoUuTien,
+        hanHoanThanh,
+        mucDoUuTien,
         maNguoiDungs: assignees,
-        maDeTai: group.maDeTaiId // Cần lấy MaDeTai từ group object
+        maDeTai: group.maDeTaiId
       });
       if (files.length > 0 && createdTask?.maNhiemVu) {
         await nhiemVuService.uploadTaskFiles(createdTask.maNhiemVu, files);
@@ -544,7 +418,7 @@ function CreateTaskModal({ group, onClose, onRefresh }) {
       onRefresh();
       onClose();
     } catch (error) {
-      alert('Lỗi khi tạo nhiệm vụ: ' + error.message);
+      alert('Lỗi: ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -552,99 +426,102 @@ function CreateTaskModal({ group, onClose, onRefresh }) {
 
   return (
     <div className="smg-modal-overlay" onClick={onClose}>
-      <div className="smg-modal-content" onClick={e => e.stopPropagation()}>
+      <div className="smg-modal-content refined-modal" onClick={e => e.stopPropagation()}>
         <div className="smg-modal-header">
-          <h3><span className="smg-modal-icon">✨</span> Tạo nhiệm vụ mới</h3>
+          <div className="modal-title-box">
+            <span className="modal-icon-glow">✨</span>
+            <h3>Tạo nhiệm vụ mới</h3>
+          </div>
           <button className="smg-close-btn" onClick={onClose}><FaTimes /></button>
         </div>
-        <p className="smg-modal-sub">{group.tenNhom} · {group.tenLop}</p>
 
         <form onSubmit={handleSubmit}>
           <div className="smg-modal-body">
             <div className="smg-form-group">
-              <label>Tên nhiệm vụ <span className="smg-required">*</span></label>
-              <input
-                className="smg-input" placeholder="VD: Thiết kế giao diện trang Dashboard"
-                value={tenNhiemVu} onChange={e => setTenNhiemVu(e.target.value)} required
+              <label>Tên nhiệm vụ <span className="req">*</span></label>
+              <input 
+                className="smg-input" 
+                placeholder="Ví dụ: Thiết kế giao diện Dashboard..." 
+                value={tenNhiemVu} 
+                onChange={e => setTenNhiemVu(e.target.value)} 
+                required 
               />
             </div>
 
-            <div className="smg-form-group">
-              <label>Mô tả chi tiết <span className="smg-hint">(Tùy chọn)</span></label>
-              <textarea
-                className="smg-input" rows="3"
-                placeholder="Mô tả yêu cầu, tiêu chí hoàn thành..."
-                value={moTa} onChange={e => setMoTa(e.target.value)}
-              />
-            </div>
-
-            <div className="smg-date-row">
+            <div className="modal-grid">
               <div className="smg-form-group">
-                <label>Ngày bắt đầu</label>
-                <input type="date" className="smg-input" value={ngayBatDau} onChange={e => setNgayBatDau(e.target.value)} />
+                <label>Hạn hoàn thành <span className="req">*</span></label>
+                <input 
+                  type="date" 
+                  className="smg-input" 
+                  value={hanHoanThanh} 
+                  onChange={e => setHanHoanThanh(e.target.value)} 
+                  required 
+                />
               </div>
               <div className="smg-form-group">
-                <label>Hạn hoàn thành <span className="smg-required">*</span></label>
-                <input type="date" className="smg-input" value={hanHoanThanh} onChange={e => setHanHoanThanh(e.target.value)} required />
+                <label>Mức độ ưu tiên</label>
+                <select className="smg-input" value={mucDoUuTien} onChange={e => setMucDoUuTien(e.target.value)}>
+                  <option value="Cao">🔥 Cao</option>
+                  <option value="Trung bình">📋 Trung bình</option>
+                  <option value="Thấp">📌 Thấp</option>
+                </select>
               </div>
             </div>
 
             <div className="smg-form-group">
-              <label>Mức độ ưu tiên <span className="smg-required">*</span></label>
-              <select className="smg-input" value={mucDoUuTien} onChange={e => setMucDoUuTien(e.target.value)}>
-                <option value="Cao">🔥 Cao</option>
-                <option value="Trung bình">📋 Trung bình</option>
-                <option value="Thấp">📌 Thấp</option>
-              </select>
-            </div>
-
-            <div className="smg-form-group">
-              <label>Giao cho thành viên <span className="smg-hint">(Nếu trống, task sẽ ở trạng thái "Chưa bắt đầu")</span></label>
-              <div className="smg-assignee-list">
-                <label className="smg-assignee-item">
-                  <input type="radio" name="newTaskAssignee" checked={assignees.length === 0} onChange={() => setAssignees([])} />
-                  <div className="smg-assignee-av muted">--</div>
-                  <span className="smg-assignee-name">Chưa giao</span>
-                </label>
+              <label>Giao cho thành viên</label>
+              <div className="member-selection-grid">
+                <div 
+                  className={`ms-item ${assignees.length === 0 ? 'active' : ''}`}
+                  onClick={() => setAssignees([])}
+                >
+                  <div className="ms-av muted">--</div>
+                  <span>Chưa giao</span>
+                </div>
                 {group.members.map(m => (
-                  <label key={m.maNguoiDung} className="smg-assignee-item">
-                    <input type="radio" name="newTaskAssignee" checked={assignees.includes(m.maNguoiDung)} onChange={() => toggleAssignee(m.maNguoiDung)} />
-                    <div className="smg-assignee-av" style={{ background: m.bg, color: m.color }}>{m.ky}</div>
-                    <span className="smg-assignee-name">
-                      {m.hoTen}
-                      {m.isMe && <span className="smg-assignee-me">Tôi</span>}
-                    </span>
-                  </label>
+                  <div 
+                    key={m.maNguoiDung} 
+                    className={`ms-item ${assignees.includes(m.maNguoiDung) ? 'active' : ''}`}
+                    onClick={() => setAssignees([m.maNguoiDung])}
+                  >
+                    <div className="ms-av" style={{ background: m.bg, color: m.color }}>{m.ky}</div>
+                    <span className="ms-name">{m.hoTen.split(' ').pop()}</span>
+                  </div>
                 ))}
               </div>
             </div>
 
             <div className="smg-form-group">
-              <label>Tệp đính kèm <span className="smg-hint">(Tối đa 20 MB mỗi tệp)</span></label>
-              <div
-                className={`smg-upload-zone ${dragover ? 'dragover' : ''}`}
-                onClick={() => fileRef.current?.click()}
+              <label>Mô tả công việc</label>
+              <textarea 
+                className="smg-input" 
+                rows="2" 
+                placeholder="Nhập mô tả yêu cầu chi tiết..." 
+                value={moTa} 
+                onChange={e => setMoTa(e.target.value)} 
+              />
+            </div>
+
+            <div className="smg-form-group">
+              <div 
+                className={`refined-upload-zone ${dragover ? 'dragover' : ''}`}
                 onDragOver={e => { e.preventDefault(); setDragover(true); }}
                 onDragLeave={() => setDragover(false)}
-                onDrop={e => { e.preventDefault(); setDragover(false); handleFiles(e.dataTransfer.files); }}
+                onDrop={e => { e.preventDefault(); setDragover(false); setFiles(prev => [...prev, ...Array.from(e.dataTransfer.files)]); }}
+                onClick={() => fileRef.current?.click()}
               >
-                <div className="smg-upload-icon">Tệp</div>
-                <div className="smg-upload-text">
-                  Kéo thả file vào đây hoặc <strong>click để chọn file</strong>
+                <input type="file" hidden ref={fileRef} multiple onChange={e => setFiles(prev => [...prev, ...Array.from(e.target.files)])} />
+                <div className="uz-text">
+                  <strong>Click để đính kèm tệp</strong> hoặc kéo thả vào đây
                 </div>
-                <input
-                  type="file" ref={fileRef} multiple
-                  accept=".pdf,.docx,.zip,.jpg,.png"
-                  onChange={e => { handleFiles(e.target.files); e.target.value = ''; }}
-                />
               </div>
               {files.length > 0 && (
-                <div className="smg-file-list">
+                <div className="file-preview-list">
                   {files.map((f, i) => (
-                    <div className="smg-file-item" key={i}>
-                      <span className="smg-file-name">📄 {f.name}</span>
-                      <span className="smg-file-size">{formatSize(f.size)}</span>
-                      <button type="button" className="smg-file-remove" onClick={() => removeFile(i)}><FaTimes /></button>
+                    <div key={i} className="fp-item">
+                      <span>{f.name}</span>
+                      <FaTimes className="fp-remove" onClick={(e) => { e.stopPropagation(); setFiles(prev => prev.filter((_, idx) => idx !== i)); }} />
                     </div>
                   ))}
                 </div>
@@ -703,6 +580,23 @@ function TopicDetailModal({ topic, groupName, onClose }) {
             <span>Sản phẩm kỳ vọng</span>
             <p>{topic.sanPhamKyVong}</p>
           </div>
+
+          {topic.tepDinhKem && (
+            <div className="topic-detail-section">
+              <span>Tài liệu đính kèm từ Giảng viên</span>
+              <p>
+                <a 
+                  href={buildFileUrl(topic.tepDinhKem.duongDan)} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="topic-file-link" 
+                  style={{ color: '#378add', textDecoration: 'underline', display: 'flex', alignItems: 'center', gap: '8px', marginTop: '5px' }}
+                >
+                  📄 {topic.tepDinhKem.tenTep}
+                </a>
+              </p>
+            </div>
+          )}
         </div>
 
         <div className="smg-modal-footer">
@@ -873,12 +767,15 @@ const StudentManageGroup = () => {
           });
 
           const kanban = [
-            { label: 'Chưa bắt đầu', labelColor: '#888', cls: 'notstart', tasks: tasks.filter(t => t.trangThai === 'Chưa bắt đầu').map(mapToKanbanTask) },
-            { label: 'Đang thực hiện', labelColor: '#185fa5', cls: 'doing', tasks: tasks.filter(t => t.trangThai === 'Đang thực hiện').map(mapToKanbanTask) },
-            { label: 'Chờ duyệt', labelColor: '#854f0b', cls: 'wait', tasks: tasks.filter(t => t.trangThai === 'Chờ duyệt').map(mapToKanbanTask) },
-            { label: 'Làm lại task', labelColor: '#993556', cls: 'redo', tasks: tasks.filter(t => t.trangThai === 'Làm lại').map(mapToKanbanTask) },
-            { label: 'Trễ hạn', labelColor: '#a32d2d', cls: 'late', tasks: tasks.filter(t => t.trangThai === 'Trễ hạn').map(mapToKanbanTask) },
-            { label: 'Hoàn thành', labelColor: '#3b6d11', cls: 'done', tasks: tasks.filter(t => t.trangThai === 'Hoàn thành').map(mapToKanbanTask) }
+            { label: 'Cần làm', labelColor: '#888', cls: 'notstart', tasks: tasks.filter(t => t.trangThai === 'Chưa bắt đầu').map(mapToKanbanTask) },
+            { 
+              label: 'Đang làm', 
+              labelColor: '#185fa5', 
+              cls: 'doing', 
+              tasks: tasks.filter(t => ['Đang thực hiện', 'Làm lại', 'Trễ hạn'].includes(t.trangThai)).map(mapToKanbanTask) 
+            },
+            { label: 'Đợi duyệt', labelColor: '#854f0b', cls: 'wait', tasks: tasks.filter(t => t.trangThai === 'Chờ duyệt').map(mapToKanbanTask) },
+            { label: 'Hoàn tất', labelColor: '#3b6d11', cls: 'done', tasks: tasks.filter(t => t.trangThai === 'Hoàn thành').map(mapToKanbanTask) }
           ];
 
           const warnings = tasks.filter(t => {

@@ -189,19 +189,6 @@ CREATE TABLE YeuCauChuyenNhom (
     FOREIGN KEY (MaNhomMuon)    REFERENCES Nhom(MaNhom)
 );
 
--- Bảng lưu yêu cầu xin gia nhập nhóm của sinh viên (chưa có nhóm)
-CREATE TABLE YeuCauVaoNhom (
-    MaYeuCau      INT           IDENTITY(1,1) PRIMARY KEY,
-    MaSinhVien    INT           NOT NULL,                  -- SV xin vào (FK)
-    MaNhom        INT           NOT NULL,                  -- Nhóm muốn vào (FK)
-    LoiNhan       NVARCHAR(MAX) NULL,                      -- Lời nhắn cho nhóm trưởng
-    TrangThai     NVARCHAR(50)  DEFAULT N'Chờ duyệt',      -- Chờ duyệt / Đã duyệt / Từ chối
-    NgayGui       DATETIME      DEFAULT GETDATE(),
-    NgayXuLy      DATETIME      NULL,
-    FOREIGN KEY (MaSinhVien) REFERENCES NguoiDung(MaNguoiDung),
-    FOREIGN KEY (MaNhom)     REFERENCES Nhom(MaNhom)
-);
-
 -- ============================================================
 -- CỤM 5: QUẢN LÝ CÔNG VIỆC (TASKS) & TIẾN ĐỘ
 -- ============================================================

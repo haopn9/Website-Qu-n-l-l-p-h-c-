@@ -14,92 +14,7 @@ import classService from '../../services/classService';
 import deTaiService from '../../services/deTaiService';
 import authService from '../../services/authService';
 
-const mockClassData = {
-  1: {
-    maLop: 1,
-    maLopHoc: 'LT_WEB_01',
-    tenLop: 'Lập trình Web',
-    monHoc: 'Công nghệ Web',
-    tenGV: 'Nguyễn Văn A',
-    hocKyNamHoc: 'Học kỳ 2, năm học 2025-2026',
-    ngayBatDau: '03/03/2026',
-    ngayKetThuc: '20/06/2026',
-    mauSac: '#378add',
-    sinhVien: [
-      { mssv: 'DH52200320', hoTen: 'Đặng Võ Phương Anh', lop: 'D22_TH01' },
-      { mssv: 'DH52300001', hoTen: 'Trần Thị Bích', lop: 'D23_TH02' },
-      { mssv: 'DH52300002', hoTen: 'Lê Văn Cường', lop: 'D23_TH02' },
-      { mssv: 'DH52300003', hoTen: 'Phạm Thị Dung', lop: 'D23_TH01' },
-      { mssv: 'DH52300004', hoTen: 'Nguyễn Quốc Huy', lop: 'D23_TH03' },
-    ],
-    nhom: [
-      { tenNhom: 'Nhóm 1', truongNhom: 'Trần Thị Bích', soThanhVien: 5, deTai: 'Website quản lý lớp học' },
-      { tenNhom: 'Nhóm 2', truongNhom: 'Hoàng Thị Hoa', soThanhVien: 4, deTai: 'Ứng dụng đặt lịch khám bệnh' },
-      { tenNhom: 'Nhóm 3', truongNhom: 'Chưa có', soThanhVien: 3, deTai: 'Chưa đăng ký đề tài' },
-      { tenNhom: 'Nhóm 4', truongNhom: 'Đỗ Quang Khải', soThanhVien: 5, deTai: 'Hệ thống quản lý kho' },
-    ],
-    deTai: [
-      { tenDeTai: 'Website quản lý lớp học', moTa: 'Quản lý lớp, nhóm, đề tài và tiến độ sinh viên.', sanPhamKyVong: 'Web app React + ASP.NET API, báo cáo và source code.', ngayBatDau: '03/03/2026', ngayKetThuc: '20/06/2026', tepDinhKem: 'YeuCau_Web_QuanLyLopHoc.pdf', nhomDangKy: 'Nhóm 1', trangThai: 'Đã duyệt' },
-      { tenDeTai: 'Ứng dụng đặt lịch khám bệnh', moTa: 'Cho phép bệnh nhân đặt lịch và theo dõi lịch khám.', sanPhamKyVong: 'Prototype đầy đủ luồng đặt lịch, xác nhận, hủy lịch.', ngayBatDau: '03/03/2026', ngayKetThuc: '20/06/2026', tepDinhKem: 'MoTa_DatLichKham.pdf', nhomDangKy: 'Nhóm 2', trangThai: 'Đã đăng ký' },
-      { tenDeTai: 'Hệ thống quản lý kho', moTa: 'Theo dõi nhập xuất tồn và báo cáo hàng hóa.', sanPhamKyVong: 'Dashboard tồn kho, phiếu nhập/xuất, báo cáo Excel.', ngayBatDau: '05/03/2026', ngayKetThuc: '15/06/2026', tepDinhKem: 'QuanLyKho_Requirement.docx', nhomDangKy: 'Nhóm 4', trangThai: 'Đã duyệt' },
-      { tenDeTai: 'Sàn trao đổi tài liệu học tập', moTa: 'Sinh viên chia sẻ, tìm kiếm và đánh giá tài liệu.', sanPhamKyVong: 'Có phân quyền, upload file, tìm kiếm và thống kê lượt tải.', ngayBatDau: '10/03/2026', ngayKetThuc: '20/06/2026', tepDinhKem: 'TaiLieu_SanTraoDoi.zip', nhomDangKy: 'Chưa có', trangThai: 'Chưa đăng ký' },
-    ],
-  },
-  2: {
-    maLop: 2,
-    maLopHoc: 'CSDL_02',
-    tenLop: 'Cơ sở dữ liệu',
-    monHoc: 'Cơ sở dữ liệu',
-    tenGV: 'Trần Thị B',
-    hocKyNamHoc: 'Học kỳ 2, năm học 2025-2026',
-    ngayBatDau: '04/03/2026',
-    ngayKetThuc: '18/06/2026',
-    mauSac: '#1d9e75',
-    sinhVien: [
-      { mssv: 'DH52300591', hoTen: 'Võ Văn Hoài', lop: 'D23_TH01' },
-      { mssv: 'DH52300086', hoTen: 'Trần Quốc Anh', lop: 'D23_TH03' },
-      { mssv: 'DH52300114', hoTen: 'Nguyễn Thu Hà', lop: 'D23_TH02' },
-      { mssv: 'DH52300207', hoTen: 'Lê Minh Tuấn', lop: 'D23_TH01' },
-    ],
-    nhom: [
-      { tenNhom: 'Nhóm 1', truongNhom: 'Lê Minh Tuấn', soThanhVien: 4, deTai: 'Quản lý thư viện' },
-      { tenNhom: 'Nhóm 2', truongNhom: 'Nguyễn Thu Hà', soThanhVien: 4, deTai: 'Hệ thống bán hàng' },
-      { tenNhom: 'Nhóm 3', truongNhom: 'Võ Văn Hoài', soThanhVien: 3, deTai: 'Hệ thống thư viện' },
-    ],
-    deTai: [
-      { tenDeTai: 'Quản lý thư viện', moTa: 'Quản lý sách, độc giả, mượn trả và thống kê.', sanPhamKyVong: 'Web app + tài liệu thiết kế + demo.', ngayBatDau: '04/03/2026', ngayKetThuc: '18/06/2026', tepDinhKem: 'QuanLyThuVien.pdf', nhomDangKy: 'Nhóm 1', trangThai: 'Đã duyệt' },
-      { tenDeTai: 'Hệ thống bán hàng', moTa: 'Quản lý sản phẩm, đơn hàng và doanh thu.', sanPhamKyVong: 'Website bán hàng, báo cáo kỹ thuật và source code.', ngayBatDau: '04/03/2026', ngayKetThuc: '18/06/2026', tepDinhKem: 'HeThongBanHang.docx', nhomDangKy: 'Nhóm 2', trangThai: 'Đã đăng ký' },
-      { tenDeTai: 'Ứng dụng tuyển dụng', moTa: 'Kết nối ứng viên và nhà tuyển dụng.', sanPhamKyVong: 'Prototype quy trình đăng tin, ứng tuyển, duyệt hồ sơ.', ngayBatDau: '10/03/2026', ngayKetThuc: '18/06/2026', tepDinhKem: 'UngDungTuyenDung.pdf', nhomDangKy: 'Chưa có', trangThai: 'Chưa đăng ký' },
-    ],
-  },
-  3: {
-    maLop: 3,
-    maLopHoc: 'MMT_03',
-    tenLop: 'Mạng máy tính',
-    monHoc: 'Mạng máy tính',
-    tenGV: 'Lê Hồng C',
-    hocKyNamHoc: 'Học kỳ 2, năm học 2025-2026',
-    ngayBatDau: '07/03/2026',
-    ngayKetThuc: '27/06/2026',
-    mauSac: '#ef9f27',
-    sinhVien: [
-      { mssv: 'DH52300086', hoTen: 'Trần Quốc Anh', lop: 'D23_TH03' },
-      { mssv: 'DH52300100', hoTen: 'Nguyễn Minh Tú', lop: 'D23_TH02' },
-      { mssv: 'DH52300108', hoTen: 'Dương Bảo Châu', lop: 'D23_TH01' },
-      { mssv: 'DH52300221', hoTen: 'Võ Minh Khoa', lop: 'D23_TH03' },
-    ],
-    nhom: [
-      { tenNhom: 'Nhóm 1', truongNhom: 'Võ Minh Khoa', soThanhVien: 4, deTai: 'Thiết kế mạng LAN' },
-      { tenNhom: 'Nhóm 2', truongNhom: 'Chưa có', soThanhVien: 3, deTai: 'Chưa đăng ký đề tài' },
-      { tenNhom: 'Nhóm 3', truongNhom: 'Dương Bảo Châu', soThanhVien: 4, deTai: 'Phân tích TCP/IP' },
-    ],
-    deTai: [
-      { tenDeTai: 'Thiết kế mạng LAN', moTa: 'Phân tích yêu cầu và đề xuất mô hình mạng doanh nghiệp.', sanPhamKyVong: 'Sơ đồ mạng, bảng thiết bị, báo cáo phân tích chi phí.', ngayBatDau: '07/03/2026', ngayKetThuc: '27/06/2026', tepDinhKem: 'MMT_LAN_DoanhNghiep.pdf', nhomDangKy: 'Nhóm 1', trangThai: 'Đã đăng ký' },
-      { tenDeTai: 'Phân tích TCP/IP', moTa: 'Mô phỏng và đánh giá hoạt động của bộ giao thức TCP/IP.', sanPhamKyVong: 'Báo cáo phân tích, demo mô phỏng bằng công cụ mạng.', ngayBatDau: '07/03/2026', ngayKetThuc: '27/06/2026', tepDinhKem: 'TCPIP_Analysis.pdf', nhomDangKy: 'Nhóm 3', trangThai: 'Đã duyệt' },
-      { tenDeTai: 'Giám sát mạng nội bộ', moTa: 'Theo dõi thiết bị, cảnh báo lỗi và xuất báo cáo.', sanPhamKyVong: 'Dashboard giám sát, cảnh báo lỗi và báo cáo.', ngayBatDau: '07/03/2026', ngayKetThuc: '27/06/2026', tepDinhKem: 'GiamSatMang.docx', nhomDangKy: 'Chưa có', trangThai: 'Chưa đăng ký' },
-    ],
-  },
-};
+
 
 const tabs = [
   { key: 'info', label: 'Thông tin lớp', icon: <FaBookOpen /> },
@@ -286,37 +201,8 @@ function GroupsTab({ groups }) {
   );
 }
 
-function TopicDetailModal({ topic, maLop, groups, onRegistered, onClose }) {
-  const user = authService.getCurrentUser();
-  const [loading, setLoading] = useState(false);
-
-  // Tìm xem SV hiện tại có phải là nhóm trưởng của bất kỳ nhóm nào trong lớp này không
-  const myGroup = groups.find(g => g.maNhomTruong === user?.maNguoiDung);
-  const isLeader = !!myGroup;
-
-  // Điều kiện hiện nút: Đề tài tự do VÀ chưa có nhóm nào nhận
-  const isFreeTopic = topic.phuongThucGiao === 'Đăng ký tự do';
-  const isAvailable = !topic.daCoNhom;
-  const canRegister = isFreeTopic && isAvailable;
-
-  const handleRegister = async () => {
-    if (!window.confirm(`Bạn có chắc muốn đăng ký đề tài: ${topic.tenDeTai}?`)) return;
-    
-    setLoading(true);
-    try {
-      await deTaiService.dangKyDeTai({
-        maDeTai: topic.maDeTai,
-        maLop: parseInt(maLop)
-      });
-      alert('Đăng ký đề tài thành công!');
-      onRegistered();
-      onClose();
-    } catch (error) {
-      alert('Lỗi đăng ký: ' + error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+function TopicDetailModal({ topic, onClose }) {
+  const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5186';
 
   return (
     <div className="cd-modal-overlay" onClick={onClose}>
@@ -344,30 +230,26 @@ function TopicDetailModal({ topic, maLop, groups, onRegistered, onClose }) {
             <span>Sản phẩm kỳ vọng</span>
             <p>{topic.sanPhamKyVong}</p>
           </div>
+          {topic.tepDinhKem && (
+            <div className="cd-detail-section">
+              <span>Tài liệu đính kèm</span>
+              <p>
+                <a href={`${API_BASE_URL}${topic.tepDinhKem.duongDan}`} target="_blank" rel="noopener noreferrer" className="cd-file-link" style={{ color: '#378add', textDecoration: 'underline', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <FaClipboardList /> {topic.tepDinhKem.tenTep}
+                </a>
+              </p>
+            </div>
+          )}
         </div>
         <div className="cd-modal-footer">
           <button className="cd-modal-cancel" onClick={onClose}>Đóng</button>
-          
-          {canRegister && isLeader && (
-            <button 
-              className="cd-modal-primary" 
-              onClick={handleRegister}
-              disabled={loading}
-            >
-              {loading ? 'Đang đăng ký...' : 'Đăng ký đề tài cho nhóm'}
-            </button>
-          )}
-
-          {canRegister && !isLeader && (
-            <span className="cd-register-hint">Chỉ nhóm trưởng mới có quyền đăng ký đề tài này</span>
-          )}
         </div>
       </div>
     </div>
   );
 }
 
-function TopicsTab({ topics, groups, maLop, onRefresh }) {
+function TopicsTab({ topics, onClose }) {
   const [selectedTopic, setSelectedTopic] = useState(null);
 
   return (
@@ -394,12 +276,9 @@ function TopicsTab({ topics, groups, maLop, onRefresh }) {
         ))}
       </div>
       {selectedTopic && (
-        <TopicDetailModal 
-          topic={selectedTopic} 
-          maLop={maLop}
-          groups={groups}
-          onRegistered={onRefresh}
-          onClose={() => setSelectedTopic(null)} 
+        <TopicDetailModal
+          topic={selectedTopic}
+          onClose={() => setSelectedTopic(null)}
         />
       )}
     </div>
@@ -453,14 +332,8 @@ const StudentClassDetail = () => {
     if (activeTab === 'students') return <StudentsTab students={lopHoc.sinhVien} />;
     if (activeTab === 'groups') return <GroupsTab groups={lopHoc.nhom} />;
     if (activeTab === 'topics') return (
-      <TopicsTab 
-        topics={lopHoc.deTai} 
-        groups={lopHoc.nhom}
-        maLop={maLop} 
-        onRefresh={() => {
-          // Re-fetch data
-          classService.getClassById(maLop).then(data => setLopHoc(mapApiClassDetail(data)));
-        }} 
+      <TopicsTab
+        topics={lopHoc.deTai}
       />
     );
     return <InfoTab lopHoc={lopHoc} />;
