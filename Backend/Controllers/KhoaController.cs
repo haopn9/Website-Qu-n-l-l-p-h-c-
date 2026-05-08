@@ -20,31 +20,13 @@ public class KhoaController : ControllerBase
     // =============================================
     // 1. LẤY DANH SÁCH TẤT CẢ CÁC KHOA
     // =============================================
+     // GET: api/Detai - Lấy tất cả đề tài
     [HttpGet]
-    [AllowAnonymous] // Cho phép ai cũng có thể xem danh sách khoa (để load dropdown)
-    public async Task<IActionResult> DanhSachKhoa()
+    [AllowAnonymous] // Cho phép lấy danh sách để lọc
+    public async Task<IActionResult> Get()
     {
-        try
-        {
-            var khoas = await _db.Khoas
-                .Select(k => new
-                {
-                    maKhoa = k.MaKhoa,
-                    tenKhoa = k.TenKhoa,
-                    kyHieuKhoa = k.KyHieuKhoa,
-                    soLuongLop = k.LopSinhViens.Count,
-                    soLuongGiangVien = k.NguoiDungs.Count(u => u.MaVaiTro == 2) // Vai trò 2 là Giảng viên
-                })
-                .ToListAsync();
-
-            return Ok(khoas);
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new { thongBao = "Lỗi khi lấy danh sách khoa: " + ex.Message });
-        }
+        return Ok(await _db.Khoas.ToListAsync());
     }
-
     // =============================================
     // 2. LẤY CHI TIẾT 1 KHOA (Kèm danh sách lớp HC & Giảng viên)
     // =============================================
