@@ -72,7 +72,24 @@ public async Task<IActionResult> DangNhap([FromBody] DangNhapDto dto)
         tenVaiTro = nguoiDung.MaVaiTroNavigation.TenVaiTro;
     }
 
-    // Bước 6: Trả về dữ liệu đủ cho layout/sidebar/profile dùng maSo/anhDaiDien
+    // Bước 6: Tra cứu tên lớp hành chính từ bảng LopSinhVien
+    string? tenLopSinhVien = null;
+    if (!string.IsNullOrEmpty(nguoiDung.LopSinhVien))
+    {
+        var lopSV = await _db.LopSinhViens
+            .FirstOrDefaultAsync(l => l.MaLopSinhVien == nguoiDung.LopSinhVien);
+        tenLopSinhVien = lopSV?.TenLopSinhVien;
+    }
+
+    // Bước 7: Lấy tên khoa
+    string? tenKhoa = null;
+    if (nguoiDung.MaKhoa != null)
+    {
+        var khoa = await _db.Khoas.FindAsync(nguoiDung.MaKhoa);
+        tenKhoa = khoa?.TenKhoa;
+    }
+
+    // Bước 8: Trả về dữ liệu đủ cho layout/sidebar/profile dùng maSo/anhDaiDien
     return Ok(new
     {
         token = tokenString,
@@ -82,7 +99,14 @@ public async Task<IActionResult> DangNhap([FromBody] DangNhapDto dto)
         hoTen = nguoiDung.HoTen,
         anhDaiDien = nguoiDung.AnhDaiDien,
         email = nguoiDung.Email,
+        ngaySinh = nguoiDung.NgaySinh,
+        gioiTinh = nguoiDung.GioiTinh,
+        soDienThoai = nguoiDung.SoDienThoai,
+        diaChi = nguoiDung.DiaChi,
+        maKhoa = nguoiDung.MaKhoa,
+        tenKhoa = tenKhoa,
         lopSinhVien = nguoiDung.LopSinhVien,
+        tenLopSinhVien = tenLopSinhVien,
         maVaiTro = nguoiDung.MaVaiTro,
         tenVaiTro = tenVaiTro
     });

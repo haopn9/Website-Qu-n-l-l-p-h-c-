@@ -210,19 +210,15 @@ const ManageGroups = () => {
   };
 
   const handleDeleteGroup = async (groupId) => {
-    if (!window.confirm('Bạn có chắc muốn xóa nhóm này?')) return;
+    if (!window.confirm('Bạn có chắc muốn xóa nhóm này?\nChỉ có thể xóa khi nhóm không còn sinh viên nào.')) return;
 
     try {
-      const res = await fetch(`http://localhost:5186/api/nhom/${groupId}`, { method: 'DELETE' });
-      if (res.ok) {
-        setGroups(groups.filter((g) => g.groupId !== groupId));
-        alert('Xóa nhóm thành công!');
-      } else {
-        alert('Lỗi khi xóa nhóm!');
-      }
+      await apiClient.delete(`/api/nhom/${groupId}`);
+      setGroups(groups.filter((g) => g.groupId !== groupId));
+      alert('Xóa nhóm thành công!');
     } catch (err) {
-      console.error(err);
-      alert('Không thể kết nối API!');
+      alert(err.message || 'Không thể xóa nhóm!');
+      console.error('Lỗi xóa nhóm:', err);
     }
   };
 

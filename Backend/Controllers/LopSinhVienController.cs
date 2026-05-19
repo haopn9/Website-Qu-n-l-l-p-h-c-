@@ -103,26 +103,56 @@ public class LopSinhVienController : ControllerBase
                 return NotFound(new { thongBao = "Không tìm thấy lớp hành chính" });
             }
 
-            if (string.IsNullOrWhiteSpace(dto.TenLopSinhVien))
+            if (string.IsNullOrWhiteSpace(dto.MaLopSinhVien) || string.IsNullOrWhiteSpace(dto.TenLopSinhVien))
             {
-                return BadRequest(new { thongBao = "Tên lớp không được để trống" });
+                return BadRequest(new { thongBao = "Mã lớp và tên lớp không được để trống" });
             }
 
-            // Kiểm tra trùng tên nếu đổi tên
-            if (lopHanhChinh.TenLopSinhVien.ToLower() != dto.TenLopSinhVien.ToLower())
+            if (dto.MaLopSinhVien.Trim().ToLower() != dto.TenLopSinhVien.Trim().ToLower())
             {
-                var tonTai = await _db.LopSinhViens.AnyAsync(l => l.TenLopSinhVien.ToLower() == dto.TenLopSinhVien.ToLower());
+                return BadRequest(new { thongBao = "Mã lớp và tên lớp phải giống nhau (ví dụ: mã lớp D19_TH01 thì tên lớp D19_TH01)" });
+            }
+
+            // Kiểm tra trùng mã hoặc tên nếu thay đổi
+            if (lopHanhChinh.MaLopSinhVien.ToLower() != dto.MaLopSinhVien.ToLower() || lopHanhChinh.TenLopSinhVien.ToLower() != dto.TenLopSinhVien.ToLower())
+            {
+                var tonTai = await _db.LopSinhViens.AnyAsync(l => l.MaLopSinhVien != id && 
+                    (l.MaLopSinhVien.ToLower() == dto.MaLopSinhVien.ToLower() || l.TenLopSinhVien.ToLower() == dto.TenLopSinhVien.ToLower()));
                 if (tonTai)
                 {
-                    return BadRequest(new { thongBao = "Tên lớp đã tồn tại" });
+                    return BadRequest(new { thongBao = "Mã lớp hoặc tên lớp đã tồn tại ở lớp khác" });
                 }
             }
 
-            lopHanhChinh.TenLopSinhVien = dto.TenLopSinhVien.Trim();
-            lopHanhChinh.MaKhoa = dto.MaKhoa;
-            if (dto.DangHoatDong.HasValue)
+            // Cập nhật thông tin
+            if (lopHanhChinh.MaLopSinhVien != dto.MaLopSinhVien.Trim())
             {
-                lopHanhChinh.DangHoatDong = dto.DangHoatDong.Value;
+                // Nếu đổi mã lớp (khoá chính), ta cần xóa bản ghi cũ và tạo bản ghi mới để tránh lỗi Entity Framework
+                var coSinhVien = await _db.NguoiDungs.AnyAsync(u => u.LopSinhVien == id || u.LopSinhVien == lopHanhChinh.TenLopSinhVien);
+                if (coSinhVien)
+                {
+                    return BadRequest(new { thongBao = "Không thể đổi mã lớp vì lớp đang có sinh viên. Vui lòng chuyển sinh viên sang lớp khác trước." });
+                }
+
+                var lopMoi = new LopSinhVien
+                {
+                    MaLopSinhVien = dto.MaLopSinhVien.Trim(),
+                    TenLopSinhVien = dto.TenLopSinhVien.Trim(),
+                    MaKhoa = dto.MaKhoa,
+                    DangHoatDong = dto.DangHoatDong ?? lopHanhChinh.DangHoatDong
+                };
+
+                _db.LopSinhViens.Remove(lopHanhChinh);
+                _db.LopSinhViens.Add(lopMoi);
+            }
+            else
+            {
+                lopHanhChinh.TenLopSinhVien = dto.TenLopSinhVien.Trim();
+                lopHanhChinh.MaKhoa = dto.MaKhoa;
+                if (dto.DangHoatDong.HasValue)
+                {
+                    lopHanhChinh.DangHoatDong = dto.DangHoatDong.Value;
+                }
             }
 
             await _db.SaveChangesAsync();

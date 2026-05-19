@@ -385,18 +385,71 @@ function RedoTaskModal({ task, groupMembers, onClose, onRefresh }) {
 function CreateTaskModal({ group, onClose, onRefresh }) {
   const [tenNhiemVu, setTenNhiemVu] = useState('');
   const [moTa, setMoTa] = useState('');
+  const [ngayBatDau, setNgayBatDau] = useState('');
   const [hanHoanThanh, setHanHoanThanh] = useState('');
   const [mucDoUuTien, setMucDoUuTien] = useState('Trung bình');
   const [assignees, setAssignees] = useState([]);
   const [loading, setLoading] = useState(false);
   const [files, setFiles] = useState([]);
   const [dragover, setDragover] = useState(false);
+  const [fileError, setFileError] = useState('');
   const fileRef = useRef(null);
+
+  // Lấy ngày bắt đầu & kết thúc đề tài để validate
+  const deTaiNgayBatDau = group.ngayBatDauDeTai || null;
+  const deTaiNgayKetThuc = group.ngayKetThucDeTai || null;
+
+  const ALLOWED_TYPES = ['.txt', '.pdf', '.docx'];
+  const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+
+  const validateAndAddFiles = (newFileList) => {
+    const errors = [];
+    const valid = [];
+    Array.from(newFileList).forEach(f => {
+      const ext = '.' + f.name.split('.').pop().toLowerCase();
+      if (!ALLOWED_TYPES.includes(ext)) {
+        errors.push(`"${f.name}" — định dạng không hợp lệ (chỉ .txt, .pdf, .docx)`);
+      } else if (f.size > MAX_SIZE) {
+        errors.push(`"${f.name}" — vượt quá 5MB`);
+      } else {
+        valid.push(f);
+      }
+    });
+    if (errors.length > 0) setFileError(errors.join('\n'));
+    else setFileError('');
+    if (valid.length > 0) setFiles(prev => [...prev, ...valid]);
+  };
+
+  const toggleAssignee = (id) => {
+    setAssignees(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    );
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!tenNhiemVu.trim() || !hanHoanThanh) {
-      alert('Vui lòng điền đầy đủ các trường bắt buộc.');
+    if (!tenNhiemVu.trim()) {
+      alert('Vui lòng nhập tên nhiệm vụ.');
+      return;
+    }
+    if (!hanHoanThanh) {
+      alert('Vui lòng chọn hạn hoàn thành.');
+      return;
+    }
+    if (ngayBatDau && hanHoanThanh && new Date(ngayBatDau) >= new Date(hanHoanThanh)) {
+      alert('Ngày bắt đầu phải nhỏ hơn hạn hoàn thành.');
+      return;
+    }
+    if (deTaiNgayBatDau && ngayBatDau && new Date(ngayBatDau) < new Date(deTaiNgayBatDau)) {
+      alert(`Ngày bắt đầu task không được trước ngày bắt đầu đề tài (${new Date(deTaiNgayBatDau).toLocaleDateString('vi-VN')}).`);
+      return;
+    }
+    if (deTaiNgayKetThuc && hanHoanThanh && new Date(hanHoanThanh) > new Date(deTaiNgayKetThuc)) {
+      alert(`Hạn hoàn thành task không được sau ngày kết thúc đề tài (${new Date(deTaiNgayKetThuc).toLocaleDateString('vi-VN')}).`);
+      return;
+    }
+    if (fileError) {
+      alert('Vui lòng kiểm tra lại file đính kèm:\n' + fileError);
       return;
     }
 
@@ -406,6 +459,7 @@ function CreateTaskModal({ group, onClose, onRefresh }) {
         maNhom: group.maNhom,
         tenNhiemVu: tenNhiemVu.trim(),
         moTa: moTa.trim(),
+        ngayBatDau: ngayBatDau || null,
         hanHoanThanh,
         mucDoUuTien,
         maNguoiDungs: assignees,
@@ -437,53 +491,46 @@ function CreateTaskModal({ group, onClose, onRefresh }) {
 
         <form onSubmit={handleSubmit}>
           <div className="smg-modal-body">
+            {/* Tên công việc */}
             <div className="smg-form-group">
               <label>Tên nhiệm vụ <span className="req">*</span></label>
-              <input 
-                className="smg-input" 
-                placeholder="Ví dụ: Thiết kế giao diện Dashboard..." 
-                value={tenNhiemVu} 
-                onChange={e => setTenNhiemVu(e.target.value)} 
-                required 
+              <input
+                className="smg-input"
+                placeholder="Ví dụ: Thiết kế giao diện Dashboard..."
+                value={tenNhiemVu}
+                onChange={e => setTenNhiemVu(e.target.value)}
+                required
               />
             </div>
 
-            <div className="modal-grid">
-              <div className="smg-form-group">
-                <label>Hạn hoàn thành <span className="req">*</span></label>
-                <input 
-                  type="date" 
-                  className="smg-input" 
-                  value={hanHoanThanh} 
-                  onChange={e => setHanHoanThanh(e.target.value)} 
-                  required 
-                />
-              </div>
-              <div className="smg-form-group">
-                <label>Mức độ ưu tiên</label>
-                <select className="smg-input" value={mucDoUuTien} onChange={e => setMucDoUuTien(e.target.value)}>
-                  <option value="Cao">🔥 Cao</option>
-                  <option value="Trung bình">📋 Trung bình</option>
-                  <option value="Thấp">📌 Thấp</option>
-                </select>
-              </div>
+            {/* Mô tả công việc */}
+            <div className="smg-form-group">
+              <label>Mô tả công việc</label>
+              <textarea
+                className="smg-input"
+                rows="2"
+                placeholder="Nhập mô tả yêu cầu chi tiết..."
+                value={moTa}
+                onChange={e => setMoTa(e.target.value)}
+              />
             </div>
 
+            {/* Người phụ trách — chọn nhiều */}
             <div className="smg-form-group">
-              <label>Giao cho thành viên</label>
+              <label>Người phụ trách <span style={{ fontWeight: 400, color: '#94a3b8', fontSize: 12 }}>(có thể chọn nhiều hoặc để trống)</span></label>
               <div className="member-selection-grid">
-                <div 
+                <div
                   className={`ms-item ${assignees.length === 0 ? 'active' : ''}`}
                   onClick={() => setAssignees([])}
                 >
                   <div className="ms-av muted">--</div>
-                  <span>Chưa giao</span>
+                  <span>Không chỉ định</span>
                 </div>
                 {group.members.map(m => (
-                  <div 
-                    key={m.maNguoiDung} 
+                  <div
+                    key={m.maNguoiDung}
                     className={`ms-item ${assignees.includes(m.maNguoiDung) ? 'active' : ''}`}
-                    onClick={() => setAssignees([m.maNguoiDung])}
+                    onClick={() => toggleAssignee(m.maNguoiDung)}
                   >
                     <div className="ms-av" style={{ background: m.bg, color: m.color }}>{m.ky}</div>
                     <span className="ms-name">{m.hoTen.split(' ').pop()}</span>
@@ -492,36 +539,92 @@ function CreateTaskModal({ group, onClose, onRefresh }) {
               </div>
             </div>
 
-            <div className="smg-form-group">
-              <label>Mô tả công việc</label>
-              <textarea 
-                className="smg-input" 
-                rows="2" 
-                placeholder="Nhập mô tả yêu cầu chi tiết..." 
-                value={moTa} 
-                onChange={e => setMoTa(e.target.value)} 
-              />
+            {/* Ngày bắt đầu & Hạn hoàn thành */}
+            <div className="modal-grid">
+              <div className="smg-form-group">
+                <label>
+                  Ngày bắt đầu
+                  {deTaiNgayBatDau && (
+                    <span style={{ fontWeight: 400, color: '#94a3b8', fontSize: 11, marginLeft: 6 }}>
+                      (≥ {new Date(deTaiNgayBatDau).toLocaleDateString('vi-VN')})
+                    </span>
+                  )}
+                </label>
+                <input
+                  type="date"
+                  className="smg-input"
+                  value={ngayBatDau}
+                  min={deTaiNgayBatDau ? deTaiNgayBatDau.substring(0, 10) : undefined}
+                  onChange={e => setNgayBatDau(e.target.value)}
+                />
+              </div>
+              <div className="smg-form-group">
+                <label>
+                  Hạn hoàn thành <span className="req">*</span>
+                  {deTaiNgayKetThuc && (
+                    <span style={{ fontWeight: 400, color: '#94a3b8', fontSize: 11, marginLeft: 6 }}>
+                      (≤ {new Date(deTaiNgayKetThuc).toLocaleDateString('vi-VN')})
+                    </span>
+                  )}
+                </label>
+                <input
+                  type="date"
+                  className="smg-input"
+                  value={hanHoanThanh}
+                  min={ngayBatDau || (deTaiNgayBatDau ? deTaiNgayBatDau.substring(0, 10) : undefined)}
+                  max={deTaiNgayKetThuc ? deTaiNgayKetThuc.substring(0, 10) : undefined}
+                  onChange={e => setHanHoanThanh(e.target.value)}
+                  required
+                />
+              </div>
             </div>
 
+            {/* Mức độ ưu tiên */}
             <div className="smg-form-group">
-              <div 
+              <label>Mức độ ưu tiên</label>
+              <select className="smg-input" value={mucDoUuTien} onChange={e => setMucDoUuTien(e.target.value)}>
+                <option value="Cao">🔥 Cao</option>
+                <option value="Trung bình">📋 Trung bình</option>
+                <option value="Thấp">📌 Thấp</option>
+              </select>
+            </div>
+
+            {/* File đính kèm */}
+            <div className="smg-form-group">
+              <label>
+                File đính kèm
+                <span style={{ fontWeight: 400, color: '#94a3b8', fontSize: 11, marginLeft: 6 }}>
+                  (Chỉ .txt, .pdf, .docx — tối đa 5MB/file)
+                </span>
+              </label>
+              <div
                 className={`refined-upload-zone ${dragover ? 'dragover' : ''}`}
                 onDragOver={e => { e.preventDefault(); setDragover(true); }}
                 onDragLeave={() => setDragover(false)}
-                onDrop={e => { e.preventDefault(); setDragover(false); setFiles(prev => [...prev, ...Array.from(e.dataTransfer.files)]); }}
+                onDrop={e => { e.preventDefault(); setDragover(false); validateAndAddFiles(e.dataTransfer.files); }}
                 onClick={() => fileRef.current?.click()}
               >
-                <input type="file" hidden ref={fileRef} multiple onChange={e => setFiles(prev => [...prev, ...Array.from(e.target.files)])} />
+                <input
+                  type="file"
+                  hidden
+                  ref={fileRef}
+                  multiple
+                  accept=".txt,.pdf,.docx"
+                  onChange={e => { validateAndAddFiles(e.target.files); e.target.value = ''; }}
+                />
                 <div className="uz-text">
                   <strong>Click để đính kèm tệp</strong> hoặc kéo thả vào đây
                 </div>
               </div>
+              {fileError && (
+                <div style={{ color: '#ef4444', fontSize: 12, marginTop: 6, whiteSpace: 'pre-line' }}>{fileError}</div>
+              )}
               {files.length > 0 && (
                 <div className="file-preview-list">
                   {files.map((f, i) => (
                     <div key={i} className="fp-item">
-                      <span>{f.name}</span>
-                      <FaTimes className="fp-remove" onClick={(e) => { e.stopPropagation(); setFiles(prev => prev.filter((_, idx) => idx !== i)); }} />
+                      <span>📎 {f.name} <span style={{ color: '#94a3b8', fontSize: 11 }}>({(f.size / 1024).toFixed(0)} KB)</span></span>
+                      <FaTimes className="fp-remove" onClick={(e) => { e.stopPropagation(); setFiles(prev => prev.filter((_, idx) => idx !== i)); setFileError(''); }} />
                     </div>
                   ))}
                 </div>
@@ -540,6 +643,7 @@ function CreateTaskModal({ group, onClose, onRefresh }) {
     </div>
   );
 }
+
 
 /** Modal Chi tiết đề tài */
 function TopicDetailModal({ topic, groupName, onClose }) {
@@ -806,6 +910,8 @@ const StudentManageGroup = () => {
             maLop: g.maLop, maLopHoc: g.maLopHoc, tenLop: g.tenLop,
             deTai: g.tenDeTai !== "Chưa có đề tài" ? g.tenDeTai : null,
             maDeTaiId: g.maDeTai || tasks.find(t => t.maDeTai)?.maDeTai,
+            ngayBatDauDeTai: g.ngayBatDauDeTai || null,
+            ngayKetThucDeTai: g.ngayKetThucDeTai || null,
             members: members,
             warnings: warnings,
             kanban: kanban,
@@ -820,6 +926,8 @@ const StudentManageGroup = () => {
             maLop: g.maLop, maLopHoc: g.maLopHoc, tenLop: g.tenLop,
             deTai: g.tenDeTai !== "Chưa có đề tài" ? g.tenDeTai : null,
             maDeTaiId: g.maDeTai,
+            ngayBatDauDeTai: g.ngayBatDauDeTai || null,
+            ngayKetThucDeTai: g.ngayKetThucDeTai || null,
             members: (g.thanhVien || []).map(tv => ({ ...tv, tasks: '0/0', pct: 0 })),
             warnings: [],
             kanban: [],

@@ -219,6 +219,15 @@ public class NguoiDungController : ControllerBase
             return NotFound(new { thongBao = "Không tìm thấy thông tin người dùng" });
         }
 
+        // Tra cứu tên lớp hành chính từ bảng LopSinhVien
+        string? tenLopSinhVien = null;
+        if (!string.IsNullOrEmpty(nguoiDung.LopSinhVien))
+        {
+            var lopSV = await _db.LopSinhViens
+                .FirstOrDefaultAsync(l => l.MaLopSinhVien == nguoiDung.LopSinhVien);
+            tenLopSinhVien = lopSV?.TenLopSinhVien;
+        }
+
         // Trả về thông tin profile
         return Ok(new
         {
@@ -234,6 +243,8 @@ public class NguoiDungController : ControllerBase
             anhDaiDien = nguoiDung.AnhDaiDien,
             maKhoa = nguoiDung.MaKhoa,
             tenKhoa = nguoiDung.MaKhoaNavigation?.TenKhoa,
+            lopSinhVien = nguoiDung.LopSinhVien,
+            tenLopSinhVien = tenLopSinhVien,
             maVaiTro = nguoiDung.MaVaiTro,
             tenVaiTro = nguoiDung.MaVaiTroNavigation?.TenVaiTro,
             dangHoatDong = nguoiDung.DangHoatDong,

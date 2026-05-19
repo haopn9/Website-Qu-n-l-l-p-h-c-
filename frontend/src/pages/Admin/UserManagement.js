@@ -274,8 +274,10 @@ const UserManagement = () => {
     const hoTen = newUser.hoTen.trim();
     const email = newUser.email.trim();
     const matKhau = newUser.matKhau.trim();
+    const gioiTinh = newUser.gioiTinh;
+    const ngaySinh = newUser.ngaySinh;
 
-    if (!maSo || !tenDangNhap || !hoTen || !email || !matKhau) {
+    if (!maSo || !tenDangNhap || !hoTen || !email || !matKhau || !gioiTinh || !ngaySinh) {
       alert('Vui lòng nhập đầy đủ thông tin bắt buộc!');
       return;
     }
@@ -592,7 +594,7 @@ const UserManagement = () => {
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
                 <div className="form-group">
-                  <label>Giới tính</label>
+                  <label>Giới tính <span className="required">*</span></label>
                   <select
                     value={newUser.gioiTinh}
                     onChange={(e) => setNewUser({ ...newUser, gioiTinh: e.target.value })}
@@ -602,7 +604,7 @@ const UserManagement = () => {
                   </select>
                 </div>
                 <div className="form-group">
-                  <label>Ngày sinh</label>
+                  <label>Ngày sinh <span className="required">*</span></label>
                   <input
                     type="date"
                     value={newUser.ngaySinh}

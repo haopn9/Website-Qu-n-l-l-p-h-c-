@@ -141,11 +141,6 @@ public class NhiemVuController : ControllerBase
                 return BadRequest(new { message = "MaNhom và TenNhiemVu là bắt buộc" });
             }
 
-            if (dto.MaNguoiDungs != null && dto.MaNguoiDungs.Count > 1)
-            {
-                return BadRequest(new { message = "Mỗi nhiệm vụ chỉ được giao cho 1 thành viên" });
-            }
-
             var timeValidation = ValidateTaskDates(dto.NgayBatDau, dto.HanHoanThanh, null);
             if (!timeValidation.IsValid)
             {
@@ -158,14 +153,30 @@ public class NhiemVuController : ControllerBase
                 return BadRequest(new { message = "Nhóm không tồn tại" });
             }
 
-            // Kiểm tra MaDeTai nếu có
+            // Kiểm tra MaDeTai và ràng buộc ngày theo đề tài
+            DeTai? deTai = null;
             if (dto.MaDeTai.HasValue)
             {
-                var deTai = await _db.DeTais.FindAsync(dto.MaDeTai.Value);
+                deTai = await _db.DeTais.FindAsync(dto.MaDeTai.Value);
                 if (deTai == null)
-                {
                     return BadRequest(new { message = "Đề tài tham chiếu không tồn tại" });
-                }
+            }
+            // Nếu nhóm đã có đề tài, dùng đề tài đó
+            if (deTai == null && nhom.MaDeTai.HasValue)
+            {
+                deTai = await _db.DeTais.FindAsync(nhom.MaDeTai.Value);
+            }
+
+            // Validate ngày theo đề tài
+            if (deTai != null)
+            {
+                if (dto.NgayBatDau.HasValue && deTai.NgayBatDau.HasValue &&
+                    dto.NgayBatDau.Value.Date < deTai.NgayBatDau.Value.Date)
+                    return BadRequest(new { message = $"Ngày bắt đầu task không được trước ngày bắt đầu đề tài ({deTai.NgayBatDau.Value:dd/MM/yyyy})" });
+
+                if (dto.HanHoanThanh.HasValue && deTai.NgayKetThuc.HasValue &&
+                    dto.HanHoanThanh.Value.Date > deTai.NgayKetThuc.Value.Date)
+                    return BadRequest(new { message = $"Hạn hoàn thành task không được sau ngày kết thúc đề tài ({deTai.NgayKetThuc.Value:dd/MM/yyyy})" });
             }
 
             var nhiemVu = new NhiemVu
@@ -324,8 +335,8 @@ public class NhiemVuController : ControllerBase
                 return BadRequest(new { message = "Vui lòng chọn ít nhất 1 tệp" });
             }
 
-            const string allowedExtensions = ".pdf,.doc,.docx,.zip,.jpg,.jpeg,.png,.txt";
-            const int maxFileSizeBytes = 20 * 1024 * 1024;
+            const string allowedExtensions = ".pdf,.docx,.txt";
+            const int maxFileSizeBytes = 5 * 1024 * 1024; // 5MB
             var uploadRoot = Path.Combine(_env.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot"), "uploads", "tasks", id.ToString());
             Directory.CreateDirectory(uploadRoot);
 
@@ -538,11 +549,6 @@ public class NhiemVuController : ControllerBase
                 return BadRequest(new { message = "MaNhom và TenNhiemVu là bắt buộc" });
             }
 
-            if (dto.MaNguoiDungs != null && dto.MaNguoiDungs.Count > 1)
-            {
-                return BadRequest(new { message = "Mỗi nhiệm vụ chỉ được giao cho 1 thành viên" });
-            }
-
             var timeValidation = ValidateTaskDates(dto.NgayBatDau ?? nhiemVu.NgayBatDau, dto.HanHoanThanh ?? nhiemVu.HanHoanThanh, null);
             if (!timeValidation.IsValid)
             {
@@ -557,10 +563,26 @@ public class NhiemVuController : ControllerBase
 
             if (dto.MaDeTai.HasValue)
             {
-                var deTai = await _db.DeTais.FindAsync(dto.MaDeTai.Value);
-                if (deTai == null)
-                {
+                var deTaiRef = await _db.DeTais.FindAsync(dto.MaDeTai.Value);
+                if (deTaiRef == null)
                     return BadRequest(new { message = "Đề tài tham chiếu không tồn tại" });
+            }
+
+            // Validate ngày theo đề tài (dùng MaDeTai của dto hoặc của nhiệm vụ hiện tại)
+            var maDeTaiCheck = dto.MaDeTai ?? nhiemVu.MaDeTai;
+            if (maDeTaiCheck.HasValue)
+            {
+                var deTaiCheck = await _db.DeTais.FindAsync(maDeTaiCheck.Value);
+                if (deTaiCheck != null)
+                {
+                    var ngayBD = dto.NgayBatDau ?? nhiemVu.NgayBatDau;
+                    var hanHT = dto.HanHoanThanh ?? nhiemVu.HanHoanThanh;
+                    if (ngayBD.HasValue && deTaiCheck.NgayBatDau.HasValue &&
+                        ngayBD.Value.Date < deTaiCheck.NgayBatDau.Value.Date)
+                        return BadRequest(new { message = $"Ngày bắt đầu task không được trước ngày bắt đầu đề tài ({deTaiCheck.NgayBatDau.Value:dd/MM/yyyy})" });
+                    if (hanHT.HasValue && deTaiCheck.NgayKetThuc.HasValue &&
+                        hanHT.Value.Date > deTaiCheck.NgayKetThuc.Value.Date)
+                        return BadRequest(new { message = $"Hạn hoàn thành task không được sau ngày kết thúc đề tài ({deTaiCheck.NgayKetThuc.Value:dd/MM/yyyy})" });
                 }
             }
 

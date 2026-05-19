@@ -48,9 +48,9 @@ public class ThongKeController : ControllerBase
                     ten = n.TenNhom,
                     soDuong = n.MaSinhViens.Count,
                     toiDa = n.SoThanhVienToiDa,
-                    truongNhom = n.MaNhomTruongNavigation.HoTen,
+                    truongNhom = n.MaNhomTruongNavigation != null ? n.MaNhomTruongNavigation.HoTen : "Chưa có",
                     tienDo = n.NhiemVus.Any() ? (int)n.NhiemVus.Average(nv => nv.PhanTramHoanThanh ?? 0) : 0,
-                    deTai = n.MaDeTaiNavigation.TenDeTai ?? "(Chưa đăng ký đề tài)"
+                    deTai = n.MaDeTaiNavigation != null ? n.MaDeTaiNavigation.TenDeTai : "(Chưa đăng ký đề tài)"
                 }).ToList()
             })
             .ToListAsync();
@@ -131,8 +131,8 @@ public class ThongKeController : ControllerBase
                 n.MaNhom,
                 n.TenNhom,
                 tenLop = n.MaLopNavigation.TenLop,
-                deTai = n.MaDeTaiNavigation.TenDeTai ?? "(Chưa có đề tài)",
-                leader = n.MaNhomTruongNavigation.HoTen ?? "Chưa có",
+                deTai = n.MaDeTaiNavigation != null ? n.MaDeTaiNavigation.TenDeTai : "(Chưa có đề tài)",
+                leader = n.MaNhomTruongNavigation != null ? n.MaNhomTruongNavigation.HoTen : "Chưa có",
                 totalSlots = n.SoThanhVienToiDa,
                 members = n.MaSinhViens.Select(m => new { m.MaNguoiDung, m.HoTen }).ToList(),
                 nhiemVus = n.NhiemVus.Select(nv => new {

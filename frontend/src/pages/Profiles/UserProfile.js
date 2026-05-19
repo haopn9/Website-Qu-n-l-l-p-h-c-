@@ -2,60 +2,7 @@ import React, { useState, useEffect } from 'react';
 import './UserProfile.css';
 import { FaEdit, FaLock, FaTimes, FaEye, FaEyeSlash, FaCheck, FaTimes as FaX } from 'react-icons/fa';
 
-// ============================================================
-// MOCK DATA — đồng bộ đúng tên cột bảng NguoiDung (DB v2)
-// Sau này thay bằng: const res = await axios.get('/api/nguoidung/me')
-// ============================================================
-const MOCK_BY_ROLE = {
-  admin: {
-    maNguoiDung: 1,
-    maSo: 'ADMIN001',
-    tenDangNhap: 'admin',
-    hoTen: 'Quản trị viên hệ thống',
-    ngaySinh: '1990-01-01',
-    gioiTinh: true,           // true = Nam, false = Nữ (BIT trong DB)
-    soDienThoai: '0901234567',
-    email: 'admin@stu.edu.vn',
-    anhDaiDien: 'https://i.pravatar.cc/150?img=8',
-    diaChi: 'Quận 1, TP. HCM',
-    maKhoa: null,
-    tenKhoa: null,
-    maVaiTro: 1,
-    dangHoatDong: true,
-  },
-  teacher: {
-    maNguoiDung: 2,
-    maSo: 'GV001',
-    tenDangNhap: 'gv.nguyenvana',
-    hoTen: 'Nguyễn Văn A',
-    ngaySinh: '1985-03-15',
-    gioiTinh: true,
-    soDienThoai: '0901234567',
-    email: 'gv001@stu.edu.vn',
-    anhDaiDien: 'https://i.pravatar.cc/150?img=3',
-    diaChi: 'Quận 3, TP. HCM',
-    maKhoa: 1,
-    tenKhoa: 'Công nghệ thông tin',
-    maVaiTro: 2,
-    dangHoatDong: true,
-  },
-  student: {
-    maNguoiDung: 5,
-    maSo: 'DH52200320',
-    hoTen: 'Đặng Võ Phương Anh',
-    ngaySinh: '20-05-2003',
-    gioiTinh: false,          // false = Nữ
-    soDienThoai: '0901234567',
-    email: 'DH52200320@student.stu.edu.vn',
-    anhDaiDien: 'https://i.pravatar.cc/150?img=11',
-    diaChi: 'Quận 8, TP. HCM',
-    maKhoa: 1,
-    tenKhoa: 'Công nghệ thông tin',
-    tenLop: 'LT_WEB_01',   // Không có trong NguoiDung, join từ LopHoc khi cần
-    maVaiTro: 3,
-    dangHoatDong: true,
-  },
-};
+
 
 // ============================================================
 // HELPER: hiển thị giới tính từ BIT
@@ -90,19 +37,12 @@ const UserProfile = ({ role }) => {
   const [userData, setUserData] = useState({});
 
   useEffect(() => {
-    // TODO: thay bằng axios.get(`/api/nguoidung/me`) khi có backend
-    const mock = MOCK_BY_ROLE[role] || MOCK_BY_ROLE.student;
     const storedStr = localStorage.getItem('userInfo');
     if (storedStr) {
       const storedUser = JSON.parse(storedStr);
-      setUserData({
-        ...mock,
-        hoTen: storedUser.hoTen || mock.hoTen,
-        maSo: storedUser.maSo || mock.maSo,
-        anhDaiDien: storedUser.anhDaiDien || mock.anhDaiDien
-      });
+      setUserData(storedUser);
     } else {
-      setUserData(mock);
+      setUserData({});
     }
   }, [role]);
 
@@ -124,6 +64,11 @@ const UserProfile = ({ role }) => {
 
   const handleSaveProfile = (e) => {
     e.preventDefault();
+    const email = editForm.email || '';
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      alert('Email chưa đúng định dạng. Vui lòng kiểm tra lại!');
+      return;
+    }
     // TODO: axios.put('/api/nguoidung/me', editForm)
     setUserData(prev => ({ ...prev, ...editForm }));
     setIsEditOpen(false);
@@ -150,10 +95,10 @@ const UserProfile = ({ role }) => {
 
   // Quy chuẩn pass mới — tính realtime
   const rules = {
-    length : newPass.length >= 8,
-    lower  : /[a-z]/.test(newPass),
-    upper  : /[A-Z]/.test(newPass),
-    number : /[0-9]/.test(newPass),
+    length: newPass.length >= 8,
+    lower: /[a-z]/.test(newPass),
+    upper: /[A-Z]/.test(newPass),
+    number: /[0-9]/.test(newPass),
     special: /[!@#$%^&*(),.?":{}|<>]/.test(newPass),
     noSpace: !/\s/.test(newPass) && newPass.length > 0,
     noAccountCode: newPass.length > 0 ? (!userData.maSo || !newPass.includes(userData.maSo)) : false,
@@ -283,11 +228,11 @@ const UserProfile = ({ role }) => {
             </div>
           )}
 
-          {/* Chỉ hiện LỚP cho SV */}
+          {/* Chỉ hiện LỚP HÀNH CHÍNH cho SV */}
           {role === 'student' && (
             <div className="info-item">
-              <span className="info-label">Lớp</span>
-              <span className="info-value">{userData.tenLop || '—'}</span>
+              <span className="info-label">Lớp hành chính</span>
+              <span className="info-value">{userData.tenLopSinhVien || '—'}</span>
             </div>
           )}
 
@@ -364,8 +309,8 @@ const UserProfile = ({ role }) => {
                 )}
                 {role === 'student' && (
                   <div className="form-group">
-                    <label>Lớp</label>
-                    <input value={userData.tenLop || ''} disabled className="input-readonly" />
+                    <label>Lớp hành chính</label>
+                    <input value={userData.tenLopSinhVien || ''} disabled className="input-readonly" />
                   </div>
                 )}
               </div>
@@ -389,11 +334,15 @@ const UserProfile = ({ role }) => {
                 <label>Email</label>
                 <input
                   type="email" name="email"
-                  value={editForm.email}
+                  value={editForm.email || ''}
                   onChange={handleEditChange}
                   placeholder="Nhập email"
+                  className={editForm.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(editForm.email.trim()) ? 'input-error' : ''}
                   required
                 />
+                {editForm.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(editForm.email.trim()) && (
+                  <span className="field-error" style={{ color: '#ef4444', fontSize: '12px', marginTop: '4px', display: 'block' }}>Email chưa đúng định dạng.</span>
+                )}
               </div>
               <div className="form-group">
                 <label>Địa chỉ</label>
@@ -509,8 +458,8 @@ const UserProfile = ({ role }) => {
 
               <div className="modal-footer">
                 <button type="button" className="btn-cancel" onClick={closePassModal}>Hủy</button>
-                <button 
-                  type="submit" 
+                <button
+                  type="submit"
                   className={`btn-save ${(!allRulesOk || confirmPass !== newPass || oldPass === '') ? 'btn-disabled' : ''}`}
                   disabled={!allRulesOk || confirmPass !== newPass || oldPass === ''}
                 >

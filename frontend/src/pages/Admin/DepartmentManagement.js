@@ -21,6 +21,7 @@ const DepartmentManagement = () => {
   const [newClassName, setNewClassName] = useState('');
   const [newClassCode, setNewClassCode] = useState('');
   const [editingClassCode, setEditingClassCode] = useState(null);
+  const [editClassCode, setEditClassCode] = useState('');
   const [editClassName, setEditClassName] = useState('');
   const [classFilter, setClassFilter] = useState('');
 
@@ -167,7 +168,7 @@ const DepartmentManagement = () => {
   };
 
   const handleUpdateClass = async (maLop) => {
-    if (!editClassName) return alert('Vui lòng nhập tên lớp');
+    if (!editClassCode || !editClassName) return alert('Vui lòng nhập mã và tên lớp');
     try {
       const res = await fetch(`http://localhost:5186/api/lopsinhvien/${maLop}`, {
         method: 'PUT',
@@ -175,7 +176,7 @@ const DepartmentManagement = () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
-        body: JSON.stringify({ maLopSinhVien: maLop, tenLopSinhVien: editClassName, maKhoa: selectedDeptId })
+        body: JSON.stringify({ maLopSinhVien: editClassCode, tenLopSinhVien: editClassName, maKhoa: selectedDeptId })
       });
       if (res.ok) {
         fetchDeptDetails(selectedDeptId);
@@ -373,7 +374,9 @@ const DepartmentManagement = () => {
                             <tr key={cls.maLop} style={{ background: idx % 2 === 0 ? '#fff' : '#fafafa', borderBottom: '1px solid #f1f5f9' }}>
                               {editingClassCode === cls.maLop ? (
                                 <>
-                                  <td style={{ padding: '10px 15px', fontFamily: 'monospace', fontWeight: 'bold' }}>{cls.maLop}</td>
+                                  <td style={{ padding: '10px 15px' }}>
+                                    <input type="text" value={editClassCode} onChange={e => setEditClassCode(e.target.value)} style={{ width: '100%', padding: '6px', border: '1px solid #cbd5e1', borderRadius: '4px', fontFamily: 'monospace', fontWeight: 'bold' }} />
+                                  </td>
                                   <td style={{ padding: '10px 15px' }}>
                                     <input type="text" value={editClassName} onChange={e => setEditClassName(e.target.value)} style={{ width: '100%', padding: '6px', border: '1px solid #cbd5e1', borderRadius: '4px' }} />
                                   </td>
@@ -387,7 +390,7 @@ const DepartmentManagement = () => {
                                   <td style={{ padding: '12px 15px', fontFamily: 'monospace', fontWeight: 'bold', color: '#1e293b' }}>{cls.maLop}</td>
                                   <td style={{ padding: '12px 15px', color: '#334155' }}>{cls.tenLop}</td>
                                   <td style={{ padding: '12px 15px', textAlign: 'center' }}>
-                                    <button onClick={() => { setEditingClassCode(cls.maLop); setEditClassName(cls.tenLop); }} style={{ background: 'transparent', border: 'none', color: '#f59e0b', cursor: 'pointer', marginRight: '15px' }} title="Sửa"><FaEdit /></button>
+                                    <button onClick={() => { setEditingClassCode(cls.maLop); setEditClassCode(cls.maLop); setEditClassName(cls.tenLop); }} style={{ background: 'transparent', border: 'none', color: '#f59e0b', cursor: 'pointer', marginRight: '15px' }} title="Sửa"><FaEdit /></button>
                                     <button onClick={() => handleDeleteClass(cls.maLop)} style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer' }} title="Xóa"><FaTrash /></button>
                                   </td>
                                 </>

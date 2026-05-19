@@ -275,7 +275,7 @@ public class LopHocController : ControllerBase
                         hoTen = sv.HoTen,
                         email = sv.Email,
                         lopSinhVien = sv.LopSinhVien,
-                        tenNhom = l.Nhoms.FirstOrDefault(n => n.MaSinhViens.Any(s => s.MaNguoiDung == sv.MaNguoiDung)).TenNhom ?? "",
+                        tenNhom = l.Nhoms.Where(n => n.MaSinhViens.Any(s => s.MaNguoiDung == sv.MaNguoiDung)).Select(n => n.TenNhom).FirstOrDefault() ?? "",
                         laNhomTruong = l.Nhoms.Any(n => n.MaNhomTruong == sv.MaNguoiDung)
                     }).ToList(),
 
@@ -287,10 +287,10 @@ public class LopHocController : ControllerBase
                         tenNhom = n.TenNhom,
                         soThanhVienHienTai = n.MaSinhViens.Count,
                         soThanhVienToiDa = n.SoThanhVienToiDa,
-                        tenDeTai = n.MaDeTaiNavigation.TenDeTai ?? "",
+                        tenDeTai = n.MaDeTaiNavigation != null ? n.MaDeTaiNavigation.TenDeTai : "",
                         maDeTai = n.MaDeTai,
                         maNhomTruong = n.MaNhomTruong,
-                        tenNhomTruong = n.MaNhomTruongNavigation.HoTen ?? "",
+                        tenNhomTruong = n.MaNhomTruongNavigation != null ? n.MaNhomTruongNavigation.HoTen : "",
                         thanhViens = n.MaSinhViens.Select(sv => new
                         {
                             maNguoiDung = sv.MaNguoiDung,
@@ -312,7 +312,7 @@ public class LopHocController : ControllerBase
                         ngayKetThuc = dt.NgayKetThuc,
                         phuongThucGiao = dt.PhuongThucGiao ?? "Đăng ký tự do",
                         daCoNhom = dt.Nhoms.Any(),
-                        tenNhom = dt.Nhoms.FirstOrDefault().TenNhom ?? "",
+                        tenNhom = dt.Nhoms.Select(n => n.TenNhom).FirstOrDefault() ?? "",
                         tepDinhKem = dt.TepDinhKems
                             .Select(t => new { t.MaTep, t.TenTep, duongDan = t.DuongDanTep })
                             .FirstOrDefault()

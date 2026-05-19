@@ -61,6 +61,8 @@ public class NhomController : ControllerBase
                 soThanhVienToiDa = nhom.SoThanhVienToiDa,
                 maDeTai = nhom.MaDeTai,
                 tenDeTai = nhom.MaDeTaiNavigation?.TenDeTai ?? "Chưa có đề tài",
+                ngayBatDauDeTai = nhom.MaDeTaiNavigation?.NgayBatDau,
+                ngayKetThucDeTai = nhom.MaDeTaiNavigation?.NgayKetThuc,
                 choPhepDangKyNhom = nhom.MaLopNavigation?.ChoPhepDangKyNhom, // Lấy trạng thái chốt nhóm
                 thanhVien = nhom.MaSinhViens.Select(sv => new {
                     maNguoiDung = sv.MaNguoiDung,
@@ -472,8 +474,59 @@ public class NhomController : ControllerBase
 
     // =============================================
     // XÓA NHÓM
-    // DELETE: api/nhom/1
+    // DELETE: api/nhom/{maNhom}
     // =============================================
+    [HttpDelete("{maNhom}")]
+    [Authorize]
+    public async Task<IActionResult> XoaNhom(int maNhom)
+    {
+        // Bước 1: Lấy thông tin người dùng từ JWT
+        var claimMaNguoiDung = User.FindFirstValue("maNguoiDung");
+        var claimMaVaiTro = User.FindFirstValue("maVaiTro");
+        if (string.IsNullOrEmpty(claimMaNguoiDung))
+        {
+            return Unauthorized(new { thongBao = "Chưa đăng nhập" });
+        }
+
+        int maNguoiDung = int.Parse(claimMaNguoiDung);
+        int maVaiTro = int.Parse(claimMaVaiTro ?? "0");
+
+        // Bước 2: Chỉ giảng viên mới được xóa nhóm
+        if (maVaiTro != 2)
+        {
+            return StatusCode(403, new { thongBao = "Chỉ giảng viên mới được xóa nhóm" });
+        }
+
+        // Bước 3: Tìm nhóm kèm danh sách thành viên và lớp học
+        Nhom? nhom = await _db.Nhoms
+            .Include(n => n.MaSinhViens)
+            .Include(n => n.MaLopNavigation)
+            .FirstOrDefaultAsync(n => n.MaNhom == maNhom);
+
+        if (nhom == null)
+        {
+            return NotFound(new { thongBao = "Không tìm thấy nhóm" });
+        }
+
+        // Bước 4: Kiểm tra giảng viên có phụ trách lớp chứa nhóm này không
+        if (nhom.MaLopNavigation.MaGiangVien != maNguoiDung)
+        {
+            return StatusCode(403, new { thongBao = "Bạn chỉ được xóa nhóm thuộc lớp mình phụ trách" });
+        }
+
+        // Bước 5: Kiểm tra nhóm có sinh viên chưa — nếu có thì từ chối
+        if (nhom.MaSinhViens.Any())
+        {
+            return BadRequest(new { thongBao = $"Không thể xóa nhóm vì còn {nhom.MaSinhViens.Count} sinh viên trong nhóm. Vui lòng xóa hết thành viên trước." });
+        }
+
+        // Bước 6: Xóa nhóm
+        _db.Nhoms.Remove(nhom);
+        await _db.SaveChangesAsync();
+
+        return Ok(new { thongBao = "Xóa nhóm thành công" });
+    }
+
     // =============================================
     // PHÂN NHÓM NGẪU NHIÊN
     // POST: api/nhom/phan-nhom-ngau-nhien
@@ -532,24 +585,8 @@ public class NhomController : ControllerBase
         });
     }
 
-    [HttpDelete("{maNhom}")]
-    public async Task<IActionResult> XoaNhom(int maNhom)
-    {
-        // Bước 1: Tìm nhóm
-        Nhom? nhom = await _db.Nhoms.FindAsync(maNhom);
-
-        if (nhom == null)
-        {
-            return NotFound(new { thongBao = "Không tìm thấy nhóm" });
-        }
-
-        // Bước 2: Xóa nhóm
-        _db.Nhoms.Remove(nhom);
-        await _db.SaveChangesAsync();
-
-        return Ok(new { thongBao = "Xóa nhóm thành công" });
-    }
 }
+
 
 
 // =============================================
